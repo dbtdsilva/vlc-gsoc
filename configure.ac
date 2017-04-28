@@ -1821,6 +1821,11 @@ dnl
 PKG_ENABLE_MODULES_VLC([DSM], [dsm], [libdsm >= 0.2.0], [libdsm SMB/CIFS access/sd module], [auto])
 
 dnl
+dnl  cloud access support with libcloudstorage
+dnl
+PKG_ENABLE_MODULES_VLC([CLOUDSTORAGE], [cloudstorage], [libcloudstorage], [cloudstorage access], [auto])
+
+dnl
 dnl sftp access support
 dnl
 PKG_ENABLE_MODULES_VLC([SFTP], [sftp], [libssh2], (support SFTP file transfer via libssh2), [auto])
