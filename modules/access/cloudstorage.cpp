@@ -38,25 +38,38 @@
 #include <vlc_services_discovery.h>
 #include <vlc_keystore.h>
 
+using cloudstorage::ICloudStorage;
 using cloudstorage::ICloudProvider;
 using cloudstorage::IDownloadFileCallback;
 using cloudstorage::IItem;
 
 static int Open(vlc_object_t *);
 static void Close(vlc_object_t *);
+static int SDOpen( vlc_object_t * );
+static void SDClose( vlc_object_t * );
+static int vlc_sd_probe_Open( vlc_object_t * );
+
 static int readDir(stream_t *, input_item_node_t *);
 static int add_item(struct access_fsdir *, stream_t *, IItem::Pointer);
 static int getDir(stream_t *, input_item_node_t *);
 static std::vector<std::string> parseUrl(std::string);
 
 vlc_module_begin()
-set_shortname(N_("cloudstorage"))
-set_capability("access", 0)
-set_description(N_("cloud input"))
-set_category(CAT_INPUT)
-set_subcategory(SUBCAT_INPUT_ACCESS)
-set_callbacks(Open, Close)
+    set_shortname(N_("cloudstorage"))
+    set_capability("access", 0)
+    set_description(N_("cloudstorage input"))
+    set_category(CAT_INPUT)
+    set_subcategory(SUBCAT_INPUT_ACCESS)
+    set_callbacks(Open, Close)
 
+    add_submodule()
+        set_description( N_("cloudstorage services discovery") )
+        set_category( CAT_PLAYLIST )
+        set_subcategory( SUBCAT_PLAYLIST_SD )
+        set_capability( "services_discovery", 0 )
+        set_callbacks( SDOpen, SDClose )
+
+        VLC_SD_PROBE_SUBMODULE
 vlc_module_end()
 
 /*
@@ -137,6 +150,47 @@ access_sys_t::access_sys_t(vlc_object_t *p_this)
 
     if (vlc_keystore_find(p_keystore_, ppsz_values, &p_entries) > 0)
         token_ = (char *)p_entries[0].p_secret;
+}
+
+static int SDOpen( vlc_object_t *p_this ) {
+    services_discovery_t *p_sd = (services_discovery_t *) p_this;
+    p_sd->description = _("Services Discovery");
+
+    msg_Dbg(p_sd, "Opened Services Discovery");
+    cloudstorage::ICloudStorage::Pointer storage = cloudstorage::ICloudStorage::create();
+    for ( const auto& provider : storage->providers() ) {
+        const char * provider_name = provider->name().c_str();
+        msg_Dbg( p_sd, "Provider name: %s", provider_name );
+
+        char *uri;
+        if (asprintf(&uri, "cloudstorage://%s/", provider_name) < 0)
+            continue;
+        input_item_t* p_item = input_item_New( uri, provider_name );
+        if (p_item == NULL)
+            continue;
+
+        services_discovery_AddItem( p_sd, p_item );
+        msg_Dbg( p_sd, "Added provider %s with URI: %s", provider_name, uri );
+
+        input_item_Release ( p_item );
+        free(uri);
+    }
+
+    msg_Dbg( p_sd, "SDOpen ended" );
+    return VLC_SUCCESS;
+}
+
+static void SDClose( vlc_object_t *p_this ) {
+    msg_Dbg(p_this, "Closed Services Discovery");
+}
+
+static int vlc_sd_probe_Open( vlc_object_t *obj )
+{
+    fprintf(stderr, "Opened probe");
+    vlc_probe_t *probe = (vlc_probe_t *) obj;
+
+    return vlc_sd_probe_Add( probe, "cloudstorage", N_("Cloud Services"),
+        SD_CAT_INTERNET );
 }
 
 static int add_item(struct access_fsdir *p_fsdir, stream_t *p_access, IItem::Pointer item)
