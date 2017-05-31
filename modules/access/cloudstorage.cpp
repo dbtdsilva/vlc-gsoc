@@ -63,7 +63,7 @@ vlc_module_begin()
     set_callbacks(Open, Close)
 
     add_submodule()
-        set_description( N_("cloudstorage services discovery") )
+        set_description( N_("Cloudstorage Services Discovery") )
         set_category( CAT_PLAYLIST )
         set_subcategory( SUBCAT_PLAYLIST_SD )
         set_capability( "services_discovery", 0 )
@@ -136,7 +136,7 @@ access_sys_t::access_sys_t(vlc_object_t *p_this)
 {
     vlc_keystore_entry *p_entries;
 
-    provider_name_ = "box";
+    provider_name_ = "dropbox";
     p_keystore_ = vlc_get_memory_keystore(p_this);
     if (p_keystore_ == nullptr)
         throw std::bad_alloc();
@@ -154,7 +154,7 @@ access_sys_t::access_sys_t(vlc_object_t *p_this)
 
 static int SDOpen( vlc_object_t *p_this ) {
     services_discovery_t *p_sd = (services_discovery_t *) p_this;
-    p_sd->description = _("Services Discovery");
+    p_sd->description = _("Cloud Storage");
 
     msg_Dbg(p_sd, "Opened Services Discovery");
     cloudstorage::ICloudStorage::Pointer storage = cloudstorage::ICloudStorage::create();
@@ -163,7 +163,7 @@ static int SDOpen( vlc_object_t *p_this ) {
         msg_Dbg( p_sd, "Provider name: %s", provider_name );
 
         char *uri;
-        if (asprintf(&uri, "cloudstorage://%s/", provider_name) < 0)
+        if (asprintf(&uri, "cloudstorage://") < 0)
             continue;
         input_item_t* p_item = input_item_New( uri, provider_name );
         if (p_item != NULL) {
@@ -187,7 +187,7 @@ static int vlc_sd_probe_Open( vlc_object_t *obj )
     fprintf(stderr, "Opened probe");
     vlc_probe_t *probe = (vlc_probe_t *) obj;
 
-    return vlc_sd_probe_Add( probe, "cloudstorage", N_("Cloud Services"),
+    return vlc_sd_probe_Add( probe, N_("cloudstorage"), N_("Cloud Storage"),
         SD_CAT_INTERNET );
 }
 
