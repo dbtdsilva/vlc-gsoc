@@ -166,13 +166,11 @@ static int SDOpen( vlc_object_t *p_this ) {
         if (asprintf(&uri, "cloudstorage://%s/", provider_name) < 0)
             continue;
         input_item_t* p_item = input_item_New( uri, provider_name );
-        if (p_item == NULL)
-            continue;
-
-        services_discovery_AddItem( p_sd, p_item );
-        msg_Dbg( p_sd, "Added provider %s with URI: %s", provider_name, uri );
-
-        input_item_Release ( p_item );
+        if (p_item != NULL) {
+            services_discovery_AddItem( p_sd, p_item );
+            msg_Dbg( p_sd, "Added provider %s with URI: %s", provider_name, uri );
+            input_item_Release ( p_item );
+        }
         free(uri);
     }
 
