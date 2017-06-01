@@ -1,5 +1,5 @@
 /*****************************************************************************
- * cloudstorage.cpp: cloud access module using libcloudstorage for VLC
+ * access.cpp: cloud storage access module using libcloudstorage
  *****************************************************************************
  * Copyright (C) 2017 William Ung
  *
@@ -21,31 +21,33 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif /* HAVE_CONFIG_H */
+#include <sstream>
+#include <ICloudProvider.h>
+#include <IItem.h>
 
-#include <vlc_plugin.h>
+#include <vlc_common.h>
+#include <vlc_access.h>
+#include <vlc_input.h>
+#include <vlc_keystore.h>
 
-#include "cloudstorage/access.h"
-#include "cloudstorage/services_discovery.h"
+int Open( vlc_object_t * );
+void Close( vlc_object_t * );
 
-vlc_module_begin()
-    set_shortname(N_("cloudstorage"))
-    set_capability("access", 0)
-    set_description(N_("cloudstorage input"))
-    set_category(CAT_INPUT)
-    set_subcategory(SUBCAT_INPUT_ACCESS)
-    // callbacks are defined under cloudstorage/access.h
-    set_callbacks(Open, Close)
+struct access_sys_t
+{
+    cloudstorage::ICloudProvider::Pointer provider_;
+    std::string provider_name_;
+    std::string token_;
 
-    add_submodule()
-        set_description( N_("Cloudstorage Services Discovery") )
-        set_category( CAT_PLAYLIST )
-        set_subcategory( SUBCAT_PLAYLIST_SD )
-        set_capability( "services_discovery", 0 )
-        // callbacks are defined under cloudstorage/services_discovery.h
-        set_callbacks( SDOpen, SDClose )
+    vlc_keystore *p_keystore_;
+    char *ppsz_values[KEY_MAX];
 
-        VLC_SD_PROBE_SUBMODULE
-vlc_module_end()
+    cloudstorage::IItem::Pointer current_item_;
+    std::vector<std::string> directory_stack_;
+    std::vector<cloudstorage::IItem::Pointer> directory_list_;
+
+    cloudstorage::ICloudProvider::ListDirectoryRequest::
+        Pointer list_directory_request_;
+
+    access_sys_t(vlc_object_t *);
+};
