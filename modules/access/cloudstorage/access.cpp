@@ -24,6 +24,7 @@
 #include "access.h"
 
 #include <algorithm>
+#include <sstream>
 #include <ICloudStorage.h>
 #include <IRequest.h>
 
@@ -32,172 +33,186 @@ using cloudstorage::ICloudProvider;
 using cloudstorage::IDownloadFileCallback;
 using cloudstorage::IItem;
 
+static int add_item( struct access_fsdir *, stream_t *, IItem::Pointer );
+static int readDir( stream_t *, input_item_node_t * );
+static std::vector<std::string> parseUrl( std::string );
+static int getDir( stream_t *, input_item_node_t * );
+
 class Callback : public ICloudProvider::ICallback {
 public:
-    Callback(access_t *access, access_sys_t *sys) : p_access(access), p_sys(sys) {}
+    Callback( access_t *access, access_sys_t *sys ) :
+        p_access(access), p_sys(sys) {}
 
-    Status userConsentRequired(const ICloudProvider& provider) override
+    Status userConsentRequired( const ICloudProvider& provider ) override
     {
-        msg_Info(p_access, "User ConsentRequired at : %s", provider.authorizeLibraryUrl().c_str());
+        msg_Info( p_access, "User ConsentRequired at : %s",
+                provider.authorizeLibraryUrl().c_str() );
         return Status::WaitForAuthorizationCode;
     }
 
-    void accepted(const ICloudProvider& provider) override
+    void accepted( const ICloudProvider& provider ) override
     {
         p_sys->token_ = provider.token();
-        vlc_keystore_store(p_sys->p_keystore_, p_sys->ppsz_values,
+        vlc_keystore_store( p_sys->p_keystore_, p_sys->ppsz_values,
             (const uint8_t *)p_sys->token_.c_str(), p_sys->token_.size(),
-            p_sys->provider_name_.c_str());
+            p_sys->provider_name_.c_str() );
     }
 
-    void declined(const ICloudProvider&) override
+    void declined( const ICloudProvider& ) override
     {
-        Close((vlc_object_t*)p_access);
+        Close( (vlc_object_t*)p_access );
     }
 
-    void error(const ICloudProvider&, const std::string& desc) override
+    void error( const ICloudProvider&, const std::string& desc ) override
     {
-        msg_Err(p_access, "%s", desc.c_str());
-        Close((vlc_object_t*)p_access);
+        msg_Err( p_access, "%s", desc.c_str() );
+        Close( (vlc_object_t*)p_access );
     }
 
     access_t *p_access;
     access_sys_t *p_sys;
 };
 
-access_sys_t::access_sys_t(vlc_object_t *p_this)
+int Open( vlc_object_t *p_this )
+{
+    access_t *p_access = (access_t*) p_this;
+    access_sys_t *p_sys;
+
+    try
+    {
+        p_access->p_sys = p_sys = new(std::nothrow) access_sys_t( p_this );
+        if ( p_sys == nullptr )
+            return VLC_ENOMEM;
+        p_sys->provider_->initialize({
+            p_sys->token_,
+            std::unique_ptr<Callback>(
+                new Callback( (access_t*)p_this, p_sys) ),
+                nullptr,
+                nullptr,
+                nullptr,
+                {}
+        });
+        p_sys->current_item_ = p_sys->provider_->rootDirectory();
+        p_access->pf_control = access_vaDirectoryControlHelper;
+        p_access->pf_readdir = getDir;
+        return VLC_SUCCESS;
+    }
+    catch ( std::exception& e )
+    {
+        msg_Err( p_access, "%s", e.what() );
+        goto error;
+    }
+
+ error:
+    Close( p_this );
+    return VLC_EGENERIC;
+}
+
+void Close( vlc_object_t *p_this )
+{
+    access_t *p_access = (access_t*) p_this;
+    access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
+
+    delete p_sys;
+}
+
+access_sys_t::access_sys_t( vlc_object_t *p_this )
 {
     vlc_keystore_entry *p_entries;
 
     provider_name_ = "dropbox";
-    p_keystore_ = vlc_get_memory_keystore(p_this);
+    p_keystore_ = vlc_get_memory_keystore( p_this );
     if (p_keystore_ == nullptr)
         throw std::bad_alloc();
-    provider_ = cloudstorage::ICloudStorage::create()->provider(provider_name_);
+    provider_ = cloudstorage::ICloudStorage::
+            create()->provider( provider_name_ );
     if (!provider_)
         throw std::bad_alloc();
-    VLC_KEYSTORE_VALUES_INIT(ppsz_values);
+    VLC_KEYSTORE_VALUES_INIT( ppsz_values );
     ppsz_values[KEY_PROTOCOL] = "cloudstorage";
     ppsz_values[KEY_USER] = "cloudstorage user";
     ppsz_values[KEY_SERVER] = "cloudstorage";
 
-    if (vlc_keystore_find(p_keystore_, ppsz_values, &p_entries) > 0)
-        token_ = (char *)p_entries[0].p_secret;
+    if ( vlc_keystore_find( p_keystore_, ppsz_values, &p_entries ) > 0 )
+        token_ = (char *) p_entries[0].p_secret;
 }
 
 
-static int add_item(struct access_fsdir *p_fsdir, stream_t *p_access, IItem::Pointer item)
+static int add_item( struct access_fsdir *p_fsdir, stream_t *p_access,
+                     IItem::Pointer item )
 {
-    access_sys_t *p_sys = (access_sys_t*)p_access->p_sys;
+    access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
     ICloudProvider::Pointer provider = p_sys->provider_;
     std::string url;
     int i_type;
 
-    if (item->type() == IItem::FileType::Directory)
+    if ( item->type() == IItem::FileType::Directory )
     {
         url = p_access->psz_url + item->filename() + "/";
         i_type = ITEM_TYPE_DIRECTORY;
     }
     else
     {
-        item = provider->getItemDataAsync(item->id())->result();
+        item = provider->getItemDataAsync( item->id() )->result();
         url = item->url();
         i_type = ITEM_TYPE_FILE;
     }
-    return access_fsdir_additem(p_fsdir, url.c_str(), item->filename().c_str(), i_type, ITEM_NET);
+    return access_fsdir_additem( p_fsdir, url.c_str(), item->filename().c_str(),
+                                 i_type, ITEM_NET );
 }
 
-static int readDir(stream_t *p_access, input_item_node_t *p_node)
+static int readDir( stream_t *p_access, input_item_node_t *p_node )
 {
-    access_sys_t *p_sys = (access_sys_t*)p_access->p_sys;
+    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     struct access_fsdir fsdir;
 
-    p_sys->list_directory_request_ = p_sys->provider_->listDirectoryAsync(p_sys->current_item_);
+    p_sys->list_directory_request_ = p_sys->provider_->
+            listDirectoryAsync( p_sys->current_item_ );
     p_sys->directory_list_ = p_sys->list_directory_request_->result();
-    access_fsdir_init(&fsdir, p_access, p_node);
+    access_fsdir_init( &fsdir, p_access, p_node );
 
-    auto finish = [&](int error)
+    auto finish = [&]( int error )
     {
-        access_fsdir_finish(&fsdir, error);
+        access_fsdir_finish( &fsdir, error );
         return error;
     };
 
-    for (auto &i : p_sys->directory_list_)
-        if (add_item(&fsdir, p_access, i))
-            return finish(VLC_EGENERIC);
-    return finish(VLC_SUCCESS);
+    for ( auto &i : p_sys->directory_list_ )
+        if ( add_item(&fsdir, p_access, i) )
+            return finish( VLC_EGENERIC );
+    return finish( VLC_SUCCESS );
 }
 
-static std::vector<std::string> parseUrl(std::string url)
+static std::vector<std::string> parseUrl( std::string url )
 {
     std::vector<std::string> parts;
     url = url.substr(15);     // length of "cloudstorage://"
     std::istringstream iss(url);
 
-    for (std::string s; std::getline(iss, s, '/'); )
+    for ( std::string s; std::getline(iss, s, '/'); )
         parts.push_back(s);
     return parts;
 }
 
-static int getDir(stream_t *p_access, input_item_node_t *p_node)
+static int getDir( stream_t *p_access, input_item_node_t *p_node )
 {
-    access_sys_t *p_sys = (access_sys_t*)p_access->p_sys;
+    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
 
-    if (strcmp(p_access->psz_url, "cloudstorage://") == 0)
+    if ( strcmp(p_access->psz_url, "cloudstorage://") == 0 )
         readDir(p_access, p_node);
     else
     {
         p_sys->directory_stack_ = parseUrl(p_access->psz_url);
         for (auto &name : p_sys->directory_stack_)
         {
-            p_sys->list_directory_request_ = p_sys->provider_->listDirectoryAsync(p_sys->current_item_);
+            p_sys->list_directory_request_ = p_sys->provider_->
+                    listDirectoryAsync( p_sys->current_item_ );
             auto v = p_sys->list_directory_request_->result();
-            p_sys->current_item_ = *std::find_if(v.begin(),v.end(),
-                                                 [&name](IItem::Pointer item)
-                                                 {return item->filename() == name;});
+            p_sys->current_item_ = *std::find_if( v.begin(),v.end(),
+                                        [&name](IItem::Pointer item)
+                                        { return item->filename() == name; });
         }
-        readDir(p_access, p_node);
+        readDir( p_access, p_node );
     }
     return VLC_SUCCESS;
-}
-
-int Open(vlc_object_t *p_this)
-{
-    access_t *p_access = (access_t*)p_this;
-    access_sys_t *p_sys;
-
-    try
-    {
-        p_access->p_sys = p_sys = new(std::nothrow) access_sys_t(p_this);
-        if (p_sys == nullptr)
-            return VLC_ENOMEM;
-        p_sys->provider_->initialize(
-            {
-                p_sys->token_,
-                std::unique_ptr<Callback>(new Callback((access_t*)p_this, p_sys)),
-                nullptr, nullptr, nullptr, {}
-            });
-        p_sys->current_item_ = p_sys->provider_->rootDirectory();
-        p_access->pf_control = access_vaDirectoryControlHelper;
-        p_access->pf_readdir = getDir;
-        return VLC_SUCCESS;
-    }
-
-    catch (std::exception& e)
-    {
-        msg_Err(p_access, "%s", e.what());
-        goto error;
-    }
-
- error:
-    Close(p_this);
-    return VLC_EGENERIC;
-}
-
-void Close(vlc_object_t *p_this)
-{
-    access_t *p_access = (access_t*)p_this;
-    access_sys_t *p_sys = (access_sys_t*)p_access->p_sys;
-
-    delete p_sys;
 }

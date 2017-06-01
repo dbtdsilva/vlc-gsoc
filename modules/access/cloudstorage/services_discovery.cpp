@@ -33,33 +33,31 @@ using cloudstorage::ICloudStorage;
 
 int vlc_sd_probe_Open( vlc_object_t *obj )
 {
-    fprintf(stderr, "Opened probe");
     vlc_probe_t *probe = (vlc_probe_t *) obj;
-
     return vlc_sd_probe_Add( probe, N_("cloudstorage"), N_("Cloud Storage"),
         SD_CAT_INTERNET );
 }
 
 int SDOpen( vlc_object_t *p_this ) {
     services_discovery_t *p_sd = (services_discovery_t *) p_this;
-    p_sd->description = _("Cloud Storage");
+    p_sd->description = _( "Cloud Storage" );
 
-    msg_Dbg(p_sd, "Opened Services Discovery");
-    cloudstorage::ICloudStorage::Pointer storage = cloudstorage::ICloudStorage::create();
+    msg_Dbg( p_sd, "Opened Services Discovery" );
+    cloudstorage::ICloudStorage::Pointer storage = cloudstorage::
+            ICloudStorage::create();
     for ( const auto& provider : storage->providers() ) {
         const char * provider_name = provider->name().c_str();
-        msg_Dbg( p_sd, "Provider name: %s", provider_name );
 
         char *uri;
-        if (asprintf(&uri, "cloudstorage://") < 0)
+        if ( asprintf(&uri, "cloudstorage://" ) < 0)
             continue;
-        input_item_t* p_item = input_item_New( uri, provider_name );
-        if (p_item != NULL) {
+        input_item_t *p_item = input_item_New( uri, provider_name );
+        free( uri );
+
+        if ( p_item != NULL ) {
             services_discovery_AddItem( p_sd, p_item );
-            msg_Dbg( p_sd, "Added provider %s with URI: %s", provider_name, uri );
             input_item_Release ( p_item );
         }
-        free(uri);
     }
 
     msg_Dbg( p_sd, "SDOpen ended" );
@@ -67,5 +65,5 @@ int SDOpen( vlc_object_t *p_this ) {
 }
 
 void SDClose( vlc_object_t *p_this ) {
-    msg_Dbg(p_this, "Closed Services Discovery");
+    msg_Dbg( p_this, "Closed Services Discovery" );
 }
