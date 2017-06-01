@@ -21,6 +21,9 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
+#ifndef VLC_CLOUDSTORAGE_ACCESS_H
+#define VLC_CLOUDSTORAGE_ACCESS_H
+
 #include <string>
 #include <ICloudProvider.h>
 #include <IItem.h>
@@ -51,3 +54,5 @@ struct access_sys_t
 
     access_sys_t( vlc_object_t * );
 };
+
+#endif
