@@ -21,7 +21,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
-#include <sstream>
+#include <string>
 #include <ICloudProvider.h>
 #include <IItem.h>
 
@@ -49,5 +49,5 @@ struct access_sys_t
     cloudstorage::ICloudProvider::ListDirectoryRequest::
         Pointer list_directory_request_;
 
-    access_sys_t(vlc_object_t *);
+    access_sys_t( vlc_object_t * );
 };
