@@ -47,7 +47,7 @@ int Open( vlc_object_t *p_this )
 
     try
     {
-        p_access->p_sys = p_sys = new(std::nothrow) access_sys_t( p_this );
+        p_access->p_sys = p_sys = new(std::nothrow) access_sys_t( p_access );
         if ( p_sys == nullptr )
             return VLC_ENOMEM;
 
@@ -65,6 +65,7 @@ int Open( vlc_object_t *p_this )
         p_sys->current_item_ = p_sys->provider_->rootDirectory();
         p_access->pf_control = access_vaDirectoryControlHelper;
         p_access->pf_readdir = getDir;
+        msg_Dbg(p_this, "URL: %s", p_access->psz_url);
 
         return VLC_SUCCESS;
     }
@@ -87,11 +88,13 @@ void Close( vlc_object_t *p_this )
     delete p_sys;
 }
 
-access_sys_t::access_sys_t( vlc_object_t *p_this )
+access_sys_t::access_sys_t( access_t *p_this )
 {
     vlc_keystore_entry *p_entries;
 
-    provider_name_ = "dropbox";
+    std::vector<std::string> dir_stack = parseUrl( p_this->psz_url );
+    provider_name_ = dir_stack[1];
+
     p_keystore_ = vlc_keystore_create( p_this );
     if (p_keystore_ == nullptr)
         throw std::bad_alloc();
