@@ -113,6 +113,8 @@ static int add_item( struct access_fsdir *p_fsdir, stream_t *p_access,
     std::string url;
     int i_type;
 
+    msg_Dbg( p_access, "URL: %s, PSZ_URL: %s", item->url().c_str(),
+            p_access->psz_url );
     if ( item->type() == IItem::FileType::Directory )
     {
         url = p_access->psz_url + item->filename() + "/";
@@ -152,24 +154,40 @@ static int readDir( stream_t *p_access, input_item_node_t *p_node )
 
 static std::vector<std::string> parseUrl( std::string url )
 {
-    std::vector<std::string> parts;
-    url = url.substr(15);     // length of "cloudstorage://"
-    std::istringstream iss(url);
+    const std::string access_token( "://" );
+    const std::size_t pos = url.find(access_token);
 
+    std::vector<std::string> parts;
+    parts.push_back( url.substr( 0, pos ) );
+
+    std::istringstream iss( url.substr( pos + access_token.size() ) );
     for ( std::string s; std::getline(iss, s, '/'); )
         parts.push_back(s);
+
     return parts;
 }
 
 static int getDir( stream_t *p_access, input_item_node_t *p_node )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
+    std::vector<std::string> url_parts = parseUrl(p_access->psz_url);
 
-    if ( strcmp(p_access->psz_url, "cloudstorage://") == 0 )
+    // It is a must to exist the access protocol and the service provider
+    // at least. E.g: cloudstorage://dropbox
+    if (url_parts.size() < 2)
+        return VLC_EGENERIC;
+
+    const std::string& access_protocol = url_parts[0];
+    const std::string& provider_name = url_parts[1];
+
+    // Checking if there is a path on the URL or not
+    if ( strcmp( access_protocol.c_str(), "cloudstorage" ) == 0 &&
+         url_parts.size() == 2)
         readDir(p_access, p_node);
     else
     {
-        p_sys->directory_stack_ = parseUrl(p_access->psz_url);
+        p_sys->directory_stack_ = std::vector<std::string>(
+                        url_parts.begin() + 2, url_parts.end() );
         for (auto &name : p_sys->directory_stack_)
         {
             p_sys->list_directory_request_ = p_sys->provider_->
