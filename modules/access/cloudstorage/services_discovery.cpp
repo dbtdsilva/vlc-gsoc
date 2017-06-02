@@ -49,7 +49,7 @@ int SDOpen( vlc_object_t *p_this ) {
         const char * provider_name = provider->name().c_str();
 
         char *uri;
-        if ( asprintf(&uri, "cloudstorage://" ) < 0)
+        if ( asprintf(&uri, "cloudstorage://%s/", provider_name ) < 0)
             continue;
         input_item_t *p_item = input_item_New( uri, provider_name );
         free( uri );
