@@ -52,7 +52,7 @@ struct access_sys_t
     cloudstorage::ICloudProvider::ListDirectoryRequest::
         Pointer list_directory_request_;
 
-    access_sys_t( vlc_object_t * );
+    access_sys_t( access_t * );
 };
 
 #endif
