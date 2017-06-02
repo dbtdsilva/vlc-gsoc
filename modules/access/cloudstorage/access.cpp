@@ -92,7 +92,7 @@ access_sys_t::access_sys_t( vlc_object_t *p_this )
     vlc_keystore_entry *p_entries;
 
     provider_name_ = "dropbox";
-    p_keystore_ = vlc_get_memory_keystore( p_this );
+    p_keystore_ = vlc_keystore_create( p_this );
     if (p_keystore_ == nullptr)
         throw std::bad_alloc();
     provider_ = cloudstorage::ICloudStorage::
