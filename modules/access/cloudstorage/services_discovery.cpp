@@ -51,7 +51,8 @@ int SDOpen( vlc_object_t *p_this ) {
         char *uri;
         if ( asprintf(&uri, "cloudstorage://%s/", provider_name ) < 0)
             continue;
-        input_item_t *p_item = input_item_New( uri, provider_name );
+        input_item_t *p_item = input_item_NewDirectory( uri, provider_name,
+                                                        ITEM_NET );
         free( uri );
 
         if ( p_item != NULL ) {
