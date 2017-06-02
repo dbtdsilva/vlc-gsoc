@@ -50,18 +50,22 @@ int Open( vlc_object_t *p_this )
         p_access->p_sys = p_sys = new(std::nothrow) access_sys_t( p_this );
         if ( p_sys == nullptr )
             return VLC_ENOMEM;
+
+        ICloudProvider::Hints hints;
+        if (p_sys->token_ != "")
+            hints["access_token"] = p_sys->token_;
         p_sys->provider_->initialize({
             p_sys->token_,
-            std::unique_ptr<Callback>(
-                new Callback( (access_t*)p_this, p_sys) ),
-                nullptr,
-                nullptr,
-                nullptr,
-                {}
+            std::unique_ptr<Callback>(new Callback( (access_t*)p_this, p_sys) ),
+            nullptr,
+            nullptr,
+            nullptr,
+            hints
         });
         p_sys->current_item_ = p_sys->provider_->rootDirectory();
         p_access->pf_control = access_vaDirectoryControlHelper;
         p_access->pf_readdir = getDir;
+
         return VLC_SUCCESS;
     }
     catch ( std::exception& e )
@@ -100,8 +104,9 @@ access_sys_t::access_sys_t( vlc_object_t *p_this )
     ppsz_values[KEY_USER] = "cloudstorage user";
     ppsz_values[KEY_SERVER] = "cloudstorage";
 
-    if ( vlc_keystore_find( p_keystore_, ppsz_values, &p_entries ) > 0 )
-        token_ = (char *) p_entries[0].p_secret;
+    if ( vlc_keystore_find( p_keystore_, ppsz_values, &p_entries ) > 0 ) {
+        token_ = std::string((char *) p_entries[0].p_secret, p_entries[0].i_secret_len);
+    }
 }
 
 
@@ -113,8 +118,6 @@ static int add_item( struct access_fsdir *p_fsdir, stream_t *p_access,
     std::string url;
     int i_type;
 
-    msg_Dbg( p_access, "URL: %s, PSZ_URL: %s", item->url().c_str(),
-            p_access->psz_url );
     if ( item->type() == IItem::FileType::Directory )
     {
         url = p_access->psz_url + item->filename() + "/";
