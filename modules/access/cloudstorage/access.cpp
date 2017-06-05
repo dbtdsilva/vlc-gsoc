@@ -47,6 +47,7 @@ int Open( vlc_object_t *p_this )
 
     vlc_keystore_entry *p_entries;
     ICloudProvider::Hints hints;
+    IItem::Pointer item;
 
     p_access->p_sys = p_sys = (access_sys_t*) calloc( 1, sizeof(access_sys_t) );
     if ( p_sys == nullptr )
@@ -88,12 +89,24 @@ int Open( vlc_object_t *p_this )
         hints
     });
 
-    p_sys->current_item_ = p_sys->provider_->rootDirectory();
-    p_access->pf_control = access_vaDirectoryControlHelper;
-    p_access->pf_readdir = getDir;
-    msg_Dbg(p_this, "URL: %s", p_access->psz_url);
+    msg_Dbg(p_access, "Path: %s", p_sys->path_.c_str());
+    item = p_sys->provider_->getItemAsync(p_sys->path_)->result();
+    if (item == nullptr) {
+        msg_Err(p_access, "Item %s does not exist in the provider %s",
+                p_sys->path_.c_str(), p_sys->provider_name_.c_str());
+        goto error;
+    }
 
-    return VLC_SUCCESS;
+    if (item->type() == IItem::FileType::Directory) {
+        p_sys->current_item_ = item;
+        p_access->pf_control = access_vaDirectoryControlHelper;
+        p_access->pf_readdir = getDir;
+        return VLC_SUCCESS;
+    } else if (item->type() != IItem::FileType::Unknown) {
+        item = p_sys->provider_->getItemDataAsync(item->id())->result();
+        p_access->psz_url = strdup(item->url().c_str());
+        return VLC_ACCESS_REDIRECT;
+    }
 
  error:
     Close( p_this );
@@ -111,14 +124,18 @@ void Close( vlc_object_t *p_this )
 static int add_item( struct access_fsdir *p_fsdir, stream_t *p_access,
                      IItem::Pointer item )
 {
-    std::string url;
+    std::stringstream url;
     int i_type;
 
-    url = p_access->psz_url + item->filename();
+    url << p_access->psz_url;
+    if (strlen( p_access->psz_url ) == 0 ||
+            p_access->psz_url[strlen( p_access->psz_url ) - 1] != '/')
+        url << "/";
+    url << item->filename();
     i_type = item->type() == IItem::FileType::Directory ?
         ITEM_TYPE_DIRECTORY : ITEM_TYPE_FILE;
 
-    return access_fsdir_additem( p_fsdir, url.c_str(), item->filename().c_str(),
+    return access_fsdir_additem( p_fsdir, url.str().c_str(), item->filename().c_str(),
                                  i_type, ITEM_NET );
 }
 
@@ -133,8 +150,10 @@ static int readDir( stream_t *p_access, input_item_node_t *p_node )
 
     access_fsdir_init( &fsdir, p_access, p_node );
     int error_code = VLC_SUCCESS;
+    msg_Dbg(p_access, "PSZ_URL: %s", p_access->psz_url);
     for ( auto &i : p_sys->directory_list_ )
     {
+        msg_Dbg(p_access, "File found: %s", i->filename().c_str());
         if ( add_item(&fsdir, p_access, i) != VLC_SUCCESS )
         {
             error_code = VLC_EGENERIC;
@@ -163,7 +182,8 @@ static int ParseUrl( access_t * p_access )
     p_sys->provider_name_ = parsed;
 
     while( std::getline(iss, parsed, '/') ) {
-        p_sys->path_.append("/" + parsed);
+        p_sys->path_.append("/");
+        p_sys->path_.append(parsed);
         p_sys->directory_stack_.push_back(parsed);
     }
     if (p_sys->path_.empty()) p_sys->path_ = "/";
@@ -175,20 +195,6 @@ static int getDir( stream_t *p_access, input_item_node_t *p_node )
     msg_Dbg(p_access, "get dir: %s; %s; %s", p_access->psz_url,
             p_access->psz_filepath, p_access->psz_location);
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-
-    /*for (auto &name : p_sys->directory_stack_)
-    {
-        p_sys->list_directory_request_ = p_sys->provider_->
-                listDirectoryAsync( p_sys->current_item_ );
-        auto v = p_sys->list_directory_request_->result();
-        p_sys->current_item_ = *std::find_if( v.begin(),v.end(),
-                                    [&name](IItem::Pointer item)
-                                    { return item->filename() == name; });
-    }*/
-
-    IItem::Pointer item = p_sys->provider_->getItemAsync(p_sys->path_)->result();
-    if (item != nullptr)
-        p_sys->current_item_ = item;
 
     return readDir( p_access, p_node );
 }
