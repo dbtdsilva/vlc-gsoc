@@ -35,9 +35,9 @@ using cloudstorage::ICloudProvider;
 using cloudstorage::IDownloadFileCallback;
 using cloudstorage::IItem;
 
+static int ParseUrl( stream_t * );
 static int add_item( struct access_fsdir *, stream_t *, IItem::Pointer );
 static int readDir( stream_t *, input_item_node_t * );
-static std::vector<std::string> parseUrl( std::string );
 static int getDir( stream_t *, input_item_node_t * );
 
 int Open( vlc_object_t *p_this )
@@ -45,16 +45,15 @@ int Open( vlc_object_t *p_this )
     access_t *p_access = (access_t*) p_this;
     access_sys_t *p_sys;
 
+    vlc_keystore_entry *p_entries;
     ICloudProvider::Hints hints;
 
     p_access->p_sys = p_sys = (access_sys_t*) calloc( 1, sizeof(access_sys_t) );
     if ( p_sys == nullptr )
         return VLC_ENOMEM;
 
-    vlc_keystore_entry *p_entries;
-
-    std::vector<std::string> dir_stack = parseUrl( p_access->psz_url );
-    p_sys->provider_name_ = dir_stack[1];
+    if ( ParseUrl( p_access ) != VLC_SUCCESS )
+        goto error;
 
     p_sys->p_keystore_ = vlc_keystore_create( p_access );
     if (p_sys->p_keystore_ == nullptr) {
@@ -146,19 +145,26 @@ static int readDir( stream_t *p_access, input_item_node_t *p_node )
     return error_code;
 }
 
-static std::vector<std::string> parseUrl( std::string url )
+static int ParseUrl( access_t * p_access )
 {
+    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
+    std::string url( p_access->psz_url );
     const std::string access_token( "://" );
     const std::size_t pos = url.find(access_token);
 
-    std::vector<std::string> parts;
-    parts.push_back( url.substr( 0, pos ) );
+    p_sys->protocol_ = url.substr( 0, pos );
+    if (p_sys->protocol_ != "cloudstorage")
+        return VLC_EGENERIC;
 
+    std::string parsed;
     std::istringstream iss( url.substr( pos + access_token.size() ) );
-    for ( std::string s; std::getline(iss, s, '/'); )
-        parts.push_back(s);
+    if ( !std::getline(iss, parsed, '/') )
+        return VLC_EGENERIC;
+    p_sys->provider_name_ = parsed;
 
-    return parts;
+    while( std::getline(iss, parsed, '/') )
+        p_sys->directory_stack_.push_back(parsed);
+    return VLC_SUCCESS;
 }
 
 static int getDir( stream_t *p_access, input_item_node_t *p_node )
@@ -166,31 +172,16 @@ static int getDir( stream_t *p_access, input_item_node_t *p_node )
     msg_Dbg(p_access, "get dir: %s; %s; %s", p_access->psz_url,
             p_access->psz_filepath, p_access->psz_location);
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-    std::vector<std::string> url_parts = parseUrl(p_access->psz_url);
 
-    // It is a must to exist the access protocol and the service provider
-    // at least. E.g: cloudstorage://dropbox
-    if (url_parts.size() < 2)
-        return VLC_EGENERIC;
-
-    const std::string& access_protocol = url_parts[0];
-    const std::string& provider_name = url_parts[1];
-
-    // Checking if there is a path on the URL or not
-    if ( url_parts.size() > 2 )
+    /*for (auto &name : p_sys->directory_stack_)
     {
-        p_sys->directory_stack_ = std::vector<std::string>(
-                        url_parts.begin() + 2, url_parts.end() );
-        for (auto &name : p_sys->directory_stack_)
-        {
-            p_sys->list_directory_request_ = p_sys->provider_->
-                    listDirectoryAsync( p_sys->current_item_ );
-            auto v = p_sys->list_directory_request_->result();
-            p_sys->current_item_ = *std::find_if( v.begin(),v.end(),
-                                        [&name](IItem::Pointer item)
-                                        { return item->filename() == name; });
-        }
-    }
+        p_sys->list_directory_request_ = p_sys->provider_->
+                listDirectoryAsync( p_sys->current_item_ );
+        auto v = p_sys->list_directory_request_->result();
+        p_sys->current_item_ = *std::find_if( v.begin(),v.end(),
+                                    [&name](IItem::Pointer item)
+                                    { return item->filename() == name; });
+    }*/
 
     return readDir( p_access, p_node );
 }
