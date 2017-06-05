@@ -39,6 +39,7 @@ void Close( vlc_object_t * );
 struct access_sys_t
 {
     cloudstorage::ICloudProvider::Pointer provider_;
+    std::string protocol_;
     std::string provider_name_;
     std::string token_;
 
