@@ -40,6 +40,7 @@ struct access_sys_t
 {
     cloudstorage::ICloudProvider::Pointer provider_;
     std::string protocol_;
+    std::string path_;
     std::string provider_name_;
     std::string token_;
 
