@@ -35,17 +35,16 @@ using cloudstorage::ICloudProvider;
 using cloudstorage::IDownloadFileCallback;
 using cloudstorage::IItem;
 
+static int AddItem( struct access_fsdir *, stream_t *, IItem::Pointer );
+static int InitKeystore( stream_t *);
 static int ParseUrl( stream_t * );
-static int add_item( struct access_fsdir *, stream_t *, IItem::Pointer );
-static int readDir( stream_t *, input_item_node_t * );
-static int getDir( stream_t *, input_item_node_t * );
+static int ReadDir( stream_t *, input_item_node_t * );
 
 int Open( vlc_object_t *p_this )
 {
     access_t *p_access = (access_t*) p_this;
     access_sys_t *p_sys;
 
-    vlc_keystore_entry *p_entries;
     ICloudProvider::Hints hints;
     IItem::Pointer item;
 
@@ -55,31 +54,15 @@ int Open( vlc_object_t *p_this )
 
     if ( ParseUrl( p_access ) != VLC_SUCCESS )
         goto error;
-
-    p_sys->p_keystore_ = vlc_keystore_create( p_access );
-    if (p_sys->p_keystore_ == nullptr) {
-        msg_Err(p_access, "Failed to create keystore");
+    if ( InitKeystore( p_access) != VLC_SUCCESS )
         goto error;
-    }
-    p_sys->provider_ = cloudstorage::ICloudStorage::
-            create()->provider( p_sys->provider_name_ );
-    if (!p_sys->provider_) {
-        msg_Err(p_access, "Failed to create provider");
-        goto error;
-    }
-
-    VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
-    p_sys->ppsz_values[KEY_PROTOCOL] = "cloudstorage";
-    p_sys->ppsz_values[KEY_USER] = "cloudstorage user";
-    p_sys->ppsz_values[KEY_SERVER] = "cloudstorage";
-
-    if ( vlc_keystore_find( p_sys->p_keystore_, p_sys->ppsz_values, &p_entries ) > 0 ) {
-        p_sys->token_ = std::string((char *) p_entries[0].p_secret, p_entries[0].i_secret_len);
-    }
-
 
     if (p_sys->token_ != "")
         hints["access_token"] = p_sys->token_;
+    p_sys->provider_ = cloudstorage::ICloudStorage::
+            create()->provider( p_sys->provider_name_ );
+    if (!p_sys->provider_)
+        goto error;
     p_sys->provider_->initialize({
         p_sys->token_,
         std::unique_ptr<Callback>(new Callback( (access_t*)p_this, p_sys) ),
@@ -100,7 +83,7 @@ int Open( vlc_object_t *p_this )
     if (item->type() == IItem::FileType::Directory) {
         p_sys->current_item_ = item;
         p_access->pf_control = access_vaDirectoryControlHelper;
-        p_access->pf_readdir = getDir;
+        p_access->pf_readdir = ReadDir;
         return VLC_SUCCESS;
     } else if (item->type() != IItem::FileType::Unknown) {
         item = p_sys->provider_->getItemDataAsync(item->id())->result();
@@ -121,7 +104,30 @@ void Close( vlc_object_t *p_this )
     free(p_sys);
 }
 
-static int add_item( struct access_fsdir *p_fsdir, stream_t *p_access,
+static int InitKeystore( stream_t * p_access ) {
+    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
+    vlc_keystore_entry *p_entries;
+
+    p_sys->p_keystore_ = vlc_keystore_create( p_access );
+    if (p_sys->p_keystore_ == nullptr) {
+        msg_Err(p_access, "Failed to create keystore");
+        return VLC_EGENERIC;
+    }
+
+    VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
+    p_sys->ppsz_values[KEY_PROTOCOL] = "cloudstorage";
+    p_sys->ppsz_values[KEY_USER] = "cloudstorage user";
+    p_sys->ppsz_values[KEY_SERVER] = "cloudstorage";
+
+    if ( vlc_keystore_find( p_sys->p_keystore_,
+            p_sys->ppsz_values, &p_entries ) > 0 ) {
+        p_sys->token_ = std::string((char *) p_entries[0].p_secret,
+                p_entries[0].i_secret_len);
+    }
+    return VLC_SUCCESS;
+}
+
+static int AddItem( struct access_fsdir *p_fsdir, stream_t *p_access,
                      IItem::Pointer item )
 {
     std::stringstream url;
@@ -139,7 +145,7 @@ static int add_item( struct access_fsdir *p_fsdir, stream_t *p_access,
                                  i_type, ITEM_NET );
 }
 
-static int readDir( stream_t *p_access, input_item_node_t *p_node )
+static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     struct access_fsdir fsdir;
@@ -154,7 +160,7 @@ static int readDir( stream_t *p_access, input_item_node_t *p_node )
     for ( auto &i : p_sys->directory_list_ )
     {
         msg_Dbg(p_access, "File found: %s", i->filename().c_str());
-        if ( add_item(&fsdir, p_access, i) != VLC_SUCCESS )
+        if ( AddItem(&fsdir, p_access, i) != VLC_SUCCESS )
         {
             error_code = VLC_EGENERIC;
             break;
@@ -188,13 +194,4 @@ static int ParseUrl( access_t * p_access )
     }
     if (p_sys->path_.empty()) p_sys->path_ = "/";
     return VLC_SUCCESS;
-}
-
-static int getDir( stream_t *p_access, input_item_node_t *p_node )
-{
-    msg_Dbg(p_access, "get dir: %s; %s; %s", p_access->psz_url,
-            p_access->psz_filepath, p_access->psz_location);
-    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-
-    return readDir( p_access, p_node );
 }
