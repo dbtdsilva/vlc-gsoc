@@ -115,9 +115,9 @@ static int InitKeystore( stream_t * p_access ) {
     }
 
     VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
-    p_sys->ppsz_values[KEY_PROTOCOL] = "cloudstorage";
-    p_sys->ppsz_values[KEY_USER] = "cloudstorage user";
-    p_sys->ppsz_values[KEY_SERVER] = "cloudstorage";
+    p_sys->ppsz_values[KEY_PROTOCOL] = strdup("cloudstorage");
+    p_sys->ppsz_values[KEY_USER] = strdup("cloudstorage user");
+    p_sys->ppsz_values[KEY_SERVER] = strdup(p_sys->provider_name_.c_str());
 
     if ( vlc_keystore_find( p_sys->p_keystore_,
             p_sys->ppsz_values, &p_entries ) > 0 ) {
