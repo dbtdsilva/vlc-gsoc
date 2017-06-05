@@ -116,22 +116,13 @@ access_sys_t::access_sys_t( access_t *p_this )
 static int add_item( struct access_fsdir *p_fsdir, stream_t *p_access,
                      IItem::Pointer item )
 {
-    access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
-    ICloudProvider::Pointer provider = p_sys->provider_;
     std::string url;
     int i_type;
 
-    if ( item->type() == IItem::FileType::Directory )
-    {
-        url = p_access->psz_url + item->filename() + "/";
-        i_type = ITEM_TYPE_DIRECTORY;
-    }
-    else
-    {
-        item = provider->getItemDataAsync( item->id() )->result();
-        url = item->url();
-        i_type = ITEM_TYPE_FILE;
-    }
+    url = p_access->psz_url + item->filename();
+    i_type = item->type() == IItem::FileType::Directory ?
+        ITEM_TYPE_DIRECTORY : ITEM_TYPE_FILE;
+
     return access_fsdir_additem( p_fsdir, url.c_str(), item->filename().c_str(),
                                  i_type, ITEM_NET );
 }
@@ -175,6 +166,8 @@ static std::vector<std::string> parseUrl( std::string url )
 
 static int getDir( stream_t *p_access, input_item_node_t *p_node )
 {
+    msg_Dbg(p_access, "get dir: %s; %s; %s", p_access->psz_url,
+            p_access->psz_filepath, p_access->psz_location);
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     std::vector<std::string> url_parts = parseUrl(p_access->psz_url);
 
