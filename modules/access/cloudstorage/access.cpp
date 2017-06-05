@@ -162,8 +162,11 @@ static int ParseUrl( access_t * p_access )
         return VLC_EGENERIC;
     p_sys->provider_name_ = parsed;
 
-    while( std::getline(iss, parsed, '/') )
+    while( std::getline(iss, parsed, '/') ) {
+        p_sys->path_.append("/" + parsed);
         p_sys->directory_stack_.push_back(parsed);
+    }
+    if (p_sys->path_.empty()) p_sys->path_ = "/";
     return VLC_SUCCESS;
 }
 
@@ -182,6 +185,10 @@ static int getDir( stream_t *p_access, input_item_node_t *p_node )
                                     [&name](IItem::Pointer item)
                                     { return item->filename() == name; });
     }*/
+
+    IItem::Pointer item = p_sys->provider_->getItemAsync(p_sys->path_)->result();
+    if (item != nullptr)
+        p_sys->current_item_ = item;
 
     return readDir( p_access, p_node );
 }
