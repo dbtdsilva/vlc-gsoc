@@ -266,8 +266,9 @@ Remove(vlc_keystore *p_keystore, const char *const ppsz_values[KEY_MAX])
 
 struct secrets_watch_data
 {
-    vlc_sem_t sem;
+    GMainLoop* loop;
     bool b_running;
+    guint timeout_id;
 };
 
 static void
@@ -277,7 +278,8 @@ dbus_appeared_cb(GDBusConnection *connection, const gchar *name,
     (void) connection; (void) name; (void)name_owner;
     struct secrets_watch_data *p_watch_data = user_data;
     p_watch_data->b_running = true;
-    vlc_sem_post(&p_watch_data->sem);
+    if (p_watch_data->loop != NULL)
+        g_main_loop_quit(p_watch_data->loop);
 }
 
 static void
@@ -287,7 +289,19 @@ dbus_vanished_cb(GDBusConnection *connection, const gchar *name,
     (void) connection; (void) name;
     struct secrets_watch_data *p_watch_data = user_data;
     p_watch_data->b_running = false;
-    vlc_sem_post(&p_watch_data->sem);
+    if (p_watch_data->loop != NULL)
+        g_main_loop_quit(p_watch_data->loop);
+}
+
+static gboolean
+on_run_with_application_timeout (gpointer user_data)
+{
+    struct secrets_watch_data *p_watch_data = user_data;
+    p_watch_data->timeout_id = 0;
+    p_watch_data->b_running = false;
+    if (p_watch_data->loop != NULL)
+        g_main_loop_quit(p_watch_data->loop);
+    return FALSE;
 }
 
 static int
@@ -300,20 +314,26 @@ Open(vlc_object_t *p_this)
          * running, even on non Gnome environments */
         struct secrets_watch_data watch_data;
         watch_data.b_running = false;
-        vlc_sem_init(&watch_data.sem, 0);
+        watch_data.loop = g_main_loop_new(NULL, FALSE);
 
         guint i_id = g_bus_watch_name(G_BUS_TYPE_SESSION,
                                       "org.freedesktop.secrets",
                                       G_BUS_NAME_WATCHER_FLAGS_NONE,
                                       dbus_appeared_cb, dbus_vanished_cb,
                                       &watch_data, NULL);
+        /* Added timeout for when the service does not respond */
+        watch_data.timeout_id = g_timeout_add_seconds(3,
+                on_run_with_application_timeout, &watch_data);
+        g_main_loop_run(watch_data.loop);
 
-        /* We are guaranteed that one of the callbacks will be invoked after
-         * calling g_bus_watch_name */
-        vlc_sem_wait_i11e(&watch_data.sem);
-
+        /* Cleanup */
+        if (watch_data.timeout_id)
+        {
+            g_source_remove(watch_data.timeout_id);
+            watch_data.timeout_id = 0;
+        }
+        g_main_loop_unref(watch_data.loop);
         g_bus_unwatch_name(i_id);
-        vlc_sem_destroy(&watch_data.sem);
 
         if (!watch_data.b_running)
             return VLC_EGENERIC;
