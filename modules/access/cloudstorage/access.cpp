@@ -78,6 +78,9 @@ void Close( vlc_object_t *p_this )
     access_t *p_access = (access_t*) p_this;
     access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
 
+    if ( p_sys->p_keystore != nullptr )
+        vlc_keystore_release( p_sys->p_keystore );
+
     delete( p_sys );
 }
 
