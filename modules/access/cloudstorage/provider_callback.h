@@ -19,10 +19,16 @@ public:
 
     void accepted( const ICloudProvider& provider ) override
     {
+        if ( p_sys->p_keystore == nullptr )
+            return;
+
+        std::stringstream ss_psz_label;
+        ss_psz_label << "vlc_" << p_sys->username << "@" << p_sys->provider_name;
+
         p_sys->token = provider.token();
         vlc_keystore_store( p_sys->p_keystore, p_sys->ppsz_values,
             (const uint8_t *)p_sys->token.c_str(), p_sys->token.size(),
-            p_sys->provider_name.c_str() );
+            ss_psz_label.str().c_str() );
     }
 
     void declined( const ICloudProvider& ) override
