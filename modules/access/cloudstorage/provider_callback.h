@@ -18,10 +18,10 @@ public:
 
     void accepted( const ICloudProvider& provider ) override
     {
-        p_sys->token_ = provider.token();
-        vlc_keystore_store( p_sys->p_keystore_, p_sys->ppsz_values,
-            (const uint8_t *)p_sys->token_.c_str(), p_sys->token_.size(),
-            p_sys->provider_name_.c_str() );
+        p_sys->token = provider.token();
+        vlc_keystore_store( p_sys->p_keystore, p_sys->ppsz_values,
+            (const uint8_t *)p_sys->token.c_str(), p_sys->token.size(),
+            p_sys->provider_name.c_str() );
     }
 
     void declined( const ICloudProvider& ) override
