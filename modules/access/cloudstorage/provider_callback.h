@@ -6,8 +6,9 @@ using cloudstorage::ICloudProvider;
 
 class Callback : public ICloudProvider::ICallback {
 public:
-    Callback( access_t *access, access_sys_t *sys ) :
-        p_access(access), p_sys(sys) {}
+    Callback( access_t *access ) :
+        p_access( access ), p_sys( (access_sys_t*) access->p_sys )
+    {}
 
     Status userConsentRequired( const ICloudProvider& provider ) override
     {
