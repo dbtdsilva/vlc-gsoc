@@ -38,21 +38,16 @@ void Close( vlc_object_t * );
 
 struct access_sys_t
 {
-    cloudstorage::ICloudProvider::Pointer provider_;
-    std::string protocol_;
-    std::string path_;
-    std::string provider_name_;
-    std::string token_;
+    cloudstorage::ICloudProvider::Pointer provider;
+    std::string protocol;
+    std::string path;
+    std::string provider_name;
+    std::string token;
 
-    vlc_keystore *p_keystore_;
+    vlc_keystore *p_keystore;
     char *ppsz_values[KEY_MAX];
 
-    cloudstorage::IItem::Pointer current_item_;
-    std::vector<std::string> directory_stack_;
-    std::vector<cloudstorage::IItem::Pointer> directory_list_;
-
-    cloudstorage::ICloudProvider::ListDirectoryRequest::
-        Pointer list_directory_request_;
+    cloudstorage::IItem::Pointer current_item;
 };
 
 #endif
