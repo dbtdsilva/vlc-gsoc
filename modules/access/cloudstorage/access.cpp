@@ -84,8 +84,11 @@ void Close( vlc_object_t *p_this )
 static int InitKeystore( stream_t * p_access )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-    vlc_keystore_entry *p_entries;
+    // Keystore is never created when there is no user specified
+    if ( p_sys->username.empty() )
+        return VLC_SUCCESS;
 
+    vlc_keystore_entry *p_entries;
     p_sys->p_keystore = vlc_keystore_create( p_access );
     if ( p_sys->p_keystore == nullptr ) {
         msg_Err( p_access, "Failed to create keystore" );
@@ -94,13 +97,14 @@ static int InitKeystore( stream_t * p_access )
 
     VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
     p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
-    p_sys->ppsz_values[KEY_USER] = strdup( "cloudstorage user" );
+    p_sys->ppsz_values[KEY_USER] = strdup( p_sys->username.c_str() );
     p_sys->ppsz_values[KEY_SERVER] = strdup( p_sys->provider_name.c_str() );
 
     if ( vlc_keystore_find( p_sys->p_keystore,
-            p_sys->ppsz_values, &p_entries ) > 0 ) {
+            p_sys->ppsz_values, &p_entries ) > 0 )
+    {
         p_sys->token = std::string((char *) p_entries[0].p_secret,
-                p_entries[0].i_secret_len);
+                                   p_entries[0].i_secret_len);
     }
     return VLC_SUCCESS;
 }
