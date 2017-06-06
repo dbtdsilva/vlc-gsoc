@@ -36,7 +36,8 @@ using cloudstorage::IDownloadFileCallback;
 using cloudstorage::IItem;
 
 static int AddItem( struct access_fsdir *, stream_t *, IItem::Pointer );
-static int InitKeystore( stream_t *);
+static int InitKeystore( stream_t * );
+static int InitProvider( stream_t * );
 static int ParseUrl( stream_t * );
 static int ReadDir( stream_t *, input_item_node_t * );
 
@@ -45,10 +46,7 @@ int Open( vlc_object_t *p_this )
     access_t *p_access = (access_t*) p_this;
     access_sys_t *p_sys;
 
-    ICloudProvider::Hints hints;
-    IItem::Pointer item;
-
-    p_access->p_sys = p_sys = (access_sys_t*) calloc( 1, sizeof(access_sys_t) );
+    p_access->p_sys = p_sys = new access_sys_t();
     if ( p_sys == nullptr )
         return VLC_ENOMEM;
 
@@ -56,40 +54,17 @@ int Open( vlc_object_t *p_this )
         goto error;
     if ( InitKeystore( p_access) != VLC_SUCCESS )
         goto error;
-
-    if ( p_sys->token != "" )
-        hints["access_token"] = p_sys->token;
-    p_sys->provider = cloudstorage::ICloudStorage::
-            create()->provider( p_sys->provider_name );
-    if ( !p_sys->provider ) {
-        msg_Err( p_access, "Failed to load the given provider" );
+    if ( InitProvider( p_access) != VLC_SUCCESS )
         goto error;
-    }
-    p_sys->provider->initialize({
-        p_sys->token,
-        std::unique_ptr<Callback>(new Callback( (access_t*) p_this, p_sys) ),
-        nullptr,
-        nullptr,
-        nullptr,
-        hints
-    });
 
-    msg_Dbg( p_access, "Path: %s", p_sys->path.c_str() );
-    item = p_sys->provider->getItemAsync( p_sys->path )->result();
-    if (item == nullptr) {
-        msg_Err( p_access, "Item %s does not exist in the provider %s",
-                 p_sys->path.c_str(), p_sys->provider_name.c_str() );
-        goto error;
-    }
-
-    if ( item->type() == IItem::FileType::Directory ) {
-        p_sys->current_item = item;
+    if ( p_sys->current_item->type() == IItem::FileType::Directory ) {
         p_access->pf_control = access_vaDirectoryControlHelper;
         p_access->pf_readdir = ReadDir;
         return VLC_SUCCESS;
-    } else if ( item->type() != IItem::FileType::Unknown ) {
-        item = p_sys->provider->getItemDataAsync( item->id() )->result();
-        p_access->psz_url = strdup( item->url().c_str() );
+    } else if ( p_sys->current_item->type() != IItem::FileType::Unknown ) {
+        p_sys->current_item = p_sys->provider->
+                getItemDataAsync( p_sys->current_item->id() )->result();
+        p_access->psz_url = strdup( p_sys->current_item->url().c_str() );
         return VLC_ACCESS_REDIRECT;
     }
 
@@ -103,10 +78,11 @@ void Close( vlc_object_t *p_this )
     access_t *p_access = (access_t*) p_this;
     access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
 
-    free( p_sys );
+    delete( p_sys );
 }
 
-static int InitKeystore( stream_t * p_access ) {
+static int InitKeystore( stream_t * p_access )
+{
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     vlc_keystore_entry *p_entries;
 
@@ -125,6 +101,38 @@ static int InitKeystore( stream_t * p_access ) {
             p_sys->ppsz_values, &p_entries ) > 0 ) {
         p_sys->token = std::string((char *) p_entries[0].p_secret,
                 p_entries[0].i_secret_len);
+    }
+    return VLC_SUCCESS;
+}
+
+static int InitProvider( stream_t * p_access )
+{
+    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
+    ICloudProvider::Hints hints;
+
+    if ( p_sys->token != "" )
+        hints["access_token"] = p_sys->token;
+    p_sys->provider = cloudstorage::ICloudStorage::
+            create()->provider( p_sys->provider_name );
+    if ( !p_sys->provider ) {
+        msg_Err( p_access, "Failed to load the given provider" );
+        return VLC_EGENERIC;
+    }
+    p_sys->provider->initialize({
+        p_sys->token,
+        std::unique_ptr<Callback>( new Callback( p_access ) ),
+        nullptr,
+        nullptr,
+        nullptr,
+        hints
+    });
+
+    msg_Dbg( p_access, "Path: %s", p_sys->path.c_str() );
+    p_sys->current_item = p_sys->provider->getItemAsync( p_sys->path )->result();
+    if (p_sys->current_item == nullptr) {
+        msg_Err( p_access, "Item %s does not exist in the provider %s",
+                 p_sys->path.c_str(), p_sys->provider_name.c_str() );
+        return VLC_EGENERIC;
     }
     return VLC_SUCCESS;
 }
