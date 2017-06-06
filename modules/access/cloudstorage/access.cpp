@@ -179,7 +179,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
 
 static int ParseUrl( access_t * p_access )
 {
-    // Expected MRL is cloudstorage://{provider}/{path}
+    // Expected MRL is cloudstorage://[user@]{provider}/{path}
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     std::string url( p_access->psz_url );
     const std::string access_token( "://" );
@@ -191,12 +191,22 @@ static int ParseUrl( access_t * p_access )
 
     std::string full_path = url.substr( pos + access_token.size() );
     size_t pos_provider = full_path.find("/");
+    std::string provider_with_user;
     if ( pos_provider == std::string::npos ) {
-	p_sys->provider_name = full_path;
+	provider_with_user = full_path;
 	p_sys->path = "/";
     } else {
-	p_sys->provider_name = full_path.substr( 0, pos_provider );
+	provider_with_user = full_path.substr( 0, pos_provider );
 	p_sys->path = full_path.substr( pos_provider );
     }
+
+    size_t pos_user = provider_with_user.find_last_of("@");
+    if ( pos_user == std::string::npos ) {
+        p_sys->provider_name = provider_with_user;
+    } else {
+        p_sys->username = provider_with_user.substr( 0, pos_user );
+        p_sys->provider_name = provider_with_user.substr( pos_user + 1);
+    }
+
     return VLC_SUCCESS;
 }
