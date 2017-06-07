@@ -32,6 +32,7 @@
 
 static int CreateProviderEntry( services_discovery_t * );
 static int CreateAssociationEntries( services_discovery_t * );
+static int RepresentAuthenticatedUsers( services_discovery_t * );
 static char * GenerateUserIdentifier( services_discovery_t *, const char * );
 
 using cloudstorage::ICloudStorage;
@@ -62,43 +63,11 @@ int SDOpen( vlc_object_t *p_this )
 
     if ( CreateProviderEntry( p_sd ) != VLC_SUCCESS )
         goto error;
-
     if ( CreateAssociationEntries ( p_sd ) != VLC_SUCCESS )
         goto error;
+    if ( RepresentAuthenticatedUsers ( p_sd ) != VLC_SUCCESS )
+        goto error;
 
-    for ( const auto& provider_root : p_sys->providers_items )
-    {
-        const char * provider_name = provider_root.first.c_str();
-        input_item_t * p_root = provider_root.second;
-        // Creating keystore already registered value
-        vlc_keystore_entry *p_entries;
-        VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
-        p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
-        p_sys->ppsz_values[KEY_SERVER] = strdup( provider_name );
-        unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
-                p_sys->ppsz_values, &p_entries );
-        for (unsigned int i = 0; i < i_entries; i++)
-        {
-            char *uri, *user_with_provider;
-            if ( asprintf(&user_with_provider, "%s@%s",
-                    p_entries[i].ppsz_values[KEY_USER], provider_name ) < 0 )
-                continue;
-            if ( asprintf(&uri, "cloudstorage://%s/", user_with_provider ) < 0 )
-            {
-                free( user_with_provider );
-                continue;
-            }
-            input_item_t *p_item_user = input_item_NewDirectory( uri,
-                    user_with_provider, ITEM_NET );
-            if ( p_item_user != NULL ) {
-                services_discovery_AddSubItem( p_sd, p_root, p_item_user );
-                input_item_Release ( p_item_user );
-            }
-
-            free( user_with_provider );
-            free( uri );
-        }
-    }
     return VLC_SUCCESS;
 
 error:
@@ -173,6 +142,47 @@ static int CreateAssociationEntries( services_discovery_t * p_sd )
     return VLC_SUCCESS;
 }
 
+static int RepresentAuthenticatedUsers( services_discovery_t * p_sd )
+{
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
+
+    vlc_keystore_entry *p_entries;
+    VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
+    p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
+    //p_sys->ppsz_values[KEY_SERVER] = strdup( provider_name );
+    unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
+            p_sys->ppsz_values, &p_entries );
+    for (unsigned int i = 0; i < i_entries; i++)
+    {
+        std::map< std::string, input_item_t * >::iterator prov =
+            p_sys->providers_items.find(p_entries[i].ppsz_values[KEY_SERVER]);
+        // Invalid provider was found
+        if ( prov == p_sys->providers_items.end() )
+            continue;
+
+        char *uri, *user_with_provider;
+        if ( asprintf(&user_with_provider, "%s@%s",
+                p_entries[i].ppsz_values[KEY_USER], prov->first.c_str() ) < 0 )
+            return VLC_EGENERIC;
+
+        if ( asprintf(&uri, "cloudstorage://%s/", user_with_provider ) < 0 )
+        {
+            free( user_with_provider );
+            return VLC_EGENERIC;
+        }
+
+        input_item_t *p_item_user = input_item_NewDirectory( uri,
+                p_entries[i].ppsz_values[KEY_USER], ITEM_NET );
+        if ( p_item_user != NULL ) {
+            services_discovery_AddSubItem( p_sd, prov->second, p_item_user );
+            input_item_Release ( p_item_user );
+        }
+
+        free( user_with_provider );
+        free( uri );
+    }
+    return VLC_SUCCESS;
+}
 
 static char * GenerateUserIdentifier( services_discovery_t * p_sd,
         const char * provider)
