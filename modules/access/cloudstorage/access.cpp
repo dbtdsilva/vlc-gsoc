@@ -68,7 +68,7 @@ int Open( vlc_object_t *p_this )
         return VLC_ACCESS_REDIRECT;
     }
 
- error:
+error:
     Close( p_this );
     return VLC_EGENERIC;
 }
@@ -81,7 +81,7 @@ void Close( vlc_object_t *p_this )
     if ( p_sys->p_keystore != nullptr )
         vlc_keystore_release( p_sys->p_keystore );
 
-    delete( p_sys );
+    delete p_sys;
 }
 
 static int InitKeystore( stream_t * p_access )
