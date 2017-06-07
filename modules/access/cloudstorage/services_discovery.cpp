@@ -52,15 +52,14 @@ int SDOpen( vlc_object_t *p_this )
     p_sd->description = _( "Cloud Storage" );
 
     p_sys->p_keystore = vlc_keystore_create( p_sd );
-    if ( p_sys->p_keystore == nullptr ) {
+    if ( p_sys->p_keystore == nullptr )
+    {
         msg_Err( p_sd, "Failed to create keystore" );
-        return VLC_EGENERIC;
+        goto error;
     }
 
     if ( CreateProviderEntry( p_sd) != VLC_SUCCESS )
-    {
-        return VLC_EGENERIC;
-    }
+        goto error;
 
     //for ( const auto& provider : storage->providers() ) {
     for ( const auto& provider_root : p_sys->providers_items )
@@ -119,8 +118,13 @@ void SDClose( vlc_object_t *p_this )
     services_discovery_t *p_sd = (services_discovery_t *) p_this;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t*) p_sd->p_sys;
 
-    if ( p_sys != nullptr )
-        delete p_sys;
+    if ( p_sys->p_keystore != nullptr )
+        vlc_keystore_release( p_sys->p_keystore );
+
+    for ( auto& p_item_root : p_sys->providers_items )
+        input_item_Release( p_item_root.second );
+
+    delete p_sys;
 }
 
 static int CreateProviderEntry( services_discovery_t * p_sd )
