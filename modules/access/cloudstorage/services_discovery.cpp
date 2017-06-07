@@ -26,6 +26,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include <ICloudStorage.h>
+#include <vlc_keystore.h>
 
 #include "services_discovery.h"
 
@@ -45,9 +46,47 @@ int SDOpen( vlc_object_t *p_this ) {
     msg_Dbg( p_sd, "Opened Services Discovery" );
     cloudstorage::ICloudStorage::Pointer storage = cloudstorage::
             ICloudStorage::create();
+
+
+    vlc_keystore* p_keystore = vlc_keystore_create( p_sd );
+    if ( p_sd == nullptr ) {
+        msg_Err( p_sd, "Failed to create keystore" );
+        return VLC_EGENERIC;
+    }
+
+    char *ppsz_values[KEY_MAX];
     for ( const auto& provider : storage->providers() ) {
         const char * provider_name = provider->name().c_str();
 
+        // Creating keystore already registered value
+        vlc_keystore_entry *p_entries;
+        VLC_KEYSTORE_VALUES_INIT( ppsz_values );
+        ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
+        ppsz_values[KEY_SERVER] = strdup( provider_name );
+        unsigned int i_entries = vlc_keystore_find( p_keystore, ppsz_values,
+                                                    &p_entries );
+        for (unsigned int i = 0; i < i_entries; i++) {
+            char *uri, *user_with_provider;
+            if ( asprintf(&user_with_provider, "%s@%s",
+                    p_entries[i].ppsz_values[KEY_USER], provider_name ) < 0 )
+                continue;
+            if ( asprintf(&uri, "cloudstorage://%s/", user_with_provider ) < 0 )
+            {
+                free( user_with_provider );
+                continue;
+            }
+            input_item_t *p_item = input_item_NewDirectory( uri,
+                    user_with_provider, ITEM_NET );
+            free( user_with_provider );
+            free( uri );
+            if ( p_item != NULL ) {
+                services_discovery_AddItem( p_sd, p_item );
+                input_item_Release ( p_item );
+            }
+        }
+
+
+        // Creating the clean entries
         char *uri;
         if ( asprintf(&uri, "cloudstorage://%s/", provider_name ) < 0)
             continue;
