@@ -21,9 +21,21 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
+#include <vector>
+#include <map>
+#include <string>
+
 #include <vlc_common.h>
+#include <vlc_keystore.h>
 #include <vlc_services_discovery.h>
 
 int vlc_sd_probe_Open( vlc_object_t * );
 int SDOpen( vlc_object_t * );
 void SDClose( vlc_object_t * );
+
+struct services_discovery_sys_t
+{
+    vlc_keystore *p_keystore;
+    std::map< std::string, input_item_t * > providers_items;
+    char *ppsz_values[KEY_MAX];
+};
