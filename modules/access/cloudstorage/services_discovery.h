@@ -35,6 +35,7 @@ void SDClose( vlc_object_t * );
 
 struct services_discovery_sys_t
 {
+    vlc_thread_t thread;
     vlc_keystore *p_keystore;
     std::map< std::string, input_item_t * > providers_items;
     char *ppsz_values[KEY_MAX];
