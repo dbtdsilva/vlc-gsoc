@@ -31,6 +31,8 @@
 #include "services_discovery.h"
 
 static int CreateProviderEntry( services_discovery_t * );
+static int CreateAssociationEntries( services_discovery_t * );
+static char * GenerateUserIdentifier( services_discovery_t *, const char * );
 
 using cloudstorage::ICloudStorage;
 
@@ -58,24 +60,16 @@ int SDOpen( vlc_object_t *p_this )
         goto error;
     }
 
-    if ( CreateProviderEntry( p_sd) != VLC_SUCCESS )
+    if ( CreateProviderEntry( p_sd ) != VLC_SUCCESS )
         goto error;
 
-    //for ( const auto& provider : storage->providers() ) {
+    if ( CreateAssociationEntries ( p_sd ) != VLC_SUCCESS )
+        goto error;
+
     for ( const auto& provider_root : p_sys->providers_items )
     {
-        const char* provider_name = provider_root.first.c_str();
-        input_item_t *p_root = provider_root.second;
-
-        char *uri;
-        if ( asprintf(&uri, "cloudstorage://newuser@%s/", provider_name ) < 0)
-            continue;
-        input_item_t *p_item_new = input_item_NewCard( uri,
-                "Associate new account" );
-        free( uri );
-
-        services_discovery_AddSubItem( p_sd, p_root, p_item_new );
-
+        const char * provider_name = provider_root.first.c_str();
+        input_item_t * p_root = provider_root.second;
         // Creating keystore already registered value
         vlc_keystore_entry *p_entries;
         VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
@@ -83,7 +77,8 @@ int SDOpen( vlc_object_t *p_this )
         p_sys->ppsz_values[KEY_SERVER] = strdup( provider_name );
         unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
                 p_sys->ppsz_values, &p_entries );
-        for (unsigned int i = 0; i < i_entries; i++) {
+        for (unsigned int i = 0; i < i_entries; i++)
+        {
             char *uri, *user_with_provider;
             if ( asprintf(&user_with_provider, "%s@%s",
                     p_entries[i].ppsz_values[KEY_USER], provider_name ) < 0 )
@@ -104,8 +99,6 @@ int SDOpen( vlc_object_t *p_this )
             free( uri );
         }
     }
-
-    msg_Dbg( p_sd, "SDOpen ended" );
     return VLC_SUCCESS;
 
 error:
@@ -146,4 +139,73 @@ static int CreateProviderEntry( services_discovery_t * p_sd )
     }
 
     return VLC_SUCCESS;
+}
+
+static int CreateAssociationEntries( services_discovery_t * p_sd )
+{
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
+
+    int error_code;
+    for ( const auto& provider : p_sys->providers_items )
+    {
+        char * uri;
+        const char * provider_name = provider.first.c_str();
+        char * username = GenerateUserIdentifier( p_sd, provider_name );
+        if ( username == nullptr )
+            return VLC_EGENERIC;
+        error_code = asprintf(&uri, "cloudstorage://%s@%s/", username,
+                provider_name );
+        free( username );
+        if ( error_code < 0)
+            return VLC_EGENERIC;
+
+        msg_Dbg( p_sd, "Creating MRL with %s", uri );
+        input_item_t *p_item_new = input_item_NewCard( uri,
+                "Associate new account" );
+        free( uri );
+
+        if ( p_item_new != nullptr )
+        {
+            services_discovery_AddSubItem( p_sd, provider.second, p_item_new );
+            input_item_Release( p_item_new );
+        }
+    }
+    return VLC_SUCCESS;
+}
+
+
+static char * GenerateUserIdentifier( services_discovery_t * p_sd,
+        const char * provider)
+{
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
+    // Find the last generated identifier for the Association MRL
+    // MRL in the item will contain a predefined user
+    vlc_keystore_entry *p_entries;
+    VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
+    p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
+    p_sys->ppsz_values[KEY_SERVER] = strdup( provider );
+    unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
+            p_sys->ppsz_values, &p_entries );
+
+    unsigned int id = 1;
+    bool name_exists;
+    char * gen_user;
+    do
+    {
+        if ( asprintf( &gen_user, "user%d", id ) < 0 )
+            return nullptr;
+        name_exists = false;
+        for ( unsigned int i = 0; i < i_entries; i++ )
+        {
+            if ( strcmp( p_entries[i].ppsz_values[KEY_USER], gen_user ) == 0)
+            {
+                id += 1;
+                name_exists = true;
+                free( gen_user );
+                break;
+            }
+        }
+    } while ( name_exists );
+
+    return gen_user;
 }
