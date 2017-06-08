@@ -33,10 +33,16 @@ int vlc_sd_probe_Open( vlc_object_t * );
 int SDOpen( vlc_object_t * );
 void SDClose( vlc_object_t * );
 
+struct provider_item_t
+{
+    input_item_t * root;
+    input_item_t * service_add;
+};
+
 struct services_discovery_sys_t
 {
     vlc_thread_t thread;
     vlc_keystore *p_keystore;
-    std::map< std::string, input_item_t * > providers_items;
+    std::map< std::string, provider_item_t * > providers_items;
     char *ppsz_values[KEY_MAX];
 };
