@@ -30,6 +30,9 @@
 #include "cloudstorage/access.h"
 #include "cloudstorage/services_discovery.h"
 
+static int vlc_sd_probe_Open( vlc_object_t * );
+VLC_SD_PROBE_HELPER( "cloudstorage", N_("Cloud Storage"), SD_CAT_INTERNET )
+
 vlc_module_begin()
     set_shortname(N_("cloudstorage"))
     set_capability("access", 0)
