@@ -34,6 +34,8 @@ static int CreateProviderEntry( services_discovery_t * );
 static int CreateAssociationEntries( services_discovery_t * );
 static int RepresentAuthenticatedUsers( services_discovery_t * );
 static char * GenerateUserIdentifier( services_discovery_t *, const char * );
+static int NewAuthenticationCallback( vlc_object_t *, char const *,
+                     vlc_value_t, vlc_value_t, void * );
 
 using cloudstorage::ICloudStorage;
 
@@ -61,6 +63,12 @@ int SDOpen( vlc_object_t *p_this )
     if ( RepresentAuthenticatedUsers ( p_sd ) != VLC_SUCCESS )
         goto error;
 
+    // Associate callbacks to detect when a user is authenticated with success!
+    if ( var_Create( p_sd->obj.libvlc, "cloud-new-auth",
+            VLC_VAR_STRING | VLC_VAR_DOINHERIT) != VLC_SUCCESS )
+        goto error;
+    var_AddCallback( p_sd->obj.libvlc, "cloud-new-auth",
+            NewAuthenticationCallback, p_sd );
     return VLC_SUCCESS;
 
 error:
@@ -84,6 +92,8 @@ void SDClose( vlc_object_t *p_this )
         delete p_item_root.second;
     }
 
+    var_DelCallback( p_sd->obj.libvlc, "cloud-new-auth",
+            NewAuthenticationCallback, p_sd );
     delete p_sys;
 }
 
@@ -220,4 +230,20 @@ static char * GenerateUserIdentifier( services_discovery_t * p_sd,
     } while ( name_exists );
 
     return gen_user;
+}
+
+static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
+                     vlc_value_t oldval, vlc_value_t newval, void *p_data )
+{
+    (void) oldval; (void) p_this; (void) psz_var;
+    services_discovery_t * p_sd = (services_discovery_t *) p_data;
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
+
+    // WIP
+    (void) p_sys;
+
+    msg_Dbg( p_this, "SD received a new authenticated user %s",
+            newval.psz_string );
+
+    return VLC_SUCCESS;
 }
