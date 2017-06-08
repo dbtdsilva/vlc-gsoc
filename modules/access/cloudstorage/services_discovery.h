@@ -29,7 +29,6 @@
 #include <vlc_keystore.h>
 #include <vlc_services_discovery.h>
 
-int vlc_sd_probe_Open( vlc_object_t * );
 int SDOpen( vlc_object_t * );
 void SDClose( vlc_object_t * );
 
