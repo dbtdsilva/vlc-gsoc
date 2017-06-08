@@ -37,13 +37,6 @@ static char * GenerateUserIdentifier( services_discovery_t *, const char * );
 
 using cloudstorage::ICloudStorage;
 
-int vlc_sd_probe_Open( vlc_object_t *obj )
-{
-    vlc_probe_t *probe = (vlc_probe_t *) obj;
-    return vlc_sd_probe_Add( probe, N_("cloudstorage"), N_("Cloud Storage"),
-        SD_CAT_INTERNET );
-}
-
 int SDOpen( vlc_object_t *p_this )
 {
     services_discovery_t *p_sd = (services_discovery_t *) p_this;
