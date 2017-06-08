@@ -84,7 +84,12 @@ void SDClose( vlc_object_t *p_this )
         vlc_keystore_release( p_sys->p_keystore );
 
     for ( auto& p_item_root : p_sys->providers_items )
-        input_item_Release( p_item_root.second );
+    {
+        input_item_Release( p_item_root.second->root );
+        input_item_Release( p_item_root.second->service_add );
+
+        delete p_item_root.second;
+    }
 
     delete p_sys;
 }
@@ -103,7 +108,9 @@ static int CreateProviderEntry( services_discovery_t * p_sd )
         if ( p_item == nullptr )
             continue;
 
-        p_sys->providers_items[provider_name] = p_item;
+        provider_item_t * prov = new provider_item_t();
+        prov->root = p_item;
+        p_sys->providers_items[provider_name] = prov;
         services_discovery_AddItem( p_sd, p_item );
     }
 
@@ -135,8 +142,9 @@ static int CreateAssociationEntries( services_discovery_t * p_sd )
 
         if ( p_item_new != nullptr )
         {
-            services_discovery_AddSubItem( p_sd, provider.second, p_item_new );
-            input_item_Release( p_item_new );
+            services_discovery_AddSubItem( p_sd, provider.second->root,
+                    p_item_new );
+            provider.second->service_add = p_item_new;
         }
     }
     return VLC_SUCCESS;
@@ -154,7 +162,7 @@ static int RepresentAuthenticatedUsers( services_discovery_t * p_sd )
             p_sys->ppsz_values, &p_entries );
     for (unsigned int i = 0; i < i_entries; i++)
     {
-        std::map< std::string, input_item_t * >::iterator prov =
+        std::map< std::string, provider_item_t * >::iterator prov =
             p_sys->providers_items.find(p_entries[i].ppsz_values[KEY_SERVER]);
         // Invalid provider was found
         if ( prov == p_sys->providers_items.end() )
@@ -174,7 +182,8 @@ static int RepresentAuthenticatedUsers( services_discovery_t * p_sd )
         input_item_t *p_item_user = input_item_NewDirectory( uri,
                 p_entries[i].ppsz_values[KEY_USER], ITEM_NET );
         if ( p_item_user != NULL ) {
-            services_discovery_AddSubItem( p_sd, prov->second, p_item_user );
+            services_discovery_AddSubItem( p_sd, prov->second->root,
+                    p_item_user );
             input_item_Release ( p_item_user );
         }
 
