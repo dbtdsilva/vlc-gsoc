@@ -25,10 +25,25 @@ public:
         std::stringstream ss_psz_label;
         ss_psz_label << "vlc_" << p_sys->username << "@" << p_sys->provider_name;
 
+        vlc_keystore_entry* pp_entries;
+        unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
+                p_sys->ppsz_values, &pp_entries );
+
         p_sys->token = provider.token();
         vlc_keystore_store( p_sys->p_keystore, p_sys->ppsz_values,
             (const uint8_t *)p_sys->token.c_str(), p_sys->token.size(),
             ss_psz_label.str().c_str() );
+
+        if ( i_entries == 0 )
+        {
+            msg_Dbg( p_access, "%s (new) was authenticated at %s",
+                     p_sys->username.c_str(), p_sys->provider_name.c_str() );
+            std::stringstream ss_user;
+            ss_user << p_sys->username << "@" << p_sys->provider_name;
+            var_SetString( p_access->obj.libvlc, "cloud-new-auth",
+                    ss_user.str().c_str() );
+        }
+        msg_Dbg( p_access, "Accepted credentials!");
     }
 
     void declined( const ICloudProvider& ) override
