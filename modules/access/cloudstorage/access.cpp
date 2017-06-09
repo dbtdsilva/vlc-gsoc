@@ -157,6 +157,8 @@ static int AddItem( struct access_fsdir *p_fsdir, stream_t *p_access,
     url << item->filename();
     i_type = item->type() == IItem::FileType::Directory ?
         ITEM_TYPE_DIRECTORY : ITEM_TYPE_FILE;
+    if (item->extension().find("zip") != item->extension().npos)
+        i_type = ITEM_TYPE_DIRECTORY;
 
     return access_fsdir_additem( p_fsdir, url.str().c_str(),
             item->filename().c_str(), i_type, ITEM_NET );
@@ -171,6 +173,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
             p_sys->provider->listDirectoryAsync( p_sys->current_item );
 
     access_fsdir_init( &fsdir, p_access, p_node );
+    fsdir.psz_ignored_exts = strdup("");
     int error_code = VLC_SUCCESS;
     for ( auto &i : list_directory_request_->result() )
     {
