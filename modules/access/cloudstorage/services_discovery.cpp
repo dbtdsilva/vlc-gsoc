@@ -59,9 +59,9 @@ int SDOpen( vlc_object_t *p_this )
 
     if ( CreateProviderEntry( p_sd ) != VLC_SUCCESS )
         goto error;
-    if ( CreateAssociationEntries ( p_sd ) != VLC_SUCCESS )
-        goto error;
     if ( RepresentAuthenticatedUsers ( p_sd ) != VLC_SUCCESS )
+        goto error;
+    if ( CreateAssociationEntries ( p_sd ) != VLC_SUCCESS )
         goto error;
 
     // Associate callbacks to detect when a user is authenticated with success!
@@ -140,7 +140,7 @@ static int CreateAssociationEntries( services_discovery_t * p_sd )
             return VLC_EGENERIC;
 
         msg_Dbg( p_sd, "Creating MRL with %s", uri );
-        input_item_t *p_item_new = input_item_NewCard( uri,
+        input_item_t *p_item_new = input_item_New( uri,
                 "Associate new account" );
         free( uri );
 
@@ -254,6 +254,7 @@ static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
     if ( it == p_sys->providers_items.end() )
         return VLC_EGENERIC;
 
+    // Open a new entry with the new authenticated user
     std::stringstream ss;
     ss << "cloudstorage://" << provider_with_user;
     input_item_t *p_item_user = input_item_NewDirectory( ss.str().c_str(),
@@ -261,10 +262,26 @@ static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
     if ( p_item_user != NULL ) {
         services_discovery_AddSubItem( p_sd, it->second->root,
                 p_item_user );
+        input_CreateAndStart( p_sd, p_item_user, NULL);
         input_item_Release ( p_item_user );
     }
-    msg_Dbg( p_this, "SD received a new authenticated user %s",
-            newval.psz_string );
+
+    // Remove old association
+    services_discovery_RemoveItem( p_sd, it->second->service_add );
+    input_item_Release( it->second->service_add );
+
+    // Create a new association entry with a new MRL
+    std::stringstream uri_add_provider;
+    uri_add_provider << "cloudstorage://";
+    uri_add_provider << GenerateUserIdentifier( p_sd, provider_name.c_str() );
+    uri_add_provider << "@" << provider_name;
+    input_item_t *p_item_assoc = input_item_New( uri_add_provider.str().c_str(),
+                "Associate new account" );
+    if ( p_item_assoc != nullptr ) {
+        it->second->service_add = p_item_assoc;
+        services_discovery_AddSubItem( p_sd, it->second->root,
+                p_item_assoc );
+    }
 
     return VLC_SUCCESS;
 }
