@@ -27,6 +27,7 @@
 
 #include <ICloudStorage.h>
 #include <vlc_keystore.h>
+#include <sstream>
 
 #include "services_discovery.h"
 
@@ -239,9 +240,29 @@ static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
     services_discovery_t * p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
-    // WIP
-    (void) p_sys;
+    std::string provider_name, username;
+    std::string provider_with_user( newval.psz_string );
+    size_t pos_user = provider_with_user.find_last_of("@");
 
+    if ( pos_user == std::string::npos )
+        return VLC_EGENERIC;
+
+    username = provider_with_user.substr( 0, pos_user );
+    provider_name = provider_with_user.substr( pos_user + 1);
+
+    const auto& it = p_sys->providers_items.find( provider_name );
+    if ( it == p_sys->providers_items.end() )
+        return VLC_EGENERIC;
+
+    std::stringstream ss;
+    ss << "cloudstorage://" << provider_with_user;
+    input_item_t *p_item_user = input_item_NewDirectory( ss.str().c_str(),
+               username.c_str(), ITEM_NET );
+    if ( p_item_user != NULL ) {
+        services_discovery_AddSubItem( p_sd, it->second->root,
+                p_item_user );
+        input_item_Release ( p_item_user );
+    }
     msg_Dbg( p_this, "SD received a new authenticated user %s",
             newval.psz_string );
 
