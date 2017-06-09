@@ -34,6 +34,10 @@ public:
             (const uint8_t *)p_sys->token.c_str(), p_sys->token.size(),
             ss_psz_label.str().c_str() );
 
+        // TODO: Hints should be stored and recovered from the keystore as well
+        //       However, they are a map of strings -> it should be serialized
+        // vlc_keystore_store( .. p_sys->provider->hints() );
+
         if ( i_entries == 0 )
         {
             msg_Dbg( p_access, "%s (new) was authenticated at %s",
