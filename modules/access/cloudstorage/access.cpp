@@ -75,13 +75,15 @@ error:
 
 void Close( vlc_object_t *p_this )
 {
+    msg_Dbg(p_this, "CLOSE");
     access_t *p_access = (access_t*) p_this;
     access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
 
-    if ( p_sys->p_keystore != nullptr )
-        vlc_keystore_release( p_sys->p_keystore );
-
-    delete p_sys;
+    if ( p_sys != nullptr ) {
+        if ( p_sys->p_keystore != nullptr )
+            vlc_keystore_release( p_sys->p_keystore );
+        delete p_sys;
+    }
 }
 
 static int InitKeystore( stream_t * p_access )
@@ -128,6 +130,7 @@ static int InitProvider( stream_t * p_access )
     p_sys->provider->initialize({
         p_sys->token,
         std::unique_ptr<Callback>( new Callback( p_access ) ),
+        nullptr,
         nullptr,
         nullptr,
         nullptr,
