@@ -25,6 +25,7 @@
 #define VLC_CLOUDSTORAGE_ACCESS_H
 
 #include <string>
+#include <IHttpd.h>
 #include <ICloudProvider.h>
 #include <IItem.h>
 
@@ -50,6 +51,7 @@ struct access_sys_t
     vlc_keystore *p_keystore;
     char *ppsz_values[KEY_MAX];
     cloudstorage::IItem::Pointer current_item;
+    void* httpd_data;
 };
 
 #endif
