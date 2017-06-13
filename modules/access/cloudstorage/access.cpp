@@ -29,6 +29,7 @@
 #include <IRequest.h>
 
 #include "provider_callback.h"
+#include "provider_httpd.h"
 
 using cloudstorage::ICloudStorage;
 using cloudstorage::ICloudProvider;
