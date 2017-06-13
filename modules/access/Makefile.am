@@ -318,7 +318,8 @@ libcloudstorage_plugin_la_SOURCES = \
 	access/cloudstorage/access.h access/cloudstorage/access.cpp \
 	access/cloudstorage/services_discovery.h \
 	access/cloudstorage/services_discovery.cpp \
-	access/cloudstorage/provider_callback.h
+	access/cloudstorage/provider_callback.h \
+	access/cloudstorage/provider_httpd.h
 libcloudstorage_plugin_la_CXXFLAGS = $(CXXFLAGS_cloudstorage) $(AM_CXXFLAGS)
 libcloudstorage_plugin_la_LIBADD = $(LIBS_cloudstorage)
 libcloudstorage_plugin_la_LDFLAGS = $(AM_LDFLAGS) -rpath '$(accessdir)'
