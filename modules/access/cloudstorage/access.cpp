@@ -119,9 +119,12 @@ static int InitProvider( stream_t * p_access )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     ICloudProvider::Hints hints;
+    std::string redirect_port = std::to_string(
+            var_InheritInteger( p_access, "cloud-port" ) ) ;
 
     if ( p_sys->token != "" )
         hints["access_token"] = p_sys->token;
+    hints["redirect_uri_port"] = redirect_port;
     p_sys->provider = cloudstorage::ICloudStorage::
             create()->provider( p_sys->provider_name );
     if ( !p_sys->provider ) {
