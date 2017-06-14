@@ -810,6 +810,14 @@ static const char *const ppsz_prefres[] = {
     "Specify an IP address (e.g. ::1 or 127.0.0.1) or a host name " \
     "(e.g. localhost) to restrict them to a specific network interface." )
 
+#define CLOUD_HOST_TEXT N_( "Cloud Storage server address" )
+#define CLOUD_HOST_LONGTEXT N_( \
+    "This defines the address the Cloud Storage server will listen on. " \
+    "Syntax is address/path. " \
+    "By default, the server will listen on any local IP address. " \
+    "Specify an IP address (e.g. ::1 or 127.0.0.1) or a host name " \
+    "(e.g. localhost) to restrict them to a specific network interface." )
+
 #define HTTP_PORT_TEXT N_( "HTTP server port" )
 #define HTTP_PORT_LONGTEXT N_( \
     "The HTTP server will listen on this TCP port. " \
@@ -828,6 +836,13 @@ static const char *const ppsz_prefres[] = {
 #define RTSP_PORT_LONGTEXT N_( \
     "The RTSP server will listen on this TCP port. " \
     "The standard RTSP port number is 554. " \
+    "However allocation of port numbers below 1025 is usually restricted " \
+    "by the operating system." )
+
+#define CLOUD_PORT_TEXT N_( "Cloud Storage server port" )
+#define CLOUD_PORT_LONGTEXT N_( \
+    "The Cloud Storage server will listen on this TCP port. " \
+    "The standard Cloud Storage port number is 12345. " \
     "However allocation of port numbers below 1025 is usually restricted " \
     "by the operating system." )
 
@@ -1761,6 +1776,9 @@ vlc_module_begin ()
         change_integer_range( 1, 65535 )
     add_string( "rtsp-host", NULL, RTSP_HOST_TEXT, RTSP_HOST_LONGTEXT, true )
     add_integer( "rtsp-port", 554, RTSP_PORT_TEXT, RTSP_PORT_LONGTEXT, true )
+        change_integer_range( 1, 65535 )
+    add_string( "cloud-host", NULL, CLOUD_HOST_TEXT, CLOUD_HOST_LONGTEXT, true )
+    add_integer( "cloud-port", 12345, CLOUD_PORT_TEXT, CLOUD_PORT_LONGTEXT, true )
         change_integer_range( 1, 65535 )
     add_loadfile( "http-cert", NULL, HTTP_CERT_TEXT, CERT_LONGTEXT, true )
     add_obsolete_string( "sout-http-cert" ) /* since 2.0.0 */
