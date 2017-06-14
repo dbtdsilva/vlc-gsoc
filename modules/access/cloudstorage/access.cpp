@@ -53,6 +53,7 @@ int Open( vlc_object_t *p_this )
 
     if ( ParseUrl( p_access ) != VLC_SUCCESS )
         goto error;
+
     if ( InitKeystore( p_access) != VLC_SUCCESS )
         goto error;
     if ( InitProvider( p_access) != VLC_SUCCESS )
@@ -76,12 +77,11 @@ error:
 
 void Close( vlc_object_t *p_this )
 {
-    msg_Dbg(p_this, "CLOSE");
     access_t *p_access = (access_t*) p_this;
     access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
 
     if ( p_sys != nullptr ) {
-        if ( p_sys->p_keystore != nullptr )
+        if ( p_sys->p_keystore != nullptr && !p_sys->memory_keystore )
             vlc_keystore_release( p_sys->p_keystore );
         delete p_sys;
     }
@@ -90,12 +90,17 @@ void Close( vlc_object_t *p_this )
 static int InitKeystore( stream_t * p_access )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-    // Keystore is never created when there is no user specified
-    if ( p_sys->username.empty() )
-        return VLC_SUCCESS;
-
     vlc_keystore_entry *p_entries;
-    p_sys->p_keystore = vlc_keystore_create( p_access );
+    // Keystore is never created when there is no user specified
+    p_sys->memory_keystore = p_sys->username.empty();
+    if ( p_sys->username.empty() )
+    {
+        p_sys->p_keystore = vlc_get_memory_keystore( VLC_OBJECT( p_access ) );
+        p_sys->username = std::string( "memory_user" );
+    }
+    else
+        p_sys->p_keystore = vlc_keystore_create( p_access );
+
     if ( p_sys->p_keystore == nullptr ) {
         msg_Err( p_access, "Failed to create keystore" );
         return VLC_EGENERIC;
@@ -164,8 +169,6 @@ static int AddItem( struct access_fsdir *p_fsdir, stream_t *p_access,
     url << item->filename();
     i_type = item->type() == IItem::FileType::Directory ?
         ITEM_TYPE_DIRECTORY : ITEM_TYPE_FILE;
-    if (item->extension().find("zip") != item->extension().npos)
-        i_type = ITEM_TYPE_DIRECTORY;
 
     return access_fsdir_additem( p_fsdir, url.str().c_str(),
             item->filename().c_str(), i_type, ITEM_NET );
