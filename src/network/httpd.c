@@ -898,6 +898,11 @@ httpd_host_t *vlc_rtsp_HostNew(vlc_object_t *p_this)
     return httpd_HostCreate(p_this, "rtsp-host", "rtsp-port", NULL);
 }
 
+httpd_host_t *vlc_cloud_HostNew(vlc_object_t *p_this)
+{
+    return httpd_HostCreate(p_this, "cloud-host", "cloud-port", NULL);
+}
+
 static struct httpd
 {
     vlc_mutex_t  mutex;
