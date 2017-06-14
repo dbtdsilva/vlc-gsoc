@@ -30,10 +30,10 @@ int Httpd::internalCallback( httpd_callback_sys_t * args, httpd_client_t * clien
         request_data.args.insert( std::make_pair( key, value ) );
     }
     // Fill the headers
-    /*for (unsigned int i = 0; i < query->i_headers; i++) {
-        request_data.headers.insert( std::string( query->p_headers[i].name ),
-                                     std::string( query->p_headers[i].value ) );
-    }*/
+    for (unsigned int i = 0; i < query->i_headers; i++) {
+        request_data.headers.insert( std::make_pair(
+            query->p_headers[i].name, query->p_headers[i].value ) );
+    }
 
     std::string response = data->request_callback(&request_data);
 
@@ -72,27 +72,32 @@ void Httpd::startServer(uint16_t port, CallbackFunction request_callback,
     var_SetInteger( p_access->obj.libvlc, "cloud-port", default_port );
 
     // Register the possible URLs
-    url_root = httpd_UrlNew( host, "/", NULL, NULL);
-    url_login = httpd_UrlNew( host, "/login", NULL, NULL);
+    url_root = httpd_UrlNew( host, "/", NULL, NULL );
+    url_login = httpd_UrlNew( host, "/login", NULL, NULL );
 
-    httpd_UrlCatch(url_root, HTTPD_MSG_HEAD, internalCallback,
-            (httpd_callback_sys_t*) callback_data);
-    httpd_UrlCatch(url_root, HTTPD_MSG_GET, internalCallback,
-            (httpd_callback_sys_t*) callback_data);
-    httpd_UrlCatch(url_root, HTTPD_MSG_POST, internalCallback,
-            (httpd_callback_sys_t*) callback_data);
+    httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, internalCallback,
+            (httpd_callback_sys_t*) callback_data );
+    httpd_UrlCatch( url_root, HTTPD_MSG_GET, internalCallback,
+            (httpd_callback_sys_t*) callback_data );
+    httpd_UrlCatch( url_root, HTTPD_MSG_POST, internalCallback,
+            (httpd_callback_sys_t*) callback_data );
 
-    httpd_UrlCatch(url_login, HTTPD_MSG_HEAD, internalCallback,
-            (httpd_callback_sys_t*) callback_data);
-    httpd_UrlCatch(url_login, HTTPD_MSG_GET, internalCallback,
-            (httpd_callback_sys_t*) callback_data);
-    httpd_UrlCatch(url_login, HTTPD_MSG_POST, internalCallback,
-            (httpd_callback_sys_t*) callback_data);
+    httpd_UrlCatch( url_login, HTTPD_MSG_HEAD, internalCallback,
+            (httpd_callback_sys_t*) callback_data );
+    httpd_UrlCatch( url_login, HTTPD_MSG_GET, internalCallback,
+            (httpd_callback_sys_t*) callback_data );
+    httpd_UrlCatch( url_login, HTTPD_MSG_POST, internalCallback,
+            (httpd_callback_sys_t*) callback_data );
 }
 
 void Httpd::stopServer()
 {
-    httpd_UrlDelete( url_root );
-    httpd_UrlDelete( url_login );
-    httpd_HostDelete ( host );
+    if ( host != nullptr )
+    {
+        if ( url_root != nullptr )
+            httpd_UrlDelete( url_root );
+        if ( url_login != nullptr )
+            httpd_UrlDelete( url_login );
+        httpd_HostDelete ( host );
+    }
 }
