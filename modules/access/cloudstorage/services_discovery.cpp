@@ -161,7 +161,6 @@ static int RepresentAuthenticatedUsers( services_discovery_t * p_sd )
     vlc_keystore_entry *p_entries;
     VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
     p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
-    //p_sys->ppsz_values[KEY_SERVER] = strdup( provider_name );
     unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
             p_sys->ppsz_values, &p_entries );
     for (unsigned int i = 0; i < i_entries; i++)
