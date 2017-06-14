@@ -44,6 +44,7 @@ struct access_sys_t
     std::string path;
     std::string provider_name;
     std::string username;
+    bool memory_keystore;
 
     // Loaded on Open
     cloudstorage::ICloudProvider::Pointer provider;
