@@ -140,6 +140,7 @@ httpd_HostDelete
 vlc_http_HostNew
 vlc_https_HostNew
 vlc_rtsp_HostNew
+vlc_cloud_HostNew
 httpd_MsgAdd
 httpd_MsgGet
 httpd_RedirectDelete
