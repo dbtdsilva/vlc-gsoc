@@ -1,4 +1,5 @@
 #include "provider_httpd.h"
+#include "vlc_plugin.h"
 
 #include <sstream>
 #include <map>
@@ -8,6 +9,8 @@ using cloudstorage::IHttpd;
 int Httpd::internalCallback( httpd_callback_sys_t * args, httpd_client_t * client,
         httpd_message_t * answer, const httpd_message_t * query )
 {
+    (void) client;
+
     CallbackData* data = (CallbackData *) args;
 
     RequestData request_data;
@@ -61,9 +64,14 @@ void Httpd::startServer(uint16_t port, CallbackFunction request_callback,
     callback_data->request_callback = request_callback;
     callback_data->custom_data = data;
 
-    var_SetInteger( p_access->obj.libvlc, "http-port", 12345 );
+    // Initialize cloud httpd server with the requested port and restore the
+    // default one at the end
+    int default_port = var_GetInteger( p_access->obj.libvlc, "cloud-port" );
+    var_SetInteger( p_access->obj.libvlc, "cloud-port", port );
+    host = vlc_cloud_HostNew( VLC_OBJECT( p_access ) );
+    var_SetInteger( p_access->obj.libvlc, "cloud-port", default_port );
 
-    host = vlc_http_HostNew( VLC_OBJECT( p_access ) );
+    // Register the possible URLs
     url_root = httpd_UrlNew( host, "/", NULL, NULL);
     url_login = httpd_UrlNew( host, "/login", NULL, NULL);
 
