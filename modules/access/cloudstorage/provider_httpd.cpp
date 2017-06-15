@@ -65,11 +65,12 @@ void Httpd::startServer(uint16_t port, CallbackFunction request_callback,
     callback_data->custom_data = data;
 
     // Initialize cloud httpd server with the requested port and restore the
-    // default one at the end
-    int default_port = var_GetInteger( p_access->obj.libvlc, "cloud-port" );
-    var_SetInteger( p_access->obj.libvlc, "cloud-port", port );
+    // default one at the end, other internal services from libcloudstorage
+    // might request a second server (like MegaNz).
+    int default_port = var_GetInteger( p_access->obj.libvlc, "http-port" );
+    var_SetInteger( p_access->obj.libvlc, "http-port", port );
     host = vlc_cloud_HostNew( VLC_OBJECT( p_access ) );
-    var_SetInteger( p_access->obj.libvlc, "cloud-port", default_port );
+    var_SetInteger( p_access->obj.libvlc, "http-port", default_port );
 
     // Register the possible URLs
     url_root = httpd_UrlNew( host, "/", NULL, NULL );
