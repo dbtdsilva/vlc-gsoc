@@ -19,15 +19,18 @@ int Httpd::internalCallback( httpd_callback_sys_t * args, httpd_client_t * clien
 
     // Fill the structure with the arguments in the query
     std::string argument;
-    std::istringstream iss( std::string( (char*) query->psz_args ) );
-    while (std::getline(iss, argument, '&')) {
-        size_t equal_div = argument.find('=');
-        if (equal_div == std::string::npos)
-            continue;
+    if ( query->psz_args != nullptr )
+    {
+        std::istringstream iss( std::string( (char*) query->psz_args ) );
+        while (std::getline(iss, argument, '&')) {
+            size_t equal_div = argument.find('=');
+            if (equal_div == std::string::npos)
+                continue;
 
-        std::string key = argument.substr( 0, equal_div );
-        std::string value = argument.substr( equal_div + 1 );
-        request_data.args.insert( std::make_pair( key, value ) );
+            std::string key = argument.substr( 0, equal_div );
+            std::string value = argument.substr( equal_div + 1 );
+            request_data.args.insert( std::make_pair( key, value ) );
+        }
     }
     // Fill the headers
     for (unsigned int i = 0; i < query->i_headers; i++) {
@@ -73,8 +76,8 @@ void Httpd::startServer(uint16_t port, CallbackFunction request_callback,
     var_SetInteger( p_access->obj.libvlc, "http-port", default_port );
 
     // Register the possible URLs
-    url_root = httpd_UrlNew( host, "/", NULL, NULL );
-    url_login = httpd_UrlNew( host, "/login", NULL, NULL );
+    url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
+    url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );
 
     httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, internalCallback,
             (httpd_callback_sys_t*) callback_data );
