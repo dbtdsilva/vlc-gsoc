@@ -69,7 +69,7 @@ void Httpd::startServer(uint16_t port, CallbackFunction request_callback,
     // might request a second server (like MegaNz).
     int default_port = var_GetInteger( p_access->obj.libvlc, "http-port" );
     var_SetInteger( p_access->obj.libvlc, "http-port", port );
-    host = vlc_cloud_HostNew( VLC_OBJECT( p_access ) );
+    host = vlc_http_HostNew( VLC_OBJECT( p_access ) );
     var_SetInteger( p_access->obj.libvlc, "http-port", default_port );
 
     // Register the possible URLs
