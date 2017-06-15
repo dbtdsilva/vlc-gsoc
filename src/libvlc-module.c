@@ -837,13 +837,6 @@ static const char *const ppsz_prefres[] = {
     "However allocation of port numbers below 1025 is usually restricted " \
     "by the operating system." )
 
-#define CLOUD_PORT_TEXT N_( "Cloud Storage server port" )
-#define CLOUD_PORT_LONGTEXT N_( \
-    "The Cloud Storage server will listen on this TCP port. " \
-    "The standard Cloud Storage port number is 12345. " \
-    "However allocation of port numbers below 1025 is usually restricted " \
-    "by the operating system." )
-
 #define HTTP_CERT_TEXT N_("HTTP/TLS server certificate")
 #define CERT_LONGTEXT N_( \
    "This X.509 certicate file (PEM format) is used for server-side TLS. " \
@@ -1774,9 +1767,6 @@ vlc_module_begin ()
         change_integer_range( 1, 65535 )
     add_string( "rtsp-host", NULL, RTSP_HOST_TEXT, RTSP_HOST_LONGTEXT, true )
     add_integer( "rtsp-port", 554, RTSP_PORT_TEXT, RTSP_PORT_LONGTEXT, true )
-        change_integer_range( 1, 65535 )
-    add_string( "cloud-host", NULL, CLOUD_HOST_TEXT, CLOUD_HOST_LONGTEXT, true )
-    add_integer( "cloud-port", 12345, CLOUD_PORT_TEXT, CLOUD_PORT_LONGTEXT, true )
         change_integer_range( 1, 65535 )
     add_loadfile( "http-cert", NULL, HTTP_CERT_TEXT, CERT_LONGTEXT, true )
     add_obsolete_string( "sout-http-cert" ) /* since 2.0.0 */
