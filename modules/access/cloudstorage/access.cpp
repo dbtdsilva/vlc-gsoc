@@ -53,7 +53,6 @@ int Open( vlc_object_t *p_this )
 
     if ( ParseUrl( p_access ) != VLC_SUCCESS )
         goto error;
-
     if ( InitKeystore( p_access) != VLC_SUCCESS )
         goto error;
     if ( InitProvider( p_access) != VLC_SUCCESS )
@@ -125,7 +124,7 @@ static int InitProvider( stream_t * p_access )
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     ICloudProvider::Hints hints;
     std::string redirect_port = std::to_string(
-            var_InheritInteger( p_access, "cloud-port" ) ) ;
+            var_InheritInteger( p_access, "http-port" ) ) ;
 
     if ( p_sys->token != "" )
         hints["access_token"] = p_sys->token;
