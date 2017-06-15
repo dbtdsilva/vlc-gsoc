@@ -106,12 +106,6 @@ httpd_host_t *vlc_rtsp_HostNew (vlc_object_t *obj)
     return NULL;
 }
 
-httpd_host_t *vlc_cloud_HostNew (vlc_object_t *obj)
-{
-    msg_Err (obj, "Cloud Storage Authentication server not compiled-in!");
-    return NULL;
-}
-
 void httpd_MsgAdd (httpd_message_t *m, const char *name, const char *fmt, ...)
 {
     (void) m; (void) name; (void) fmt;
