@@ -130,6 +130,7 @@ static int InitProvider( stream_t * p_access )
         hints["access_token"] = p_sys->token;
     hints["redirect_uri_port"] = redirect_port;
     hints["redirect_uri_prefix"] = "/auth";
+    hints["requesting_app_name"] = "VLC";
     p_sys->provider = cloudstorage::ICloudStorage::
             create()->provider( p_sys->provider_name );
     if ( !p_sys->provider ) {
