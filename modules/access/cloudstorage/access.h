@@ -1,7 +1,7 @@
 /*****************************************************************************
  * access.cpp: cloud storage access module using libcloudstorage
  *****************************************************************************
- * Copyright (C) 2017 William Ung
+ * Copyright (C) 2017
  *
  * Authors: William Ung <williamung@msn.com>
  *          Diogo Silva <dbtdsilva@gmail.com>
