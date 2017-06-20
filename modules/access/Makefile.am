@@ -319,6 +319,8 @@ libcloudstorage_plugin_la_SOURCES = \
 	access/cloudstorage/services_discovery.h \
 	access/cloudstorage/services_discovery.cpp \
 	access/cloudstorage/provider_callback.h \
+	access/cloudstorage/provider_http.h \
+	access/cloudstorage/provider_http.cpp \
 	access/cloudstorage/provider_httpd.h \
 	access/cloudstorage/provider_httpd.cpp
 libcloudstorage_plugin_la_CXXFLAGS = $(CXXFLAGS_cloudstorage) $(AM_CXXFLAGS)
