@@ -22,8 +22,6 @@
 
 #include "provider_http.h"
 
-using cloudstorage;
-
 // Http interface implementation
 cloudstorage::IHttpRequest::Pointer Http::create(const std::string&,
             const std::string&, bool) const {
@@ -62,28 +60,27 @@ void HttpRequest::setHeaderParameter(const std::string& parameter,
 
 const std::unordered_map<std::string, std::string>& HttpRequest::parameters()
         const {
-    return parameters;
+    return req_parameters;
 }
 
 const std::unordered_map<std::string, std::string>& HttpRequest::headerParameters()
         const {
-    return header_parameters;
+    return req_header_parameters;
 }
 
 const std::string& HttpRequest::url() const {
-    return url;
+    return req_url;
 }
 
 const std::string& HttpRequest::method() const {
-    return method;
+    return req_method;
 }
 
 bool HttpRequest::follow_redirect() const {
-    return follow_redirect;
+    return req_follow_redirect;
 }
 
 int HttpRequest::send(std::istream& data, std::ostream& response,
-        std::ostream* error_stream = nullptr,
-        ICallback::Pointer = nullptr) const {
+        std::ostream* error_stream, ICallback::Pointer) const {
     return 0;
 }
