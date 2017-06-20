@@ -62,11 +62,13 @@ HttpRequest::HttpRequest( const std::string& url, const std::string& method,
 void HttpRequest::setParameter( const std::string& parameter,
         const std::string& value )
 {
+    req_parameters[parameter] = value;
 }
 
 void HttpRequest::setHeaderParameter( const std::string& parameter,
         const std::string& value )
 {
+    req_header_parameters[parameter] = value;
 }
 
 const std::unordered_map<std::string, std::string>&
