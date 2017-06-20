@@ -78,6 +78,7 @@ public:
 
     void declined( const ICloudProvider& ) override
     {
+        msg_Err( p_access, "Access was declined" );
         Close( (vlc_object_t*)p_access );
     }
 
