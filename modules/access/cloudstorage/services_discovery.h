@@ -1,7 +1,7 @@
 /*****************************************************************************
  * services_discovery.h: cloud storage services discovery module
  *****************************************************************************
- * Copyright (C) 2017 William Ung
+ * Copyright (C) 2017
  *
  * Authors: William Ung <williamung@msn.com>
  *          Diogo Silva <dbtdsilva@gmail.com>
@@ -20,6 +20,9 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
+
+#ifndef VLC_CLOUDSTORAGE_SERVICES_DISCOVERY_H
+#define VLC_CLOUDSTORAGE_SERVICES_DISCOVERY_H
 
 #include <vector>
 #include <map>
@@ -45,3 +48,5 @@ struct services_discovery_sys_t
     std::map< std::string, provider_item_t * > providers_items;
     char *ppsz_values[KEY_MAX];
 };
+
+#endif
