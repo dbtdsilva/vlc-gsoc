@@ -808,14 +808,6 @@ static const char *const ppsz_prefres[] = {
     "Specify an IP address (e.g. ::1 or 127.0.0.1) or a host name " \
     "(e.g. localhost) to restrict them to a specific network interface." )
 
-#define CLOUD_HOST_TEXT N_( "Cloud Storage server address" )
-#define CLOUD_HOST_LONGTEXT N_( \
-    "This defines the address the Cloud Storage server will listen on. " \
-    "Syntax is address/path. " \
-    "By default, the server will listen on any local IP address. " \
-    "Specify an IP address (e.g. ::1 or 127.0.0.1) or a host name " \
-    "(e.g. localhost) to restrict them to a specific network interface." )
-
 #define HTTP_PORT_TEXT N_( "HTTP server port" )
 #define HTTP_PORT_LONGTEXT N_( \
     "The HTTP server will listen on this TCP port. " \
