@@ -129,6 +129,7 @@ static int InitProvider( stream_t * p_access )
     if ( p_sys->token != "" )
         hints["access_token"] = p_sys->token;
     hints["redirect_uri_port"] = redirect_port;
+    hints["redirect_uri_prefix"] = "/auth";
     p_sys->provider = cloudstorage::ICloudStorage::
             create()->provider( p_sys->provider_name );
     if ( !p_sys->provider ) {
