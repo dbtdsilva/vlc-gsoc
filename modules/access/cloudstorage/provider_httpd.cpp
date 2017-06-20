@@ -21,8 +21,8 @@
  *****************************************************************************/
 
 #include "provider_httpd.h"
-#include "vlc_plugin.h"
 
+#include <vlc_url.h>
 #include <sstream>
 #include <map>
 
@@ -43,7 +43,8 @@ int Httpd::internalCallback( httpd_callback_sys_t * args, httpd_client_t * clien
     std::string argument;
     if ( query->psz_args != nullptr )
     {
-        std::istringstream iss( std::string( (char*) query->psz_args ) );
+        std::istringstream iss( std::string(
+            vlc_uri_decode((char*) query->psz_args )) );
         while (std::getline(iss, argument, '&')) {
             size_t equal_div = argument.find('=');
             if (equal_div == std::string::npos)
@@ -101,19 +102,25 @@ void Httpd::startServer(uint16_t port, CallbackFunction request_callback,
     url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
     url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );
 
-    httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, internalCallback,
-            (httpd_callback_sys_t*) callback_data );
-    httpd_UrlCatch( url_root, HTTPD_MSG_GET, internalCallback,
-            (httpd_callback_sys_t*) callback_data );
-    httpd_UrlCatch( url_root, HTTPD_MSG_POST, internalCallback,
-            (httpd_callback_sys_t*) callback_data );
+    if ( url_root != nullptr )
+    {
+        httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, internalCallback,
+                (httpd_callback_sys_t*) callback_data );
+        httpd_UrlCatch( url_root, HTTPD_MSG_GET, internalCallback,
+                (httpd_callback_sys_t*) callback_data );
+        httpd_UrlCatch( url_root, HTTPD_MSG_POST, internalCallback,
+                (httpd_callback_sys_t*) callback_data );
+    }
 
-    httpd_UrlCatch( url_login, HTTPD_MSG_HEAD, internalCallback,
-            (httpd_callback_sys_t*) callback_data );
-    httpd_UrlCatch( url_login, HTTPD_MSG_GET, internalCallback,
-            (httpd_callback_sys_t*) callback_data );
-    httpd_UrlCatch( url_login, HTTPD_MSG_POST, internalCallback,
-            (httpd_callback_sys_t*) callback_data );
+    if ( url_login != nullptr )
+    {
+        httpd_UrlCatch( url_login, HTTPD_MSG_HEAD, internalCallback,
+                (httpd_callback_sys_t*) callback_data );
+        httpd_UrlCatch( url_login, HTTPD_MSG_GET, internalCallback,
+                (httpd_callback_sys_t*) callback_data );
+        httpd_UrlCatch( url_login, HTTPD_MSG_POST, internalCallback,
+                (httpd_callback_sys_t*) callback_data );
+    }
 }
 
 void Httpd::stopServer()
