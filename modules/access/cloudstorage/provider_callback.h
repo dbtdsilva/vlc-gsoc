@@ -79,13 +79,11 @@ public:
     void declined( const ICloudProvider& ) override
     {
         msg_Err( p_access, "Access was declined" );
-        Close( (vlc_object_t*)p_access );
     }
 
     void error( const ICloudProvider&, const std::string& desc ) override
     {
         msg_Err( p_access, "%s", desc.c_str() );
-        Close( (vlc_object_t*)p_access );
     }
 
     access_t *p_access;
