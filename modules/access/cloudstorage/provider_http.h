@@ -24,6 +24,8 @@
 #define VLC_CLOUDSTORAGE_PROVIDER_HTTP_H
 
 #include <IHttp.h>
+#include <string>
+#include <unordered_map>
 
 class Http : public cloudstorage::IHttp {
 public:
@@ -59,10 +61,10 @@ public:
             ICallback::Pointer = nullptr) const override;
 
 private:
-    std::unordered_map<std::string, std::string> parameters;
-    std::unordered_map<std::string, std::string> header_parameters;
-    std::string url, method;
-    bool follow_redirect;
+    std::unordered_map<std::string, std::string> req_parameters;
+    std::unordered_map<std::string, std::string> req_header_parameters;
+    std::string req_url, req_method;
+    bool req_follow_redirect;
 };
 
 #endif /* VLC_CLOUDSTORAGE_PROVIDER_HTTP_H */
