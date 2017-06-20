@@ -22,65 +22,82 @@
 
 #include "provider_http.h"
 
+#include <Utility.h>
+
 // Http interface implementation
-cloudstorage::IHttpRequest::Pointer Http::create(const std::string&,
-            const std::string&, bool) const {
-    return nullptr;
+cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
+            const std::string& method, bool follow_redirect ) const
+{
+    return cloudstorage::util::make_unique<cloudstorage::IHttpRequest>(
+            url, method, follow_redirect );
 }
 
-std::string Http::unescape(const std::string&) const {
-    return "";
+std::string Http::unescape( const std::string& value ) const
+{
+    return value;
 }
 
-std::string Http::escape(const std::string&) const {
-    return "";
+std::string Http::escape( const std::string& value ) const
+{
+    return value;
 }
 
-std::string Http::escapeHeader(const std::string&) const {
-    return "";
+std::string Http::escapeHeader( const std::string& value ) const
+{
+    return value;
 }
 
-std::string Http::error(int) const {
+std::string Http::error( int error ) const
+{
     return "";
 }
 
 // HttpRequest interface implementation
-HttpRequest::HttpRequest(const std::string& url, const std::string& method,
-        bool follow_redirect) {
+HttpRequest::HttpRequest( const std::string& url, const std::string& method,
+        bool follow_redirect ) : req_url( url ), req_method( method ),
+                                 req_follow_redirect( follow_redirect )
+{
 }
 
-void HttpRequest::setParameter(const std::string& parameter,
-        const std::string& value) {
-
+void HttpRequest::setParameter( const std::string& parameter,
+        const std::string& value )
+{
 }
 
-void HttpRequest::setHeaderParameter(const std::string& parameter,
-        const std::string& value) {
+void HttpRequest::setHeaderParameter( const std::string& parameter,
+        const std::string& value )
+{
 }
 
-const std::unordered_map<std::string, std::string>& HttpRequest::parameters()
-        const {
+const std::unordered_map<std::string, std::string>&
+    HttpRequest::parameters() const
+{
     return req_parameters;
 }
 
-const std::unordered_map<std::string, std::string>& HttpRequest::headerParameters()
-        const {
+const std::unordered_map<std::string, std::string>&
+    HttpRequest::headerParameters() const
+{
     return req_header_parameters;
 }
 
-const std::string& HttpRequest::url() const {
+const std::string& HttpRequest::url() const
+{
     return req_url;
 }
 
-const std::string& HttpRequest::method() const {
+const std::string& HttpRequest::method() const
+{
     return req_method;
 }
 
-bool HttpRequest::follow_redirect() const {
+bool HttpRequest::follow_redirect() const
+{
     return req_follow_redirect;
 }
 
-int HttpRequest::send(std::istream& data, std::ostream& response,
-        std::ostream* error_stream, ICallback::Pointer) const {
+int HttpRequest::send( std::istream& data, std::ostream& response,
+        std::ostream* error_stream, ICallback::Pointer cb ) const
+{
     return 0;
 }
