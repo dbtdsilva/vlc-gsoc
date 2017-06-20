@@ -1,7 +1,7 @@
 /*****************************************************************************
  * services_discovery.cpp: cloud storage services discovery module
  *****************************************************************************
- * Copyright (C) 2017 William Ung
+ * Copyright (C) 2017
  *
  * Authors: William Ung <williamung@msn.com>
  *          Diogo Silva <dbtdsilva@gmail.com>
