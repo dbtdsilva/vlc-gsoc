@@ -21,3 +21,69 @@
  *****************************************************************************/
 
 #include "provider_http.h"
+
+using cloudstorage;
+
+// Http interface implementation
+cloudstorage::IHttpRequest::Pointer Http::create(const std::string&,
+            const std::string&, bool) const {
+    return nullptr;
+}
+
+std::string Http::unescape(const std::string&) const {
+    return "";
+}
+
+std::string Http::escape(const std::string&) const {
+    return "";
+}
+
+std::string Http::escapeHeader(const std::string&) const {
+    return "";
+}
+
+std::string Http::error(int) const {
+    return "";
+}
+
+// HttpRequest interface implementation
+HttpRequest::HttpRequest(const std::string& url, const std::string& method,
+        bool follow_redirect) {
+}
+
+void HttpRequest::setParameter(const std::string& parameter,
+        const std::string& value) {
+
+}
+
+void HttpRequest::setHeaderParameter(const std::string& parameter,
+        const std::string& value) {
+}
+
+const std::unordered_map<std::string, std::string>& HttpRequest::parameters()
+        const {
+    return parameters;
+}
+
+const std::unordered_map<std::string, std::string>& HttpRequest::headerParameters()
+        const {
+    return header_parameters;
+}
+
+const std::string& HttpRequest::url() const {
+    return url;
+}
+
+const std::string& HttpRequest::method() const {
+    return method;
+}
+
+bool HttpRequest::follow_redirect() const {
+    return follow_redirect;
+}
+
+int HttpRequest::send(std::istream& data, std::ostream& response,
+        std::ostream* error_stream = nullptr,
+        ICallback::Pointer = nullptr) const {
+    return 0;
+}
