@@ -23,11 +23,46 @@
 #ifndef VLC_CLOUDSTORAGE_PROVIDER_HTTP_H
 #define VLC_CLOUDSTORAGE_PROVIDER_HTTP_H
 
-class provider_http {
+#include <IHttp.h>
+
+class Http : public cloudstorage::IHttp {
 public:
-
-private:
-
+    cloudstorage::IHttpRequest::Pointer create(const std::string&,
+            const std::string&, bool) const override;
+    std::string unescape(const std::string&) const override;
+    std::string escape(const std::string&) const override;
+    std::string escapeHeader(const std::string&) const override;
+    std::string error(int) const override;
 };
 
-#endif /* PROVIDER_HTTP_H */
+class HttpRequest : public cloudstorage::IHttpRequest {
+public:
+    HttpRequest(const std::string& url, const std::string& method,
+            bool follow_redirect);
+
+    void setParameter(const std::string& parameter,
+            const std::string& value) override;
+    void setHeaderParameter(const std::string& parameter,
+            const std::string& value) override;
+
+    const std::unordered_map<std::string, std::string>& parameters()
+            const override;
+    const std::unordered_map<std::string, std::string>& headerParameters()
+            const override;
+
+    const std::string& url() const override;
+    const std::string& method() const override;
+    bool follow_redirect() const override;
+
+    int send(std::istream& data, std::ostream& response,
+            std::ostream* error_stream = nullptr,
+            ICallback::Pointer = nullptr) const override;
+
+private:
+    std::unordered_map<std::string, std::string> parameters;
+    std::unordered_map<std::string, std::string> header_parameters;
+    std::string url, method;
+    bool follow_redirect;
+};
+
+#endif /* VLC_CLOUDSTORAGE_PROVIDER_HTTP_H */
