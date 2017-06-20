@@ -1,7 +1,7 @@
 /*****************************************************************************
  * access.cpp: cloud storage access module using libcloudstorage
  *****************************************************************************
- * Copyright (C) 2017 William Ung
+ * Copyright (C) 2017
  *
  * Authors: William Ung <williamung@msn.com>
  *          Diogo Silva <dbtdsilva@gmail.com>
@@ -214,11 +214,11 @@ static int ParseUrl( access_t * p_access )
     size_t pos_provider = full_path.find("/");
     std::string provider_with_user;
     if ( pos_provider == std::string::npos ) {
-	provider_with_user = full_path;
-	p_sys->path = "/";
+        provider_with_user = full_path;
+        p_sys->path = "/";
     } else {
-	provider_with_user = full_path.substr( 0, pos_provider );
-	p_sys->path = full_path.substr( pos_provider );
+        provider_with_user = full_path.substr( 0, pos_provider );
+        p_sys->path = full_path.substr( pos_provider );
     }
 
     size_t pos_user = provider_with_user.find_last_of("@");
