@@ -30,7 +30,8 @@ struct block_t;
 
 struct vlc_http_resource *vlc_http_live_create(struct vlc_http_mgr *mgr,
                                                const char *uri, const char *ua,
-                                               const char *ref);
+                                               const char *ref,
+                                               const char *method);
 struct block_t *vlc_http_live_read(struct vlc_http_resource *);
 
 #define vlc_http_live_get_status vlc_http_res_get_status
