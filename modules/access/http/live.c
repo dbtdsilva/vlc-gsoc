@@ -57,13 +57,15 @@ static const struct vlc_http_resource_cbs vlc_http_live_callbacks =
 
 struct vlc_http_resource *vlc_http_live_create(struct vlc_http_mgr *mgr,
                                                const char *uri, const char *ua,
-                                               const char *ref)
+                                               const char *ref,
+                                               const char *method)
 {
     struct vlc_http_resource *res = malloc(sizeof (*res));
     if (unlikely(res == NULL))
         return NULL;
 
-    if (vlc_http_res_init(res, &vlc_http_live_callbacks, mgr, uri, ua, ref))
+    if (vlc_http_res_init(res, &vlc_http_live_callbacks,
+                          mgr, uri, ua, ref, method))
     {
         free(res);
         res = NULL;
