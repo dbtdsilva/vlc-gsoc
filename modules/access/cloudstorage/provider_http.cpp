@@ -22,14 +22,24 @@
 
 #include "provider_http.h"
 
-#include <Utility.h>
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
+#include <memory>
+#include <vlc_common.h>
+
+#include "../http/file.h"
+#include "../http/conn.h"
+#include "../http/connmgr.h"
+#include "../http/resource.h"
+#include "../http/message.h"
 
 // Http interface implementation
 cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
             const std::string& method, bool follow_redirect ) const
 {
-    return cloudstorage::util::make_unique<cloudstorage::IHttpRequest>(
-            url, method, follow_redirect );
+    return std::make_unique<HttpRequest>( url, method, follow_redirect );
 }
 
 std::string Http::unescape( const std::string& value ) const
