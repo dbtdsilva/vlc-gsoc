@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <vlc_common.h>
+#include <vlc_url.h>
 
 #include "../http/file.h"
 #include "../http/conn.h"
@@ -44,12 +45,18 @@ cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
 
 std::string Http::unescape( const std::string& value ) const
 {
-    return value;
+    char* decoded_uri = vlc_uri_decode_duplicate( value.c_str() );
+    std::string uri_str( decoded_uri );
+    free( decoded_uri );
+    return uri_str;
 }
 
 std::string Http::escape( const std::string& value ) const
 {
-    return value;
+    char *uri_encoded = vlc_uri_encode( value.c_str() );
+    std::string uri_str( uri_encoded );
+    free( uri_encoded );
+    return uri_str;
 }
 
 std::string Http::escapeHeader( const std::string& value ) const
