@@ -27,22 +27,28 @@
 #include <string>
 #include <unordered_map>
 
+#include "access.h"
+
 class Http : public cloudstorage::IHttp
 {
 public:
+    Http( access_t *access );
     cloudstorage::IHttpRequest::Pointer create( const std::string&,
             const std::string&, bool ) const override;
     std::string unescape( const std::string& ) const override;
     std::string escape( const std::string& ) const override;
     std::string escapeHeader( const std::string& ) const override;
     std::string error( int ) const override;
+
+private:
+    access_t *p_access;
 };
 
 class HttpRequest : public cloudstorage::IHttpRequest
 {
 public:
-    HttpRequest( const std::string& url, const std::string& method,
-            bool follow_redirect );
+    HttpRequest( access_t* access, const std::string& url,
+            const std::string& method, bool follow_redirect );
 
     void setParameter( const std::string& parameter,
             const std::string& value ) override;
@@ -63,6 +69,7 @@ public:
             ICallback::Pointer = nullptr ) const override;
 
 private:
+    access_t *p_access;
     std::unordered_map<std::string, std::string> req_parameters;
     std::unordered_map<std::string, std::string> req_header_parameters;
     std::string req_url, req_method;
