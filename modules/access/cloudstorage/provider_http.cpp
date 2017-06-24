@@ -29,12 +29,14 @@
 #include <memory>
 #include <vlc_common.h>
 #include <vlc_url.h>
+#include <vlc_block.h>
+#include <json/json.h>
 
-#include "../http/file.h"
-#include "../http/conn.h"
-#include "../http/connmgr.h"
-#include "../http/resource.h"
-#include "../http/message.h"
+#include "access/http/file.h"
+#include "access/http/conn.h"
+#include "access/http/connmgr.h"
+#include "access/http/resource.h"
+#include "access/http/message.h"
 
 // Http interface implementation
 cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
@@ -61,12 +63,14 @@ std::string Http::escape( const std::string& value ) const
 
 std::string Http::escapeHeader( const std::string& value ) const
 {
-    return value;
+    // This will be removed once a implementation for a helper class is done
+    // The other escapes are also included
+    return Json::valueToQuotedString(value.c_str());
 }
 
 std::string Http::error( int error ) const
 {
-    return "";
+    return "Error code " + std::to_string(error);
 }
 
 // HttpRequest interface implementation
@@ -118,5 +122,98 @@ bool HttpRequest::follow_redirect() const
 int HttpRequest::send( std::istream& data, std::ostream& response,
         std::ostream* error_stream, ICallback::Pointer cb ) const
 {
-    return 0;
+    std::shared_ptr<ICallback> callback( std::move(cb) );
+
+    std::string params_url;
+    // Create URL with parameters
+    std::unordered_map<std::string, std::string>::const_iterator it;
+    for ( it = req_parameters.begin(); it != req_parameters.end(); it++ )
+    {
+        if (it != req_parameters.begin())
+            params_url += "&";
+        params_url += it->first + "=" + it->second;
+    }
+    std::string url = req_url + (!params_url.empty() ? ("?" + params_url) : "");
+    // Initializing the request
+    struct vlc_http_resource *res;
+    struct vlc_http_mgr *manager = vlc_http_mgr_create(NULL, NULL);
+    if (manager == NULL) {
+        return 500;
+    }
+    res = vlc_http_file_create(manager, url.c_str(), NULL,
+            NULL, req_method.c_str());
+    if (res == NULL) {
+        return 500;
+    }
+
+    int status;
+    struct vlc_http_msg *resp;
+    if (res->response == NULL)
+    {
+        if (res->failure)
+            return 500;
+
+        void* opaque = res + 1;
+        struct vlc_http_msg *req;
+retry:
+        req = vlc_http_res_req(res, opaque);
+        if (unlikely(req == NULL)) {
+            res->response = NULL;
+            goto end;
+        }
+        resp = vlc_http_mgr_request(res->manager, res->secure,
+                                    res->host, res->port, req);
+        vlc_http_msg_destroy(req);
+
+        resp = vlc_http_msg_get_final(resp);
+        if (resp == NULL) {
+            res->response = NULL;
+            goto end;
+        }
+
+        for ( const auto& header : req_header_parameters )
+            vlc_http_msg_add_header(req, header.first.c_str(), "%s",
+                    header.second.c_str());
+
+        vlc_http_msg_get_cookies(resp, vlc_http_mgr_get_jar(res->manager),
+                                 res->host, res->path);
+        status = vlc_http_msg_get_status(resp);
+        if (status < 200 || status >= 599)
+            goto fail;
+
+        if (status == 406 && res->negotiate)
+        {
+            vlc_http_msg_destroy(resp);
+            res->negotiate = false;
+            goto retry;
+        }
+
+        if (res->cbs->response_validate(res, resp, opaque))
+            goto fail;
+
+        res->response = resp;
+        goto end;
+fail:
+        vlc_http_msg_destroy(resp);
+        return 500;
+end:
+        if (res->response == NULL)
+        {
+            res->failure = true;
+            return -1;
+        }
+    }
+
+    struct block_t* block = vlc_http_file_read(res);
+
+    std::string response_msg = "";
+    while (block != NULL)
+    {
+        response_msg += std::string((char*) block->p_buffer, block->i_buffer);
+        block = block->p_next;
+    }
+    response.write(response_msg.c_str(), response_msg.size());
+    int response_code = vlc_http_msg_get_status(res->response);
+
+    return response_code;
 }
