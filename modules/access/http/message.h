@@ -60,7 +60,7 @@ struct vlc_http_msg *vlc_http_resp_create(unsigned status) VLC_USED;
 /**
  * Destroys an HTTP message.
  */
-void vlc_http_msg_destroy(struct vlc_http_msg *);
+VLC_API void vlc_http_msg_destroy(struct vlc_http_msg *);
 
 /**
  * Formats a header field.
@@ -72,7 +72,7 @@ void vlc_http_msg_destroy(struct vlc_http_msg *);
  * @param fmt printf-style format string
  * @return 0 on success, -1 on error (out of memory)
  */
-int vlc_http_msg_add_header(struct vlc_http_msg *, const char *name,
+VLC_API int vlc_http_msg_add_header(struct vlc_http_msg *, const char *name,
                             const char *fmt, ...) VLC_FORMAT(3,4);
 
 /**
@@ -142,7 +142,7 @@ time_t vlc_http_msg_get_mtime(const struct vlc_http_msg *);
  */
 unsigned vlc_http_msg_get_retry_after(const struct vlc_http_msg *);
 
-void vlc_http_msg_get_cookies(const struct vlc_http_msg *,
+VLC_API void vlc_http_msg_get_cookies(const struct vlc_http_msg *,
                               struct vlc_http_cookie_jar_t *,
                               const char *host, const char *path);
 int vlc_http_msg_add_cookies(struct vlc_http_msg *,
@@ -185,7 +185,7 @@ const char *vlc_http_msg_get_header(const struct vlc_http_msg *,
  *
  * @return status code (e.g. 404), or negative if request
  */
-int vlc_http_msg_get_status(const struct vlc_http_msg *m);
+VLC_API int vlc_http_msg_get_status(const struct vlc_http_msg *m);
 
 /**
  * Gets request method.
@@ -273,7 +273,8 @@ struct vlc_http_msg *vlc_http_msg_iterate(struct vlc_http_msg *) VLC_USED;
  * @return the final response headers (m if it was already final),
  *         NULL if the parameter was NULL, or NULL on error
  */
-struct vlc_http_msg *vlc_http_msg_get_final(struct vlc_http_msg *) VLC_USED;
+VLC_API struct vlc_http_msg *vlc_http_msg_get_final(struct vlc_http_msg *)
+VLC_USED;
 
 /**
  * Receives HTTP data.
