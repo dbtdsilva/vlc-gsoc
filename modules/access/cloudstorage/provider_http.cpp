@@ -128,8 +128,6 @@ bool HttpRequest::follow_redirect() const
 int HttpRequest::send( std::istream& data, std::ostream& response,
         std::ostream* error_stream, ICallback::Pointer cb ) const
 {
-    std::shared_ptr<ICallback> callback( std::move(cb) );
-
     std::string params_url;
     // Create URL with parameters
     std::unordered_map<std::string, std::string>::const_iterator it;
@@ -168,6 +166,12 @@ retry:
             res->response = NULL;
             goto end;
         }
+
+        for ( const auto& header : req_header_parameters ) {
+            vlc_http_msg_add_header(req, header.first.c_str(), "%s",
+                    header.second.c_str());
+        }
+
         resp = vlc_http_mgr_request(res->manager, res->secure,
                                     res->host, res->port, req);
         vlc_http_msg_destroy(req);
@@ -177,10 +181,6 @@ retry:
             res->response = NULL;
             goto end;
         }
-
-        for ( const auto& header : req_header_parameters )
-            vlc_http_msg_add_header(req, header.first.c_str(), "%s",
-                    header.second.c_str());
 
         vlc_http_msg_get_cookies(resp, vlc_http_mgr_get_jar(res->manager),
                                  res->host, res->path);
@@ -223,8 +223,8 @@ end:
 
 
     int response_code = vlc_http_msg_get_status(res->response);
-    callback->receivedHttpCode(static_cast<int>(response_code));
-    callback->receivedContentLength(static_cast<int>(response_msg.size()));
+    cb->receivedHttpCode(static_cast<int>(response_code));
+    cb->receivedContentLength(static_cast<int>(response_msg.size()));
 
     return response_code;
 }
