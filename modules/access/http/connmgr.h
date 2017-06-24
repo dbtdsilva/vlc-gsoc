@@ -47,11 +47,12 @@ struct vlc_http_cookie_jar_t;
  *
  * @return The initial HTTP response header, or NULL in case of failure.
  */
-struct vlc_http_msg *vlc_http_mgr_request(struct vlc_http_mgr *mgr, bool https,
-                                          const char *host, unsigned port,
+VLC_API struct vlc_http_msg *vlc_http_mgr_request(struct vlc_http_mgr *mgr,
+                                          bool https, const char *host,
+                                          unsigned port,
                                           const struct vlc_http_msg *req);
 
-struct vlc_http_cookie_jar_t *vlc_http_mgr_get_jar(struct vlc_http_mgr *);
+VLC_API struct vlc_http_cookie_jar_t *vlc_http_mgr_get_jar(struct vlc_http_mgr *);
 
 /**
  * Creates an HTTP connection manager
@@ -61,7 +62,7 @@ struct vlc_http_cookie_jar_t *vlc_http_mgr_get_jar(struct vlc_http_mgr *);
  * @param obj parent VLC object
  * @param jar HTTP cookies jar (NULL to disable cookies)
  */
-struct vlc_http_mgr *vlc_http_mgr_create(vlc_object_t *obj,
+VLC_API struct vlc_http_mgr *vlc_http_mgr_create(vlc_object_t *obj,
                                          struct vlc_http_cookie_jar_t *jar);
 
 /**
@@ -70,6 +71,6 @@ struct vlc_http_mgr *vlc_http_mgr_create(vlc_object_t *obj,
  * Deallocates an HTTP client connections manager created by
  * vlc_http_msg_destroy(). Any remaining connection is closed and destroyed.
  */
-void vlc_http_mgr_destroy(struct vlc_http_mgr *mgr);
+VLC_API void vlc_http_mgr_destroy(struct vlc_http_mgr *mgr);
 
 /** @} */
