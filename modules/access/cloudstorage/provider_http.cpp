@@ -39,10 +39,15 @@
 #include "access/http/message.h"
 
 // Http interface implementation
+Http::Http( access_t *access ) : p_access( access )
+{
+}
+
 cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
             const std::string& method, bool follow_redirect ) const
 {
-    return std::make_unique<HttpRequest>( url, method, follow_redirect );
+    return std::make_unique<HttpRequest>( p_access, url, method,
+            follow_redirect );
 }
 
 std::string Http::unescape( const std::string& value ) const
@@ -74,9 +79,10 @@ std::string Http::error( int error ) const
 }
 
 // HttpRequest interface implementation
-HttpRequest::HttpRequest( const std::string& url, const std::string& method,
-        bool follow_redirect ) : req_url( url ), req_method( method ),
-                                 req_follow_redirect( follow_redirect )
+HttpRequest::HttpRequest( access_t* access, const std::string& url,
+        const std::string& method, bool follow_redirect ) :
+    p_access( access ), req_url( url ), req_method( method ),
+    req_follow_redirect( follow_redirect )
 {
 }
 
@@ -136,7 +142,8 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     std::string url = req_url + (!params_url.empty() ? ("?" + params_url) : "");
     // Initializing the request
     struct vlc_http_resource *res;
-    struct vlc_http_mgr *manager = vlc_http_mgr_create(NULL, NULL);
+    struct vlc_http_mgr *manager;
+    manager = vlc_http_mgr_create( VLC_OBJECT(p_access), NULL );
     if (manager == NULL) {
         return 500;
     }
@@ -213,7 +220,11 @@ end:
         block = block->p_next;
     }
     response.write(response_msg.c_str(), response_msg.size());
+
+
     int response_code = vlc_http_msg_get_status(res->response);
+    callback->receivedHttpCode(static_cast<int>(response_code));
+    callback->receivedContentLength(static_cast<int>(response_msg.size()));
 
     return response_code;
 }
