@@ -167,9 +167,13 @@ retry:
             goto end;
         }
 
-        for ( const auto& header : req_header_parameters ) {
-            vlc_http_msg_add_header(req, header.first.c_str(), "%s",
+        for ( const auto& header : req_header_parameters )
+        {
+            if ( vlc_http_msg_get_header(req, header.first.c_str()) == NULL)
+            {
+                vlc_http_msg_add_header(req, header.first.c_str(), "%s",
                     header.second.c_str());
+            }
         }
 
         resp = vlc_http_mgr_request(res->manager, res->secure,
