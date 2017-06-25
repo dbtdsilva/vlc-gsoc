@@ -177,7 +177,7 @@ int vlc_http_msg_add_creds_basic(struct vlc_http_msg *, bool proxy,
  * @return header field value (valid until message is destroyed),
  *         or NULL if no fields matched
  */
-const char *vlc_http_msg_get_header(const struct vlc_http_msg *,
+VLC_API const char *vlc_http_msg_get_header(const struct vlc_http_msg *,
                                     const char *name);
 
 /**
