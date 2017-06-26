@@ -23,11 +23,21 @@
 #ifndef VLC_CLOUDSTORAGE_PROVIDER_HTTP_H
 #define VLC_CLOUDSTORAGE_PROVIDER_HTTP_H
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <IHttp.h>
 #include <string>
 #include <unordered_map>
 
 #include "access.h"
+
+#include "access/http/file.h"
+#include "access/http/conn.h"
+#include "access/http/connmgr.h"
+#include "access/http/resource.h"
+#include "access/http/message.h"
 
 class Http : public cloudstorage::IHttp
 {
@@ -69,11 +79,18 @@ public:
             ICallback::Pointer = nullptr ) const override;
 
 private:
+    static int httpRequestHandler(const struct vlc_http_resource *res,
+                             struct vlc_http_msg *req, void *opaque);
+    static int httpResponseHandler(const struct vlc_http_resource *res,
+                             const struct vlc_http_msg *resp, void *opaque);
+
     access_t *p_access;
     std::unordered_map<std::string, std::string> req_parameters;
     std::unordered_map<std::string, std::string> req_header_parameters;
     std::string req_url, req_method;
     bool req_follow_redirect;
+
+    const struct vlc_http_resource_cbs handler_callbacks;
 };
 
 #endif /* VLC_CLOUDSTORAGE_PROVIDER_HTTP_H */
