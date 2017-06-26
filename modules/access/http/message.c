@@ -48,6 +48,8 @@ struct vlc_http_msg
     char *(*headers)[2];
     unsigned count;
     struct vlc_http_stream *payload;
+    uint8_t *p_body;
+    size_t i_body;
 };
 
 /* Maximum alignment for safe conversion to/from any specific pointer type */
@@ -225,6 +227,8 @@ vlc_http_req_create(const char *method, const char *scheme,
     m->count = 0;
     m->headers = NULL;
     m->payload = NULL;
+    m->i_body = 0;
+    m->p_body = NULL;
 
     if (unlikely(m->method == NULL
               || (scheme != NULL && m->scheme == NULL)
@@ -252,6 +256,8 @@ struct vlc_http_msg *vlc_http_resp_create(unsigned status)
     m->count = 0;
     m->headers = NULL;
     m->payload = NULL;
+    m->i_body = 0;
+    m->p_body = NULL;
     return m;
 }
 
@@ -316,7 +322,8 @@ char *vlc_http_msg_format(const struct vlc_http_msg *m, size_t *restrict lenp,
     for (unsigned i = 0; i < m->count; i++)
         vlc_memstream_printf(&stream, "%s: %s\r\n",
                              m->headers[i][0], m->headers[i][1]);
-
+    if (m->p_body != NULL)
+        vlc_memstream_printf(&stream, "\r\n%s", m->p_body);
     vlc_memstream_puts(&stream, "\r\n");
 
     if (vlc_memstream_close(&stream))
@@ -750,6 +757,20 @@ const char *vlc_http_msg_get_agent(const struct vlc_http_msg *m)
     const char *str = vlc_http_msg_get_header(m, hname);
 
     return (str != NULL && vlc_http_is_agent(str)) ? str : NULL;
+}
+
+int vlc_http_msg_add_body(struct vlc_http_msg *m, void *body, size_t size)
+{
+    if (body != NULL) {
+        m->p_body = body;
+        m->i_body = size;
+    }
+    return 0;
+}
+
+size_t vlc_http_msg_get_body_size(const struct vlc_http_msg *m)
+{
+    return m->i_body;
 }
 
 static const char vlc_http_days[7][4] = {
