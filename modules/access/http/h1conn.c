@@ -162,7 +162,7 @@ static struct vlc_http_stream *vlc_h1_stream_open(struct vlc_http_conn *c,
         return vlc_h1_stream_fatal(conn);
 
     conn->active = true;
-    conn->content_length = 0;
+    conn->content_length = vlc_http_msg_get_body_size(req);
     conn->connection_close = false;
     return &conn->stream;
 }
