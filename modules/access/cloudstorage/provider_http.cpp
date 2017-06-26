@@ -33,10 +33,8 @@
 #include <json/json.h>
 
 #include "access/http/file.h"
-#include "access/http/conn.h"
-#include "access/http/connmgr.h"
-#include "access/http/resource.h"
-#include "access/http/message.h"
+
+#include "http_handler.c"
 
 // Http interface implementation
 Http::Http( access_t *access ) : p_access( access )
@@ -169,7 +167,10 @@ retry:
 
         for ( const auto& header : req_header_parameters )
         {
-            if ( vlc_http_msg_get_header(req, header.first.c_str()) == NULL)
+            // Prevent duplicate entries and host header is controlled by
+            // http_file_create
+            if ( vlc_http_msg_get_header(req, header.first.c_str()) == NULL &&
+                    strcasecmp(header.first.c_str(), "Host"))
             {
                 vlc_http_msg_add_header(req, header.first.c_str(), "%s",
                     header.second.c_str());
