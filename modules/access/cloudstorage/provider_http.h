@@ -89,8 +89,8 @@ private:
     std::unordered_map<std::string, std::string> req_header_parameters;
     std::string req_url, req_method;
     bool req_follow_redirect;
-
-    const struct vlc_http_resource_cbs handler_callbacks;
+    struct vlc_http_mgr *manager;
+    static const struct vlc_http_resource_cbs handler_callbacks;
 };
 
 #endif /* VLC_CLOUDSTORAGE_PROVIDER_HTTP_H */
