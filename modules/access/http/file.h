@@ -42,7 +42,7 @@ struct block_t;
  *
  * @return an HTTP resource object pointer, or NULL on error
  */
-VLC_API struct vlc_http_resource *vlc_http_file_create(struct vlc_http_mgr *mgr,
+struct vlc_http_resource *vlc_http_file_create(struct vlc_http_mgr *mgr,
                                                const char *url, const char *ua,
                                                const char *ref,
                                                const char *method);
@@ -78,7 +78,7 @@ int vlc_http_file_seek(struct vlc_http_resource *, uintmax_t offset);
  *
  * Reads data from a file and update the file offset.
  */
-VLC_API struct block_t *vlc_http_file_read(struct vlc_http_resource *);
+struct block_t *vlc_http_file_read(struct vlc_http_resource *);
 
 #define vlc_http_file_get_status vlc_http_res_get_status
 #define vlc_http_file_get_redirect vlc_http_res_get_redirect

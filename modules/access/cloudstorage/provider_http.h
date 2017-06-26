@@ -33,12 +33,6 @@
 
 #include "access.h"
 
-#include "access/http/file.h"
-#include "access/http/conn.h"
-#include "access/http/connmgr.h"
-#include "access/http/resource.h"
-#include "access/http/message.h"
-
 class Http : public cloudstorage::IHttp
 {
 public:
