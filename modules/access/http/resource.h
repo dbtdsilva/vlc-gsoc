@@ -59,7 +59,7 @@ struct vlc_http_resource
     char *referrer;
 };
 
-int vlc_http_res_init(struct vlc_http_resource *,
+VLC_API int vlc_http_res_init(struct vlc_http_resource *,
                       const struct vlc_http_resource_cbs *cbs,
                       struct vlc_http_mgr *mgr,
                       const char *uri, const char *ua, const char *ref,
