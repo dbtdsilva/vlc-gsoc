@@ -22,9 +22,7 @@
 
 #include "provider_http.h"
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+
 
 #include <memory>
 #include <vlc_common.h>
@@ -32,55 +30,14 @@
 #include <vlc_block.h>
 #include <json/json.h>
 
-#include "access/http/file.h"
 
-#include "http_handler.c"
-
-// Http interface implementation
-Http::Http( access_t *access ) : p_access( access )
-{
-}
-
-cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
-            const std::string& method, bool follow_redirect ) const
-{
-    return std::make_unique<HttpRequest>( p_access, url, method,
-            follow_redirect );
-}
-
-std::string Http::unescape( const std::string& value ) const
-{
-    char* decoded_uri = vlc_uri_decode_duplicate( value.c_str() );
-    std::string uri_str( decoded_uri );
-    free( decoded_uri );
-    return uri_str;
-}
-
-std::string Http::escape( const std::string& value ) const
-{
-    char *uri_encoded = vlc_uri_encode( value.c_str() );
-    std::string uri_str( uri_encoded );
-    free( uri_encoded );
-    return uri_str;
-}
-
-std::string Http::escapeHeader( const std::string& value ) const
-{
-    // This will be removed once a implementation for a helper class is done
-    // The other escapes are also included
-    return Json::valueToQuotedString(value.c_str());
-}
-
-std::string Http::error( int error ) const
-{
-    return "Error code " + std::to_string(error);
-}
 
 // HttpRequest interface implementation
 HttpRequest::HttpRequest( access_t* access, const std::string& url,
         const std::string& method, bool follow_redirect ) :
     p_access( access ), req_url( url ), req_method( method ),
-    req_follow_redirect( follow_redirect )
+    req_follow_redirect( follow_redirect ),
+    handler_callbacks( { httpRequestHandler, httpResponseHandler })
 {
 }
 
@@ -232,4 +189,56 @@ end:
     cb->receivedContentLength(static_cast<int>(response_msg.size()));
 
     return response_code;
+}
+
+int HttpRequest::httpRequestHandler(const struct vlc_http_resource *res,
+                             struct vlc_http_msg *req, void *opaque)
+{
+    return 0;
+}
+
+int HttpRequest::httpResponseHandler(const struct vlc_http_resource *res,
+                             const struct vlc_http_msg *resp, void *opaque)
+{
+    return 0;
+}
+
+// Http interface implementation
+Http::Http( access_t *access ) : p_access( access )
+{
+}
+
+cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
+            const std::string& method, bool follow_redirect ) const
+{
+    return std::make_unique<HttpRequest>( p_access, url, method,
+            follow_redirect );
+}
+
+std::string Http::unescape( const std::string& value ) const
+{
+    char* decoded_uri = vlc_uri_decode_duplicate( value.c_str() );
+    std::string uri_str( decoded_uri );
+    free( decoded_uri );
+    return uri_str;
+}
+
+std::string Http::escape( const std::string& value ) const
+{
+    char *uri_encoded = vlc_uri_encode( value.c_str() );
+    std::string uri_str( uri_encoded );
+    free( uri_encoded );
+    return uri_str;
+}
+
+std::string Http::escapeHeader( const std::string& value ) const
+{
+    // This will be removed once a implementation for a helper class is done
+    // The other escapes are also included
+    return Json::valueToQuotedString(value.c_str());
+}
+
+std::string Http::error( int error ) const
+{
+    return "Error code " + std::to_string(error);
 }
