@@ -27,6 +27,7 @@
 #include <vlc_url.h>
 #include <vlc_block.h>
 #include <json/json.h>
+#include <iterator>
 
 #include "access/http/resource.h"
 #include "access/http/connmgr.h"
@@ -39,6 +40,7 @@ const struct vlc_http_resource_cbs HttpRequest::handler_callbacks =
 // HttpRequest interface implementation
 struct HttpRequestData {
     const HttpRequest *ptr;
+    std::istream *data;
 };
 
 HttpRequest::HttpRequest( access_t* access, const std::string& url,
@@ -113,7 +115,11 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     // Invoke the HTTP request (GET, POST, ..)
     HttpRequestData *callback_data = new HttpRequestData();
     callback_data->ptr = this;
+    callback_data->data = &data;
+
     resource.response = vlc_http_res_open(&resource, callback_data);
+
+    delete callback_data;
     if ( resource.response == NULL )
     {
         resource.failure = true;
@@ -145,6 +151,7 @@ int HttpRequest::httpRequestHandler(const struct vlc_http_resource *res,
 {
     (void) res;
 
+    // Inserting headers
     HttpRequestData* data = static_cast<HttpRequestData *>( opaque );
     for ( const auto& header : data->ptr->headerParameters() )
     {
@@ -156,6 +163,18 @@ int HttpRequest::httpRequestHandler(const struct vlc_http_resource *res,
             vlc_http_msg_add_header(req, header.first.c_str(), "%s",
                 header.second.c_str());
         }
+    }
+
+    // Inserting body
+    std::string body(std::istreambuf_iterator<char>( *(data->data) ), {});
+    if ( body.size() > 0)
+    {
+        vlc_http_msg_add_body( req, strdup( body.c_str() ), body.size() );
+        if ( vlc_http_msg_get_header( req, "Content-Type" ) == NULL )
+            vlc_http_msg_add_header( req, "Content-Type", "%s",
+                    "application/x-www-form-urlencoded" );
+        vlc_http_msg_add_header( req, "Content-Length", "%s",
+                std::to_string( body.size() ).c_str() );
     }
     return 0;
 }
