@@ -31,8 +31,11 @@
 #include <json/json.h>
 
 
-
 // HttpRequest interface implementation
+struct HttpRequestData {
+    const HttpRequest *ptr;
+};
+
 HttpRequest::HttpRequest( access_t* access, const std::string& url,
         const std::string& method, bool follow_redirect ) :
     p_access( access ), req_url( url ), req_method( method ),
@@ -83,7 +86,12 @@ bool HttpRequest::follow_redirect() const
 int HttpRequest::send( std::istream& data, std::ostream& response,
         std::ostream* error_stream, ICallback::Pointer cb ) const
 {
+    int response_code;
     std::string params_url;
+
+    struct vlc_http_resource resource;
+    struct vlc_http_mgr *manager;
+
     // Create URL with parameters
     std::unordered_map<std::string, std::string>::const_iterator it;
     for ( it = req_parameters.begin(); it != req_parameters.end(); it++ )
@@ -93,100 +101,29 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
         params_url += it->first + "=" + it->second;
     }
     std::string url = req_url + (!params_url.empty() ? ("?" + params_url) : "");
+
     // Initializing the request
-    struct vlc_http_resource *res;
-    struct vlc_http_mgr *manager;
     manager = vlc_http_mgr_create( VLC_OBJECT(p_access), NULL );
-    if (manager == NULL) {
+    if ( manager == NULL )
         return 500;
-    }
-    res = vlc_http_file_create(manager, url.c_str(), NULL,
-            NULL, req_method.c_str());
-    if (res == NULL) {
-        return 500;
-    }
 
-    int status;
-    struct vlc_http_msg *resp;
-    if (res->response == NULL)
+    if ( vlc_http_res_init(&resource, &handler_callbacks, manager, url.c_str(),
+                          NULL, NULL, req_method.c_str()) )
+        return 500;
+
+    if ( resource.response == NULL && resource.failure )
+        return 500;
+
+    HttpRequestData *callback_data = new HttpRequestData();
+    callback_data->ptr = this;
+    resource.response = vlc_http_res_open(&resource, callback_data);
+    if ( resource.response == NULL )
     {
-        if (res->failure)
-            return 500;
-
-        void* opaque = res + 1;
-        struct vlc_http_msg *req;
-retry:
-        req = vlc_http_res_req(res, opaque);
-        if (unlikely(req == NULL)) {
-            res->response = NULL;
-            goto end;
-        }
-
-        for ( const auto& header : req_header_parameters )
-        {
-            // Prevent duplicate entries and host header is controlled by
-            // http_file_create
-            if ( vlc_http_msg_get_header(req, header.first.c_str()) == NULL &&
-                    strcasecmp(header.first.c_str(), "Host"))
-            {
-                vlc_http_msg_add_header(req, header.first.c_str(), "%s",
-                    header.second.c_str());
-            }
-        }
-
-        resp = vlc_http_mgr_request(res->manager, res->secure,
-                                    res->host, res->port, req);
-        vlc_http_msg_destroy(req);
-
-        resp = vlc_http_msg_get_final(resp);
-        if (resp == NULL) {
-            res->response = NULL;
-            goto end;
-        }
-
-        vlc_http_msg_get_cookies(resp, vlc_http_mgr_get_jar(res->manager),
-                                 res->host, res->path);
-        status = vlc_http_msg_get_status(resp);
-        if (status < 200 || status >= 599)
-            goto fail;
-
-        if (status == 406 && res->negotiate)
-        {
-            vlc_http_msg_destroy(resp);
-            res->negotiate = false;
-            goto retry;
-        }
-
-        if (res->cbs->response_validate(res, resp, opaque))
-            goto fail;
-
-        res->response = resp;
-        goto end;
-fail:
-        vlc_http_msg_destroy(resp);
+        resource.failure = true;
         return 500;
-end:
-        if (res->response == NULL)
-        {
-            res->failure = true;
-            return -1;
-        }
     }
 
-    struct block_t* block = vlc_http_file_read(res);
-
-    std::string response_msg = "";
-    while (block != NULL)
-    {
-        response_msg += std::string((char*) block->p_buffer, block->i_buffer);
-        block = block->p_next;
-    }
-    response.write(response_msg.c_str(), response_msg.size());
-
-
-    int response_code = vlc_http_msg_get_status(res->response);
-    cb->receivedHttpCode(static_cast<int>(response_code));
-    cb->receivedContentLength(static_cast<int>(response_msg.size()));
+    response_code = vlc_http_msg_get_status(resource.response);
 
     return response_code;
 }
@@ -194,12 +131,14 @@ end:
 int HttpRequest::httpRequestHandler(const struct vlc_http_resource *res,
                              struct vlc_http_msg *req, void *opaque)
 {
+    fprintf(stderr, "Request received\n");
     return 0;
 }
 
 int HttpRequest::httpResponseHandler(const struct vlc_http_resource *res,
                              const struct vlc_http_msg *resp, void *opaque)
 {
+    fprintf(stderr, "Response received\n");
     return 0;
 }
 
