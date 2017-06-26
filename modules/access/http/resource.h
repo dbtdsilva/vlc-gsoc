@@ -73,8 +73,8 @@ VLC_API int vlc_http_res_init(struct vlc_http_resource *,
  */
 void vlc_http_res_destroy(struct vlc_http_resource *);
 
-struct vlc_http_msg *vlc_http_res_open(struct vlc_http_resource *res, void *);
-int vlc_http_res_get_status(struct vlc_http_resource *res);
+VLC_API struct vlc_http_msg *vlc_http_res_open(struct vlc_http_resource *res, void *);
+VLC_API int vlc_http_res_get_status(struct vlc_http_resource *res);
 
 /**
  * Gets redirection URL.
