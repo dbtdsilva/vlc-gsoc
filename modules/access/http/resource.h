@@ -71,7 +71,7 @@ VLC_API int vlc_http_res_init(struct vlc_http_resource *,
  * Releases all underlying resources allocated or held by the HTTP resource
  * object.
  */
-void vlc_http_res_destroy(struct vlc_http_resource *);
+VLC_API void vlc_http_res_destroy(struct vlc_http_resource *);
 
 VLC_API struct vlc_http_msg *vlc_http_res_open(struct vlc_http_resource *res, void *);
 VLC_API int vlc_http_res_get_status(struct vlc_http_resource *res);
@@ -96,7 +96,7 @@ char *vlc_http_res_get_type(struct vlc_http_resource *);
 /**
  * Reads data.
  */
-struct block_t *vlc_http_res_read(struct vlc_http_resource *);
+VLC_API struct block_t *vlc_http_res_read(struct vlc_http_resource *);
 
 int vlc_http_res_set_login(struct vlc_http_resource *res,
                            const char *username, const char *password);
