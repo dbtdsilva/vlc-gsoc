@@ -22,13 +22,15 @@
 
 #include "provider_http.h"
 
-
-
 #include <memory>
 #include <vlc_common.h>
 #include <vlc_url.h>
 #include <vlc_block.h>
 #include <json/json.h>
+
+#include "access/http/resource.h"
+#include "access/http/connmgr.h"
+#include "access/http/message.h"
 
 // Initializing static members
 const struct vlc_http_resource_cbs HttpRequest::handler_callbacks =
@@ -103,36 +105,37 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     }
     std::string url = req_url + (!params_url.empty() ? ("?" + params_url) : "");
 
+    // Init the resource
     if ( vlc_http_res_init(&resource, &handler_callbacks, manager, url.c_str(),
                           NULL, NULL, req_method.c_str()) )
-        return 500;
+        return -1;
 
-    if ( resource.response == NULL && resource.failure )
-        return 500;
-
+    // Invoke the HTTP request (GET, POST, ..)
     HttpRequestData *callback_data = new HttpRequestData();
     callback_data->ptr = this;
     resource.response = vlc_http_res_open(&resource, callback_data);
     if ( resource.response == NULL )
     {
         resource.failure = true;
-        return 500;
+        return -1;
     }
 
-    struct block_t* block = vlc_http_file_read(&resource);
-    std::string response_msg = "";
+    // Read the payload response into the buffer (ostream)
+    unsigned int content_length = 0;
+    struct block_t* block = vlc_http_res_read(&resource);
     while (block != NULL)
     {
-        response_msg += std::string((char*) block->p_buffer, block->i_buffer);
+        response.write((char *) block->p_buffer, block->i_buffer);
+        content_length += block->i_buffer;
         block = block->p_next;
     }
-    response.write(response_msg.c_str(), response_msg.size());
 
+    // Get the response code obtained
     response_code = vlc_http_msg_get_status(resource.response);
 
     // Invoke the respective callbacks
     cb->receivedHttpCode(static_cast<int>(response_code));
-    cb->receivedContentLength(static_cast<int>(response_msg.size()));
+    cb->receivedContentLength(static_cast<int>(content_length));
 
     return response_code;
 }
@@ -163,7 +166,6 @@ int HttpRequest::httpResponseHandler(const struct vlc_http_resource *res,
     (void) res;
     (void) resp;
     (void) opaque;
-    fprintf(stderr, "Response received\n");
     return 0;
 }
 
