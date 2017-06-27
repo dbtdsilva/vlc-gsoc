@@ -133,7 +133,7 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     {
         response.write((char *) block->p_buffer, block->i_buffer);
         content_length += block->i_buffer;
-        block = block->p_next;
+        block = vlc_http_res_read(&resource);
     }
 
     // Get the response code obtained
