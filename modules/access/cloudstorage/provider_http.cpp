@@ -127,7 +127,7 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     callback_data->ptr = this;
     callback_data->data = &data;
 
-    resource->response = vlc_http_res_open(resource, callback_data);
+    resource->response = vlc_http_res_open( resource, callback_data );
 
     delete callback_data;
     if ( resource->response == NULL )
@@ -138,28 +138,28 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
 
     // Read the payload response into the buffer (ostream)
     unsigned int content_length = 0;
-    struct block_t* block = vlc_http_res_read(resource);
+    struct block_t* block = vlc_http_res_read( resource );
     while (block != NULL)
     {
-        response.write((char *) block->p_buffer, block->i_buffer);
+        response.write( (char *) block->p_buffer, block->i_buffer );
         content_length += block->i_buffer;
-        block = vlc_http_res_read(resource);
+        block = vlc_http_res_read( resource );
     }
 
     // Get the response code obtained
-    response_code = vlc_http_msg_get_status(resource->response);
+    response_code = vlc_http_msg_get_status( resource->response );
 
     vlc_http_res_destroy(resource);
 
     // Invoke the respective callbacks
-    cb->receivedHttpCode(static_cast<int>(response_code));
-    cb->receivedContentLength(static_cast<int>(content_length));
+    cb->receivedHttpCode( static_cast<int>( response_code ) );
+    cb->receivedContentLength( static_cast<int>( content_length ) );
 
     return response_code;
 }
 
-int HttpRequest::httpRequestHandler(const struct vlc_http_resource *res,
-                             struct vlc_http_msg *req, void *opaque)
+int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
+                             struct vlc_http_msg *req, void *opaque )
 {
     (void) res;
 
@@ -169,16 +169,16 @@ int HttpRequest::httpRequestHandler(const struct vlc_http_resource *res,
     {
         // Prevent duplicate entries and host header is controlled by
         // http_file_create
-        if ( vlc_http_msg_get_header(req, header.first.c_str()) == NULL &&
-                strcasecmp(header.first.c_str(), "Host"))
+        if ( vlc_http_msg_get_header( req, header.first.c_str() ) == NULL &&
+                strcasecmp( header.first.c_str(), "Host" ) )
         {
-            vlc_http_msg_add_header(req, header.first.c_str(), "%s",
-                header.second.c_str());
+            vlc_http_msg_add_header( req, header.first.c_str(), "%s",
+                header.second.c_str() );
         }
     }
 
     // Inserting body
-    std::string body(std::istreambuf_iterator<char>( *(data->data) ), {});
+    std::string body( std::istreambuf_iterator<char>( *(data->data) ), {} );
     if ( body.size() > 0)
     {
         vlc_http_msg_add_body( req, (uint8_t *) body.c_str(), body.size() );
@@ -191,8 +191,8 @@ int HttpRequest::httpRequestHandler(const struct vlc_http_resource *res,
     return 0;
 }
 
-int HttpRequest::httpResponseHandler(const struct vlc_http_resource *res,
-                             const struct vlc_http_msg *resp, void *opaque)
+int HttpRequest::httpResponseHandler( const struct vlc_http_resource *res,
+                             const struct vlc_http_msg *resp, void *opaque )
 {
     (void) res;
     (void) resp;
@@ -232,10 +232,10 @@ std::string Http::escapeHeader( const std::string& value ) const
 {
     // This will be removed once a implementation for a helper class is done
     // The other escapes are also included
-    return Json::valueToQuotedString(value.c_str());
+    return Json::valueToQuotedString( value.c_str() );
 }
 
 std::string Http::error( int error ) const
 {
-    return "Error code " + std::to_string(error);
+    return "Error code " + std::to_string( error );
 }

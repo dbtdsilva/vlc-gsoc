@@ -74,10 +74,10 @@ public:
             ICallback::Pointer = nullptr ) const override;
 
 private:
-    static int httpRequestHandler(const struct vlc_http_resource *res,
-                             struct vlc_http_msg *req, void *opaque);
-    static int httpResponseHandler(const struct vlc_http_resource *res,
-                             const struct vlc_http_msg *resp, void *opaque);
+    static int httpRequestHandler( const struct vlc_http_resource *res,
+                             struct vlc_http_msg *req, void *opaque );
+    static int httpResponseHandler( const struct vlc_http_resource *res,
+                             const struct vlc_http_msg *resp, void *opaque );
 
     access_t *p_access;
     std::unordered_map<std::string, std::string> req_parameters;
