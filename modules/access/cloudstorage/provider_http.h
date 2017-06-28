@@ -53,6 +53,7 @@ class HttpRequest : public cloudstorage::IHttpRequest
 public:
     HttpRequest( access_t* access, const std::string& url,
             const std::string& method, bool follow_redirect );
+    ~HttpRequest();
 
     void setParameter( const std::string& parameter,
             const std::string& value ) override;
