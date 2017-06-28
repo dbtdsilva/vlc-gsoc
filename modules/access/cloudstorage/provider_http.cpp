@@ -102,7 +102,8 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     int response_code;
     std::string params_url;
 
-    struct vlc_http_resource *resource = new vlc_http_resource();
+    struct vlc_http_resource *resource =
+        (struct vlc_http_resource *) malloc( sizeof( *resource ) );
     if (resource == NULL)
         return -1;
 
