@@ -51,6 +51,12 @@ HttpRequest::HttpRequest( access_t* access, const std::string& url,
 {
 }
 
+HttpRequest::~HttpRequest()
+{
+    if ( manager != NULL )
+        vlc_http_mgr_destroy(manager);
+}
+
 void HttpRequest::setParameter( const std::string& parameter,
         const std::string& value )
 {
@@ -96,7 +102,10 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     int response_code;
     std::string params_url;
 
-    struct vlc_http_resource resource;
+    struct vlc_http_resource *resource = new vlc_http_resource();
+    if (resource == NULL)
+        return -1;
+
     // Concatenating the URL in the parameters
     std::unordered_map<std::string, std::string>::const_iterator it;
     for ( it = req_parameters.begin(); it != req_parameters.end(); it++ )
@@ -108,7 +117,7 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     std::string url = req_url + (!params_url.empty() ? ("?" + params_url) : "");
 
     // Init the resource
-    if ( vlc_http_res_init(&resource, &handler_callbacks, manager, url.c_str(),
+    if ( vlc_http_res_init(resource, &handler_callbacks, manager, url.c_str(),
                           NULL, NULL, req_method.c_str()) )
         return -1;
 
@@ -117,27 +126,29 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     callback_data->ptr = this;
     callback_data->data = &data;
 
-    resource.response = vlc_http_res_open(&resource, callback_data);
+    resource->response = vlc_http_res_open(resource, callback_data);
 
     delete callback_data;
-    if ( resource.response == NULL )
+    if ( resource->response == NULL )
     {
-        resource.failure = true;
+        resource->failure = true;
         return -1;
     }
 
     // Read the payload response into the buffer (ostream)
     unsigned int content_length = 0;
-    struct block_t* block = vlc_http_res_read(&resource);
+    struct block_t* block = vlc_http_res_read(resource);
     while (block != NULL)
     {
         response.write((char *) block->p_buffer, block->i_buffer);
         content_length += block->i_buffer;
-        block = vlc_http_res_read(&resource);
+        block = vlc_http_res_read(resource);
     }
 
     // Get the response code obtained
-    response_code = vlc_http_msg_get_status(resource.response);
+    response_code = vlc_http_msg_get_status(resource->response);
+
+    vlc_http_res_destroy(resource);
 
     // Invoke the respective callbacks
     cb->receivedHttpCode(static_cast<int>(response_code));
