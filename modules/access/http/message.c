@@ -526,6 +526,7 @@ struct vlc_http_msg *vlc_http_msg_h2_headers(unsigned n,
             continue;
         }
 
+        fprintf(stderr, "Added header %s : %s\n", name, value);
         if (vlc_http_msg_add_header(m, name, "%s", value))
             goto error;
     }
@@ -771,6 +772,11 @@ int vlc_http_msg_add_body(struct vlc_http_msg *m, void *body, size_t size)
 size_t vlc_http_msg_get_body_size(const struct vlc_http_msg *m)
 {
     return m->i_body;
+}
+
+VLC_API uint8_t* vlc_http_msg_get_body(const struct vlc_http_msg *m)
+{
+    return m->p_body;
 }
 
 static const char vlc_http_days[7][4] = {
