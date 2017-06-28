@@ -87,7 +87,8 @@ int vlc_http_msg_add_agent(struct vlc_http_msg *, const char *);
  *
  * Sets the Body field.
  */
-VLC_API int vlc_http_msg_add_body(struct vlc_http_msg *, void *, size_t);
+VLC_API int vlc_http_msg_add_body(struct vlc_http_msg *, const uint8_t *body,
+                            size_t size);
 
 /**
  * Gets the message body size
