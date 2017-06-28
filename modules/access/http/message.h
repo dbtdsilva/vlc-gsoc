@@ -96,6 +96,9 @@ VLC_API int vlc_http_msg_add_body(struct vlc_http_msg *, void *, size_t);
  */
 VLC_API size_t vlc_http_msg_get_body_size(const struct vlc_http_msg *);
 
+
+VLC_API uint8_t* vlc_http_msg_get_body(const struct vlc_http_msg *);
+
 /**
  * Gets the agent field.
  *
