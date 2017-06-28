@@ -84,7 +84,7 @@ VLC_API int vlc_http_res_get_status(struct vlc_http_resource *res);
  *
  * @return Heap-allocated URL or NULL if no redirection.
  */
-char *vlc_http_res_get_redirect(struct vlc_http_resource *);
+VLC_API char *vlc_http_res_get_redirect(struct vlc_http_resource *);
 
 /**
  * Gets MIME type.
