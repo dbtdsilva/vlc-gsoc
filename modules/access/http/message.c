@@ -797,7 +797,7 @@ size_t vlc_http_msg_get_body_size(const struct vlc_http_msg *m)
     return m->i_body;
 }
 
-VLC_API uint8_t* vlc_http_msg_get_body(const struct vlc_http_msg *m)
+const uint8_t* vlc_http_msg_get_body(const struct vlc_http_msg *m)
 {
     return m->p_body;
 }
