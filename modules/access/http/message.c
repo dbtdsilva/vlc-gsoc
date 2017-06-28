@@ -761,7 +761,8 @@ const char *vlc_http_msg_get_agent(const struct vlc_http_msg *m)
     return (str != NULL && vlc_http_is_agent(str)) ? str : NULL;
 }
 
-int vlc_http_msg_add_body(struct vlc_http_msg *m, const uint8_t *body, size_t size)
+int vlc_http_msg_add_body(struct vlc_http_msg *m, const uint8_t *body,
+        size_t size)
 {
     if (body == NULL)
     {
@@ -769,9 +770,14 @@ int vlc_http_msg_add_body(struct vlc_http_msg *m, const uint8_t *body, size_t si
         return -1;
     }
 
-    // Reset the body in case of it already exists
+    // Check if the body already exists and realloc for the size, otherwise
+    // just allocate it.
     if (m->p_body != NULL)
-        m->p_body = realloc(m->p_body, size);
+    {
+        uint8_t *new_ptr = realloc(m->p_body, size);
+        free(m->p_body);
+        m->p_body = new_ptr;
+    }
     else
         m->p_body = malloc(size);
 
