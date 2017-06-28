@@ -428,11 +428,15 @@ static struct vlc_http_stream *vlc_h2_stream_open(struct vlc_http_conn *c,
     s->id = conn->next_id;
     conn->next_id += 2;
 
-    struct vlc_h2_frame *f = vlc_http_msg_h2_frame(msg, s->id, true);
+    struct vlc_h2_frame *f = vlc_http_msg_h2_frame(msg, s->id, false);
     if (f == NULL)
         goto error;
 
     vlc_h2_conn_queue(conn, f);
+
+    uint8_t* body = vlc_http_msg_get_body(msg);
+    size_t body_size = vlc_http_msg_get_body_size(msg);
+    vlc_h2_conn_queue(conn, vlc_h2_frame_data(s->id, body, body_size, true));
 
     s->older = conn->streams;
     if (s->older != NULL)
