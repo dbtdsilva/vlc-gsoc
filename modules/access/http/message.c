@@ -207,6 +207,7 @@ void vlc_http_msg_destroy(struct vlc_http_msg *m)
     free(m->authority);
     free(m->scheme);
     free(m->method);
+    free(m->p_body);
     free(m);
 }
 
@@ -760,12 +761,28 @@ const char *vlc_http_msg_get_agent(const struct vlc_http_msg *m)
     return (str != NULL && vlc_http_is_agent(str)) ? str : NULL;
 }
 
-int vlc_http_msg_add_body(struct vlc_http_msg *m, void *body, size_t size)
+int vlc_http_msg_add_body(struct vlc_http_msg *m, const uint8_t *body, size_t size)
 {
-    if (body != NULL) {
-        m->p_body = body;
-        m->i_body = size;
+    if (body == NULL)
+    {
+        errno = EINVAL;
+        return -1;
     }
+
+    // Reset the body in case of it already exists
+    if (m->p_body != NULL)
+        m->p_body = realloc(m->p_body, size);
+    else
+        m->p_body = malloc(size);
+
+    if (m->p_body == NULL)
+    {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    memcpy(m->p_body, body, size);
+    m->i_body = size;
     return 0;
 }
 

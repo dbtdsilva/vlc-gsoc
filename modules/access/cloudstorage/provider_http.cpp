@@ -169,7 +169,7 @@ int HttpRequest::httpRequestHandler(const struct vlc_http_resource *res,
     std::string body(std::istreambuf_iterator<char>( *(data->data) ), {});
     if ( body.size() > 0)
     {
-        vlc_http_msg_add_body( req, strdup( body.c_str() ), body.size() );
+        vlc_http_msg_add_body( req, (uint8_t *) body.c_str(), body.size() );
         if ( vlc_http_msg_get_header( req, "Content-Type" ) == NULL )
             vlc_http_msg_add_header( req, "Content-Type", "%s",
                     "application/x-www-form-urlencoded" );
