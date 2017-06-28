@@ -142,24 +142,33 @@ request:
         return -1;
     }
 
+    // Get the response code obtained
+    response_code = vlc_http_msg_get_status( resource->response );
+
     // Read the payload response into the buffer (ostream)
     unsigned int content_length = 0;
+    std::string res_payload = "";
     struct block_t* block = vlc_http_res_read( resource );
     while (block != NULL)
     {
-        response.write( (char *) block->p_buffer, block->i_buffer );
+        res_payload += std::string( (char *) block->p_buffer, block->i_buffer );
         content_length += block->i_buffer;
         block = vlc_http_res_read( resource );
     }
+    // Send the payload to the respective buffer if it was succeed or not
+    if ( IHttpRequest::isSuccess( response_code ) )
+        response.write( res_payload.c_str(), res_payload.size() );
+    else
+        error_stream->write( res_payload.c_str(), res_payload.size() );
 
-    // Get the response code obtained
-    response_code = vlc_http_msg_get_status( resource->response );
+    // Get the redirect URI before destroying the resource
     char *redirect_uri = vlc_http_res_get_redirect( resource );
 
     vlc_http_res_destroy(resource);
 
+    // Check for redirects if exist
     if ( req_follow_redirect && redirect_uri != NULL &&
-            isRedirect(response_code))
+            IHttpRequest::isRedirect(response_code))
     {
         redirect_counter += 1;
         if ( redirect_counter > URL_REDIRECT_LIMIT )
