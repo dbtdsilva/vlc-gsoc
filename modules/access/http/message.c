@@ -527,7 +527,6 @@ struct vlc_http_msg *vlc_http_msg_h2_headers(unsigned n,
             continue;
         }
 
-        fprintf(stderr, "Added header %s : %s\n", name, value);
         if (vlc_http_msg_add_header(m, name, "%s", value))
             goto error;
     }
