@@ -33,6 +33,8 @@
 #include "access/http/connmgr.h"
 #include "access/http/message.h"
 
+#define URL_REDIRECT_LIMIT  10
+
 // Initializing static members
 const struct vlc_http_resource_cbs HttpRequest::handler_callbacks =
         { httpRequestHandler, httpResponseHandler };
@@ -101,7 +103,10 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
 {
     int response_code;
     std::string params_url;
+    std::string current_url = req_url;
+    int redirect_counter = 0;
 
+request:
     struct vlc_http_resource *resource =
         (struct vlc_http_resource *) malloc( sizeof( *resource ) );
     if (resource == NULL)
@@ -115,7 +120,8 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
             params_url += "&";
         params_url += it->first + "=" + it->second;
     }
-    std::string url = req_url + (!params_url.empty() ? ("?" + params_url) : "");
+    std::string url = current_url + (!params_url.empty() ?
+                      ("?" + params_url) : "");
 
     // Init the resource
     if ( vlc_http_res_init(resource, &handler_callbacks, manager, url.c_str(),
@@ -148,8 +154,22 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
 
     // Get the response code obtained
     response_code = vlc_http_msg_get_status( resource->response );
+    char *redirect_uri = vlc_http_res_get_redirect( resource );
 
     vlc_http_res_destroy(resource);
+
+    if ( req_follow_redirect && redirect_uri != NULL &&
+            isRedirect(response_code))
+    {
+        redirect_counter += 1;
+        if ( redirect_counter > URL_REDIRECT_LIMIT )
+        {
+            msg_Err( p_access, "URL has been redirected too many times.");
+            return -1;
+        }
+        current_url = std::string( redirect_uri );
+        goto request;
+    }
 
     // Invoke the respective callbacks
     cb->receivedHttpCode( static_cast<int>( response_code ) );
