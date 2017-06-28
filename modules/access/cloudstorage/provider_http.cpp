@@ -155,12 +155,6 @@ request:
         content_length += block->i_buffer;
         block = vlc_http_res_read( resource );
     }
-    // Send the payload to the respective buffer if it was succeed or not
-    if ( IHttpRequest::isSuccess( response_code ) )
-        response.write( res_payload.c_str(), res_payload.size() );
-    else
-        error_stream->write( res_payload.c_str(), res_payload.size() );
-
     // Get the redirect URI before destroying the resource
     char *redirect_uri = vlc_http_res_get_redirect( resource );
 
@@ -178,6 +172,21 @@ request:
         }
         current_url = std::string( redirect_uri );
         goto request;
+    }
+
+    // Send the payload to the respective buffer if it was succeed or not
+    if ( IHttpRequest::isSuccess( response_code ) )
+    {
+        msg_Dbg( p_access, "%s %s succeed with a code %d", req_method.c_str(),
+                current_url.c_str(), response_code );
+        response.write( res_payload.c_str(), res_payload.size() );
+    }
+    else
+    {
+        msg_Err( p_access, "Failed to request %s %s with an error code of %d",
+                req_method.c_str(), current_url.c_str(), response_code );
+        msg_Dbg( p_access, "Response received: %s", res_payload.c_str() );
+        error_stream->write( res_payload.c_str(), res_payload.size() );
     }
 
     // Invoke the respective callbacks
