@@ -126,7 +126,7 @@ request:
     // Init the resource
     if ( vlc_http_res_init(resource, &handler_callbacks, manager, url.c_str(),
                           NULL, NULL, req_method.c_str()) )
-        return -1;
+        return -2;
 
     // Invoke the HTTP request (GET, POST, ..)
     HttpRequestData *callback_data = new HttpRequestData();
@@ -139,7 +139,7 @@ request:
     if ( resource->response == NULL )
     {
         resource->failure = true;
-        return -1;
+        return -3;
     }
 
     // Get the response code obtained
@@ -168,7 +168,7 @@ request:
         if ( redirect_counter > URL_REDIRECT_LIMIT )
         {
             msg_Err( p_access, "URL has been redirected too many times.");
-            return -1;
+            return -4;
         }
         current_url = std::string( redirect_uri );
         goto request;
@@ -218,12 +218,7 @@ int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
     // Inserting body
     std::string body( std::istreambuf_iterator<char>( *(data->data) ), {} );
     if ( body.size() > 0)
-    {
         vlc_http_msg_add_body( req, (uint8_t *) body.c_str(), body.size() );
-        if ( vlc_http_msg_get_header( req, "Content-Type" ) == NULL )
-            vlc_http_msg_add_header( req, "Content-Type", "%s",
-                    "application/x-www-form-urlencoded" );
-    }
 
     // Content-Length is a mandatory field sometimes (e.g PUT methods)
     if ( body.size() > 0 || data->ptr->req_method != "GET" )
