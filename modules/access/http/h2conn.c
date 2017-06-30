@@ -439,9 +439,9 @@ static struct vlc_http_stream *vlc_h2_stream_open(struct vlc_http_conn *c,
     const uint8_t *body = vlc_http_msg_get_body(msg);
     size_t body_size = vlc_http_msg_get_body_size(msg);
 
+    // Stream the data in blocks
     size_t body_streamed_size = 0;
-    const size_t block_size = 16384;
-
+    const size_t block_size = VLC_H2_DEFAULT_MAX_FRAME;
     bool last_block = false;
     while (!last_block) {
         if (body_streamed_size + block_size >= body_size)
