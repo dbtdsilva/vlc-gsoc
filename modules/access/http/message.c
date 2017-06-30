@@ -323,8 +323,6 @@ char *vlc_http_msg_format(const struct vlc_http_msg *m, size_t *restrict lenp,
     for (unsigned i = 0; i < m->count; i++)
         vlc_memstream_printf(&stream, "%s: %s\r\n",
                              m->headers[i][0], m->headers[i][1]);
-    if (m->p_body != NULL)
-        vlc_memstream_printf(&stream, "\r\n%s", m->p_body);
     vlc_memstream_puts(&stream, "\r\n");
 
     if (vlc_memstream_close(&stream))
