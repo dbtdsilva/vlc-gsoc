@@ -124,8 +124,13 @@ request:
                       ("?" + params_url) : "");
 
     // Init the resource
-    if ( vlc_http_res_init(resource, &handler_callbacks, manager, url.c_str(),
-                          NULL, NULL, req_method.c_str()) )
+    // Fixup in order to fix the raw URL (not-encoded parts) from the
+    // libcloudstorage. Either way, its safer to prevent.
+    char *fixed_url = vlc_uri_fixup( url.c_str() );
+    int res = vlc_http_res_init( resource, &handler_callbacks, manager,
+                                 fixed_url, NULL, NULL, req_method.c_str() );
+    free(fixed_url);
+    if ( res != VLC_SUCCESS )
         return -2;
 
     // Invoke the HTTP request (GET, POST, ..)
