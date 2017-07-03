@@ -56,7 +56,7 @@ HttpRequest::HttpRequest( access_t* access, const std::string& url,
 HttpRequest::~HttpRequest()
 {
     if ( manager != NULL )
-        vlc_http_mgr_destroy(manager);
+        vlc_http_mgr_destroy( manager );
 }
 
 void HttpRequest::setParameter( const std::string& parameter,
@@ -137,17 +137,17 @@ request:
     HttpRequestData *callback_data = new HttpRequestData();
     callback_data->ptr = this;
     callback_data->data = &data;
-
     resource->response = vlc_http_res_open( resource, callback_data );
-
     delete callback_data;
+
+    // Get the response code obtained
     if ( resource->response == NULL )
     {
+        msg_Err( p_access, "Failed to obtain a response from the request %s %s",
+                 req_method.c_str(), current_url.c_str() );
         resource->failure = true;
         return -3;
     }
-
-    // Get the response code obtained
     response_code = vlc_http_msg_get_status( resource->response );
 
     // Read the payload response into the buffer (ostream)
