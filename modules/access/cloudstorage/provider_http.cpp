@@ -226,13 +226,16 @@ int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
         vlc_http_msg_add_body( req, (uint8_t *) body.c_str(), body.size() );
 
     // Content-Length is a mandatory field sometimes (e.g PUT methods)
-    if ( body.size() > 0 || data->ptr->req_method != "GET" )
+    if ( data->ptr->req_method != "GET" )
     {
         vlc_http_msg_add_header( req, "Content-Length", "%s",
                 std::to_string( body.size() ).c_str() );
-        if ( vlc_http_msg_get_header( req, "Content-Type" ) == NULL )
+        if ( vlc_http_msg_get_header( req, "Content-Type" ) == NULL &&
+             data->ptr->req_method != "PUT" && body.size() > 0)
+        {
             vlc_http_msg_add_header( req, "Content-Type", "%s",
                     "application/x-www-form-urlencoded" );
+        }
     }
     return 0;
 }
