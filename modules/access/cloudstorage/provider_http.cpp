@@ -230,6 +230,9 @@ int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
     {
         vlc_http_msg_add_header( req, "Content-Length", "%s",
                 std::to_string( body.size() ).c_str() );
+        if ( vlc_http_msg_get_header( req, "Content-Type" ) == NULL )
+            vlc_http_msg_add_header( req, "Content-Type", "%s",
+                    "application/x-www-form-urlencoded" );
     }
     return 0;
 }
