@@ -255,29 +255,6 @@ cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
             follow_redirect );
 }
 
-std::string Http::unescape( const std::string& value ) const
-{
-    char* decoded_uri = vlc_uri_decode_duplicate( value.c_str() );
-    std::string uri_str( decoded_uri );
-    free( decoded_uri );
-    return uri_str;
-}
-
-std::string Http::escape( const std::string& value ) const
-{
-    char *uri_encoded = vlc_uri_encode( value.c_str() );
-    std::string uri_str( uri_encoded );
-    free( uri_encoded );
-    return uri_str;
-}
-
-std::string Http::escapeHeader( const std::string& value ) const
-{
-    // This will be removed once a implementation for a helper class is done
-    // The other escapes are also included
-    return Json::valueToQuotedString( value.c_str() );
-}
-
 std::string Http::error( int error ) const
 {
     return "Error code " + std::to_string( error );
