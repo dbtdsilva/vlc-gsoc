@@ -187,7 +187,7 @@ static int Open(vlc_object_t *obj)
     bool live = var_InheritBool(obj, "http-continuous");
 
     sys->resource = (live ? vlc_http_live_create : vlc_http_file_create)(
-        sys->manager, access->psz_url, ua, referer, "GET");
+        sys->manager, access->psz_url, ua, referer);
     free(referer);
     free(ua);
 
