@@ -428,21 +428,22 @@ static struct vlc_http_stream *vlc_h2_stream_open(struct vlc_http_conn *c,
     s->id = conn->next_id;
     conn->next_id += 2;
 
+    // Queue body message (DATA)
+    const uint8_t *body = vlc_http_msg_get_body(msg);
+    size_t body_size = vlc_http_msg_get_body_size(msg);
+    bool last_block = body_size <= 0;
+
     // Queue headers (HEADERS)
-    struct vlc_h2_frame *f = vlc_http_msg_h2_frame(msg, s->id, false);
+    struct vlc_h2_frame *f = vlc_http_msg_h2_frame(msg, s->id, last_block);
     if (f == NULL)
         goto error;
 
     vlc_h2_conn_queue(conn, f);
 
-    // Queue body message (DATA)
-    const uint8_t *body = vlc_http_msg_get_body(msg);
-    size_t body_size = vlc_http_msg_get_body_size(msg);
 
     // Stream the data in blocks
     size_t body_streamed_size = 0;
     const size_t block_size = VLC_H2_DEFAULT_MAX_FRAME;
-    bool last_block = false;
     while (!last_block) {
         if (body_streamed_size + block_size >= body_size)
             last_block = true;
