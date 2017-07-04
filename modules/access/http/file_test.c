@@ -57,7 +57,7 @@ int main(void)
     jar = vlc_http_cookies_new();
 
     /* Request failure test */
-    f = vlc_http_file_create(NULL, url, ua, NULL, NULL);
+    f = vlc_http_file_create(NULL, url, ua, NULL);
     assert(f != NULL);
     vlc_http_res_set_login(f, NULL, NULL);
     vlc_http_res_set_login(f, "john", NULL);
@@ -81,7 +81,7 @@ int main(void)
 
     offset = 0;
     etags = true;
-    f = vlc_http_file_create(NULL, url, ua, NULL, NULL);
+    f = vlc_http_file_create(NULL, url, ua, NULL);
     assert(f != NULL);
     assert(vlc_http_file_get_status(f) == 200);
     assert(!vlc_http_file_can_seek(f));
@@ -104,7 +104,7 @@ int main(void)
                  "\r\n";
 
     offset = 0;
-    f = vlc_http_file_create(NULL, url, ua, NULL, NULL);
+    f = vlc_http_file_create(NULL, url, ua, NULL);
     assert(f != NULL);
     assert(vlc_http_file_can_seek(f));
     assert(vlc_http_file_get_size(f) == 2345);
@@ -139,7 +139,7 @@ int main(void)
                  "\r\n";
 
     offset = 0;
-    f = vlc_http_file_create(NULL, url, ua, NULL, NULL);
+    f = vlc_http_file_create(NULL, url, ua, NULL);
     assert(f != NULL);
     assert(!vlc_http_file_can_seek(f));
     assert(vlc_http_file_get_size(f) == (uintmax_t)-1);
@@ -156,7 +156,7 @@ int main(void)
                  "Content-Length: 9999\r\n"
                  "\r\n";
     offset = 0;
-    f = vlc_http_file_create(NULL, url, ua, NULL, NULL);
+    f = vlc_http_file_create(NULL, url, ua, NULL);
     assert(f != NULL);
     assert(vlc_http_file_get_size(f) == 9999);
     assert(vlc_http_file_get_redirect(f) == NULL);
@@ -170,7 +170,7 @@ int main(void)
 
     offset = 0;
     etags = false;
-    f = vlc_http_file_create(NULL, url, ua, NULL, NULL);
+    f = vlc_http_file_create(NULL, url, ua, NULL);
     assert(f != NULL);
     assert(vlc_http_file_can_seek(f));
 
@@ -187,7 +187,7 @@ int main(void)
                  "\r\n";
     offset = 0;
 
-    f = vlc_http_file_create(NULL, url, ua, NULL, NULL);
+    f = vlc_http_file_create(NULL, url, ua, NULL);
     assert(f != NULL);
     assert(vlc_http_file_get_size(f) == (uintmax_t)-1);
 
@@ -238,7 +238,7 @@ int main(void)
 
     secure = false;
     lang = -1;
-    f = vlc_http_file_create(NULL, url_http, ua, NULL, NULL);
+    f = vlc_http_file_create(NULL, url_http, ua, NULL);
     assert(f != NULL);
 
     /* Protocol redirect hacks - over insecure HTTP */
@@ -260,11 +260,11 @@ int main(void)
     vlc_http_file_destroy(f);
 
     /* Dummy API calls */
-    f = vlc_http_file_create(NULL, "ftp://localhost/foo", NULL, NULL, NULL);
+    f = vlc_http_file_create(NULL, "ftp://localhost/foo", NULL, NULL);
     assert(f == NULL);
-    f = vlc_http_file_create(NULL, "/foo", NULL, NULL, NULL);
+    f = vlc_http_file_create(NULL, "/foo", NULL, NULL);
     assert(f == NULL);
-    f = vlc_http_file_create(NULL, "http://www.example.com", NULL, NULL, NULL);
+    f = vlc_http_file_create(NULL, "http://www.example.com", NULL, NULL);
     assert(f != NULL);
     vlc_http_file_destroy(f);
 
