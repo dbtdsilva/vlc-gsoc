@@ -168,7 +168,7 @@ static struct vlc_http_stream *vlc_h1_stream_open(struct vlc_http_conn *c,
     // Stream the data in blocks
     size_t body_streamed_size = 0;
     const size_t block_size = 16384;
-    bool last_block = false;
+    bool last_block = body_size <= 0;
     while (!last_block) {
         if (body_streamed_size + block_size >= body_size)
             last_block = true;
