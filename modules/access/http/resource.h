@@ -102,8 +102,5 @@ int vlc_http_res_set_login(struct vlc_http_resource *res,
                            const char *username, const char *password);
 char *vlc_http_res_get_basic_realm(struct vlc_http_resource *res);
 
-VLC_API struct vlc_http_msg *vlc_http_res_req(const struct vlc_http_resource *,
-        void *opaque);
-
 /** @} */
 #endif

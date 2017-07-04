@@ -36,7 +36,7 @@
 #include "connmgr.h"
 #include "resource.h"
 
-struct vlc_http_msg *
+static struct vlc_http_msg *
 vlc_http_res_req(const struct vlc_http_resource *res, void *opaque)
 {
     struct vlc_http_msg *req;
