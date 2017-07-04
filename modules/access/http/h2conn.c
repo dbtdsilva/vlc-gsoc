@@ -437,9 +437,7 @@ static struct vlc_http_stream *vlc_h2_stream_open(struct vlc_http_conn *c,
     struct vlc_h2_frame *f = vlc_http_msg_h2_frame(msg, s->id, last_block);
     if (f == NULL)
         goto error;
-
     vlc_h2_conn_queue(conn, f);
-
 
     // Stream the data in blocks
     size_t body_streamed_size = 0;
@@ -449,8 +447,11 @@ static struct vlc_http_stream *vlc_h2_stream_open(struct vlc_http_conn *c,
             last_block = true;
         size_t length = last_block ? body_size - body_streamed_size : block_size;
 
-        vlc_h2_conn_queue(conn, vlc_h2_frame_data(s->id,
-                body + body_streamed_size, length, last_block));
+        struct vlc_h2_frame *frame_data = vlc_h2_frame_data(s->id,
+                body + body_streamed_size, length, last_block);
+        if (frame_data == NULL)
+            goto error;
+        vlc_h2_conn_queue(conn, frame_data);
 
         body_streamed_size += length;
     }
