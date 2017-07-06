@@ -83,28 +83,6 @@ VLC_API int vlc_http_msg_add_header(struct vlc_http_msg *, const char *name,
 int vlc_http_msg_add_agent(struct vlc_http_msg *, const char *);
 
 /**
- * Sets the message body
- *
- * Sets the Body field.
- */
-VLC_API int vlc_http_msg_add_body(struct vlc_http_msg *, const uint8_t *body,
-                            size_t size);
-
-/**
- * Gets the message body size
- *
- * Gets the Body size.
- */
-VLC_API size_t vlc_http_msg_get_body_size(const struct vlc_http_msg *);
-
-/**
- * Gets the message body pointer
- *
- * Gets body pointer.
- */
-VLC_API const uint8_t* vlc_http_msg_get_body(const struct vlc_http_msg *);
-
-/**
  * Gets the agent field.
  *
  * Gets the User-Agent or Server header field.
