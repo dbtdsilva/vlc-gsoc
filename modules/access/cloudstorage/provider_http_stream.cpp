@@ -58,6 +58,8 @@ static void vlc_payload_close(struct vlc_http_stream *stream, bool abort)
 {
     struct vlc_payload_stream *s =
         container_of(stream, struct vlc_payload_stream, stream);
+
+    (void) abort;
 }
 
 static struct vlc_http_stream_cbs vlc_payload_callbacks =
