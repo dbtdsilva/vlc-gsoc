@@ -451,6 +451,8 @@ static struct vlc_http_stream *vlc_h2_stream_open(struct vlc_http_conn *c,
         if (frame_data == NULL)
             goto error;
         vlc_h2_conn_queue(conn, frame_data);
+
+        block_Release(block);
         block = block_next;
     }
 
