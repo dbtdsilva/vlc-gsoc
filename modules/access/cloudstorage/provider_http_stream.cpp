@@ -50,15 +50,26 @@ static block_t *vlc_payload_read(struct vlc_http_stream *stream)
 {
     struct vlc_payload_stream *s =
         container_of(stream, struct vlc_payload_stream, stream);
+    block_t *block;
 
-    return NULL;
+    if (s->payload_stream->eof())
+        return NULL;
+
+    size_t size = 16384;
+    block = block_Alloc(size);
+    if (unlikely(block == NULL))
+        return NULL;
+
+    s->payload_stream->read((char *) block->p_buffer, size);
+    block->i_buffer = s->payload_stream->gcount();
+
+    return block;
 }
 
 static void vlc_payload_close(struct vlc_http_stream *stream, bool abort)
 {
     struct vlc_payload_stream *s =
         container_of(stream, struct vlc_payload_stream, stream);
-
     (void) abort;
 }
 
