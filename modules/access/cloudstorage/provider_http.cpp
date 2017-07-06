@@ -222,19 +222,20 @@ int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
         }
     }
 
-    // Inserting body
+    // Pre-calculate the content-length of the stream (seekable)
+    std::streampos pos = data->data->tellg();
+    data->data->seekg( 0, std::ios::end );
+    std::streamsize content_length = data->data->tellg() - pos;
+    data->data->seekg( pos );
+
+    // Stream the data using VLC format (into block_t)
     vlc_http_stream *stream = vlc_payload_stream_open( data->data );
     vlc_http_msg_attach( req, stream );
-
-    std::string body( std::istreambuf_iterator<char>( *(data->data) ), {} );
-    if ( body.size() > 0)
-        vlc_http_msg_add_body( req, (uint8_t *) body.c_str(), body.size() );
 
     // Content-Length is a mandatory field sometimes (e.g PUT methods)
     if ( data->ptr->req_method != "GET" )
     {
-        vlc_http_msg_add_header( req, "Content-Length", "%s",
-                std::to_string( body.size() ).c_str() );
+        vlc_http_msg_add_header( req, "Content-Length", "%ld", content_length );
         if ( vlc_http_msg_get_header( req, "Content-Type" ) == NULL &&
              data->ptr->req_method != "PUT" && body.size() > 0)
         {
