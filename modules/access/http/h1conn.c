@@ -169,6 +169,8 @@ static struct vlc_http_stream *vlc_h1_stream_open(struct vlc_http_conn *c,
         vlc_tls_Write(conn->conn.tls, block->p_buffer, block->i_buffer);
 
         body_streamed_size += block->i_buffer;
+        block_Release(block);
+
         block = vlc_http_msg_read( req );
     }
 
