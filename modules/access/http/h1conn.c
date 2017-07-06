@@ -161,22 +161,15 @@ static struct vlc_http_stream *vlc_h1_stream_open(struct vlc_http_conn *c,
     if (val < (ssize_t)len)
         return vlc_h1_stream_fatal(conn);
 
-    // Get the info about the body of the message
-    const uint8_t *body = vlc_http_msg_get_body(req);
-    size_t body_size = vlc_http_msg_get_body_size(req);
-
     // Stream the data in blocks
     size_t body_streamed_size = 0;
-    const size_t block_size = 16384;
-    bool last_block = body_size <= 0;
-    while (!last_block) {
-        if (body_streamed_size + block_size >= body_size)
-            last_block = true;
-        size_t length = last_block ? body_size - body_streamed_size : block_size;
+    struct block_t* block = vlc_http_msg_read( req );
+    while (block != NULL)
+    {
+        vlc_tls_Write(conn->conn.tls, block->p_buffer, block->i_buffer);
 
-        vlc_tls_Write(conn->conn.tls, body + body_streamed_size, length);
-
-        body_streamed_size += length;
+        body_streamed_size += block->i_buffer;
+        block = vlc_http_msg_read( req );
     }
 
     conn->active = true;
