@@ -237,7 +237,7 @@ int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
     {
         vlc_http_msg_add_header( req, "Content-Length", "%ld", content_length );
         if ( vlc_http_msg_get_header( req, "Content-Type" ) == NULL &&
-             data->ptr->req_method != "PUT" && body.size() > 0)
+             data->ptr->req_method != "PUT" && content_length > 0)
         {
             vlc_http_msg_add_header( req, "Content-Type", "%s",
                     "application/x-www-form-urlencoded" );
