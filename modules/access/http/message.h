@@ -345,7 +345,7 @@ struct vlc_http_stream;
  */
 extern void *const vlc_http_error;
 
-void vlc_http_msg_attach(struct vlc_http_msg *m, struct vlc_http_stream *s);
+VLC_API void vlc_http_msg_attach(struct vlc_http_msg *m, struct vlc_http_stream *s);
 struct vlc_http_msg *vlc_http_msg_get_initial(struct vlc_http_stream *s)
 VLC_USED;
 
