@@ -33,6 +33,8 @@
 #include "access/http/connmgr.h"
 #include "access/http/message.h"
 
+#include "provider_http_stream.h"
+
 #define URL_REDIRECT_LIMIT  10
 
 // Initializing static members
@@ -221,6 +223,9 @@ int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
     }
 
     // Inserting body
+    vlc_http_stream *stream = vlc_payload_stream_open( data->data );
+    vlc_http_msg_attach( req, stream );
+
     std::string body( std::istreambuf_iterator<char>( *(data->data) ), {} );
     if ( body.size() > 0)
         vlc_http_msg_add_body( req, (uint8_t *) body.c_str(), body.size() );
