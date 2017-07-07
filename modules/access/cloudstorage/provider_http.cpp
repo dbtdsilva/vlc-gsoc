@@ -107,12 +107,19 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
     std::string params_url;
     std::string current_url = req_url;
     int redirect_counter = 0;
+    unsigned int content_length;
+    struct block_t *block;
+    char *redirect_uri;
+    HttpRequestData *callback_data;
 
 request:
     struct vlc_http_resource *resource =
         (struct vlc_http_resource *) malloc( sizeof( *resource ) );
     if (resource == NULL)
-        return -1;
+    {
+        response_code = -1;
+        goto close;
+    }
 
     // Concatenating the URL in the parameters
     std::unordered_map<std::string, std::string>::const_iterator it;
@@ -133,10 +140,13 @@ request:
                                  fixed_url, NULL, NULL, req_method.c_str() );
     free(fixed_url);
     if ( res != VLC_SUCCESS )
-        return -2;
+    {
+        response_code = -2;
+        goto close;
+    }
 
     // Invoke the HTTP request (GET, POST, ..)
-    HttpRequestData *callback_data = new HttpRequestData();
+    callback_data = new HttpRequestData();
     callback_data->ptr = this;
     callback_data->data = &data;
     resource->response = vlc_http_res_open( resource, callback_data );
@@ -147,13 +157,13 @@ request:
     {
         msg_Err( p_access, "Failed to obtain a response from the request %s %s",
                  req_method.c_str(), current_url.c_str() );
-        resource->failure = true;
-        return -3;
+        response_code = -3;
+        goto close;
     }
     response_code = vlc_http_msg_get_status( resource->response );
 
     // Get the redirect URI before destroying the resource
-    char *redirect_uri = vlc_http_res_get_redirect( resource );
+    redirect_uri = vlc_http_res_get_redirect( resource );
     // Check for redirects if exist
     if ( req_follow_redirect && redirect_uri != NULL &&
             IHttpRequest::isRedirect(response_code))
@@ -162,7 +172,8 @@ request:
         if ( redirect_counter > URL_REDIRECT_LIMIT )
         {
             msg_Err( p_access, "URL has been redirected too many times.");
-            return -4;
+            response_code = -4;
+            goto close;
         }
         current_url = std::string( redirect_uri );
         vlc_http_res_destroy(resource);
@@ -170,8 +181,8 @@ request:
     }
 
     // Read the payload response into the buffer (ostream)
-    unsigned int content_length = 0;
-    struct block_t* block = vlc_http_res_read( resource );
+    content_length = 0;
+    block = vlc_http_res_read( resource );
     while (block != NULL)
     {
         if ( IHttpRequest::isSuccess( response_code ) )
@@ -196,7 +207,9 @@ request:
     cb->receivedHttpCode( static_cast<int>( response_code ) );
     cb->receivedContentLength( static_cast<int>( content_length ) );
 
-    vlc_http_res_destroy(resource);
+close:
+    if (resource != NULL)
+        vlc_http_res_destroy(resource);
     return response_code;
 }
 
