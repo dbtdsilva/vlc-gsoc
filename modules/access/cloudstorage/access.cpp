@@ -53,9 +53,9 @@ int Open( vlc_object_t *p_this )
 
     if ( ParseUrl( p_access ) != VLC_SUCCESS )
         goto error;
-    if ( InitKeystore( p_access) != VLC_SUCCESS )
+    if ( InitKeystore( p_access ) != VLC_SUCCESS )
         goto error;
-    if ( InitProvider( p_access) != VLC_SUCCESS )
+    if ( InitProvider( p_access ) != VLC_SUCCESS )
         goto error;
 
     if ( p_sys->current_item->type() == IItem::FileType::Directory ) {
@@ -118,7 +118,7 @@ static int InitKeystore( stream_t * p_access )
         if ( ICloudProvider::restoreSession(stored_value,
                 p_sys->token, p_sys->hints) )
         {
-            msg_Warn( p_access, "Cloudstorage found invalid credentials in the"
+            msg_Warn( p_access, "Cloudstorage found invalid credentials in the "
                     "keystore under %s@%s, it is going to overwrite them.",
                     p_sys->username.c_str(), p_sys->provider_name.c_str() );
         }
@@ -133,8 +133,6 @@ static int InitProvider( stream_t * p_access )
     std::string redirect_port = std::to_string(
             var_InheritInteger( p_access, "http-port" ) ) ;
 
-    if ( p_sys->token != "" )
-        hints["access_token"] = p_sys->token;
     hints["redirect_uri_port"] = redirect_port;
     hints["redirect_uri_prefix"] = "/auth";
     hints["requesting_app_name"] = "VLC";
