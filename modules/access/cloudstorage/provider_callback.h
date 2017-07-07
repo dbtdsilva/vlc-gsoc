@@ -59,7 +59,7 @@ public:
         p_sys->hints = provider.hints();
 
         // Store hints and token
-        std::string serialized_value = ICloudProvider::serializeSession(
+        std::string serialized_value = ICloudProvider::storeSession(
                 p_sys->token, p_sys->hints);
         vlc_keystore_store( p_sys->p_keystore, p_sys->ppsz_values,
             (const uint8_t *)serialized_value.c_str(), serialized_value.size(),
