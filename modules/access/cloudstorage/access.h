@@ -49,6 +49,7 @@ struct access_sys_t
     // Loaded on Open
     cloudstorage::ICloudProvider::Pointer provider;
     std::string token;
+    cloudstorage::ICloudProvider::Hints hints;
     vlc_keystore *p_keystore;
     char *ppsz_values[KEY_MAX];
     cloudstorage::IItem::Pointer current_item;
