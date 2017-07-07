@@ -66,7 +66,7 @@ int SDOpen( vlc_object_t *p_this )
 
     // Associate callbacks to detect when a user is authenticated with success!
     if ( var_Create( p_sd->obj.libvlc, "cloud-new-auth",
-            VLC_VAR_STRING | VLC_VAR_DOINHERIT) != VLC_SUCCESS )
+            VLC_VAR_STRING) != VLC_SUCCESS )
         goto error;
     var_AddCallback( p_sd->obj.libvlc, "cloud-new-auth",
             NewAuthenticationCallback, p_sd );
