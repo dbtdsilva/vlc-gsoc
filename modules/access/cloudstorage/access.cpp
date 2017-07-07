@@ -113,8 +113,15 @@ static int InitKeystore( stream_t * p_access )
     if ( vlc_keystore_find( p_sys->p_keystore,
             p_sys->ppsz_values, &p_entries ) > 0 )
     {
-        p_sys->token = std::string((char *) p_entries[0].p_secret,
+        std::string stored_value = std::string((char *) p_entries[0].p_secret,
                                    p_entries[0].i_secret_len);
+        if ( ICloudProvider::unserializeSession(stored_value,
+                p_sys->token, p_sys->hints) )
+        {
+            msg_Warn( p_access, "Cloudstorage found invalid credentials in the"
+                    "keystore under %s@%s, it is going to overwrite them.",
+                    p_sys->username.c_str(), p_sys->provider_name.c_str() );
+        }
     }
     return VLC_SUCCESS;
 }

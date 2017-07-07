@@ -56,13 +56,14 @@ public:
                 p_sys->ppsz_values, &pp_entries );
 
         p_sys->token = provider.token();
-        vlc_keystore_store( p_sys->p_keystore, p_sys->ppsz_values,
-            (const uint8_t *)p_sys->token.c_str(), p_sys->token.size(),
-            ss_psz_label.str().c_str() );
+        p_sys->hints = provider.hints();
 
-        // TODO: Hints should be stored and recovered from the keystore as well
-        //       However, they are a map of strings -> it should be serialized
-        // vlc_keystore_store( .. p_sys->provider->hints() );
+        // Store hints and token
+        std::string serialized_value = ICloudProvider::serializeSession(
+                p_sys->token, p_sys->hints);
+        vlc_keystore_store( p_sys->p_keystore, p_sys->ppsz_values,
+            (const uint8_t *)serialized_value.c_str(), serialized_value.size(),
+            ss_psz_label.str().c_str() );
 
         if ( i_entries == 0 )
         {
