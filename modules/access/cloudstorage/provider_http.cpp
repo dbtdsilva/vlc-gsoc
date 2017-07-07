@@ -152,21 +152,8 @@ request:
     }
     response_code = vlc_http_msg_get_status( resource->response );
 
-    // Read the payload response into the buffer (ostream)
-    unsigned int content_length = 0;
-    std::string res_payload = "";
-    struct block_t* block = vlc_http_res_read( resource );
-    while (block != NULL)
-    {
-        res_payload += std::string( (char *) block->p_buffer, block->i_buffer );
-        content_length += block->i_buffer;
-        block = vlc_http_res_read( resource );
-    }
     // Get the redirect URI before destroying the resource
     char *redirect_uri = vlc_http_res_get_redirect( resource );
-
-    vlc_http_res_destroy(resource);
-
     // Check for redirects if exist
     if ( req_follow_redirect && redirect_uri != NULL &&
             IHttpRequest::isRedirect(response_code))
@@ -178,28 +165,38 @@ request:
             return -4;
         }
         current_url = std::string( redirect_uri );
+        vlc_http_res_destroy(resource);
         goto request;
     }
 
-    // Send the payload to the respective buffer if it was succeed or not
-    if ( IHttpRequest::isSuccess( response_code ) )
+    // Read the payload response into the buffer (ostream)
+    unsigned int content_length = 0;
+    struct block_t* block = vlc_http_res_read( resource );
+    while (block != NULL)
     {
+        if ( IHttpRequest::isSuccess( response_code ) )
+            response.write( (char *) block->p_buffer, block->i_buffer );
+        else
+            error_stream->write( (char *) block->p_buffer, block->i_buffer );
+        content_length += block->i_buffer;
+
+        block_Release(block);
+        block = vlc_http_res_read( resource );
+    }
+
+    // Debug messages about the output
+    if ( IHttpRequest::isSuccess( response_code ) )
         msg_Dbg( p_access, "%s %s succeed with a code %d", req_method.c_str(),
                 current_url.c_str(), response_code );
-        response.write( res_payload.c_str(), res_payload.size() );
-    }
     else
-    {
         msg_Err( p_access, "Failed to request %s %s with an error code of %d",
                 req_method.c_str(), current_url.c_str(), response_code );
-        msg_Dbg( p_access, "Response received: %s", res_payload.c_str() );
-        error_stream->write( res_payload.c_str(), res_payload.size() );
-    }
 
     // Invoke the respective callbacks
     cb->receivedHttpCode( static_cast<int>( response_code ) );
     cb->receivedContentLength( static_cast<int>( content_length ) );
 
+    vlc_http_res_destroy(resource);
     return response_code;
 }
 
