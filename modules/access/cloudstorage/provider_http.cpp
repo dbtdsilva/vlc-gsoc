@@ -141,12 +141,17 @@ request:
     free(fixed_url);
     if ( res != VLC_SUCCESS )
     {
-        response_code = -2;
+        response_code = -1;
         goto close;
     }
 
     // Invoke the HTTP request (GET, POST, ..)
     callback_data = new HttpRequestData();
+    if ( callback_data == NULL )
+    {
+        response_code = -1;
+        goto close;
+    }
     callback_data->ptr = this;
     callback_data->data = &data;
     resource->response = vlc_http_res_open( resource, callback_data );
@@ -157,7 +162,7 @@ request:
     {
         msg_Err( p_access, "Failed to obtain a response from the request %s %s",
                  req_method.c_str(), current_url.c_str() );
-        response_code = -3;
+        response_code = -1;
         goto close;
     }
     response_code = vlc_http_msg_get_status( resource->response );
@@ -172,7 +177,7 @@ request:
         if ( redirect_counter > URL_REDIRECT_LIMIT )
         {
             msg_Err( p_access, "URL has been redirected too many times.");
-            response_code = -4;
+            response_code = -1;
             goto close;
         }
         current_url = std::string( redirect_uri );
