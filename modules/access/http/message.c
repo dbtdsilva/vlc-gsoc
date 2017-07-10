@@ -285,7 +285,7 @@ struct vlc_http_msg *vlc_http_msg_get_final(struct vlc_http_msg *m)
     return m;
 }
 
-block_t *vlc_http_msg_read(struct vlc_http_msg *m)
+block_t *vlc_http_msg_read(const struct vlc_http_msg *m)
 {
     if (m->payload == NULL)
         return NULL;
