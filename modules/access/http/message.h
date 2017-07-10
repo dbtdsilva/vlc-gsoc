@@ -287,7 +287,7 @@ VLC_USED;
  * @retval NULL on end-of-stream
  * @retval vlc_http_error on fatal error
  */
-struct block_t *vlc_http_msg_read(struct vlc_http_msg *) VLC_USED;
+struct block_t *vlc_http_msg_read(const struct vlc_http_msg *) VLC_USED;
 
 /** @} */
 
