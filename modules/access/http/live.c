@@ -63,7 +63,8 @@ struct vlc_http_resource *vlc_http_live_create(struct vlc_http_mgr *mgr,
     if (unlikely(res == NULL))
         return NULL;
 
-    if (vlc_http_res_init(res, &vlc_http_live_callbacks, mgr, uri, ua, ref))
+    if (vlc_http_res_init(res, &vlc_http_live_callbacks,
+                          mgr, uri, ua, ref, "GET"))
     {
         free(res);
         res = NULL;

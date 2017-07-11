@@ -23,11 +23,67 @@
 #ifndef VLC_CLOUDSTORAGE_PROVIDER_HTTP_H
 #define VLC_CLOUDSTORAGE_PROVIDER_HTTP_H
 
-class provider_http {
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
+#include <IHttp.h>
+#include <string>
+#include <unordered_map>
+
+#include "access.h"
+
+class Http : public cloudstorage::IHttp
+{
 public:
+    Http( access_t *access );
+    cloudstorage::IHttpRequest::Pointer create( const std::string&,
+            const std::string&, bool ) const override;
+    std::string error( int ) const override;
 
 private:
-
+    access_t *p_access;
 };
 
-#endif /* PROVIDER_HTTP_H */
+class HttpRequest : public cloudstorage::IHttpRequest
+{
+public:
+    HttpRequest( access_t* access, const std::string& url,
+            const std::string& method, bool follow_redirect );
+    ~HttpRequest();
+
+    void setParameter( const std::string& parameter,
+            const std::string& value ) override;
+    void setHeaderParameter( const std::string& parameter,
+            const std::string& value ) override;
+
+    const std::unordered_map<std::string, std::string>& parameters()
+            const override;
+    const std::unordered_map<std::string, std::string>& headerParameters()
+            const override;
+
+    const std::string& url() const override;
+    const std::string& method() const override;
+    bool follow_redirect() const override;
+
+    int send( std::istream& data, std::ostream& response,
+            std::ostream* error_stream = nullptr,
+            ICallback::Pointer = nullptr ) const override;
+
+private:
+    static int httpRequestHandler( const struct vlc_http_resource *res,
+                             struct vlc_http_msg *req, void *opaque );
+    static int httpResponseHandler( const struct vlc_http_resource *res,
+                             const struct vlc_http_msg *resp, void *opaque );
+
+    access_t *p_access;
+    std::unordered_map<std::string, std::string> req_parameters;
+    std::unordered_map<std::string, std::string> req_header_parameters;
+    std::string req_url, req_method;
+    bool req_follow_redirect;
+    struct vlc_http_mgr *manager;
+    static const struct vlc_http_resource_cbs handler_callbacks;
+};
+
+#endif /* VLC_CLOUDSTORAGE_PROVIDER_HTTP_H */
+

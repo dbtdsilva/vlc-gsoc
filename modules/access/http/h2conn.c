@@ -428,11 +428,33 @@ static struct vlc_http_stream *vlc_h2_stream_open(struct vlc_http_conn *c,
     s->id = conn->next_id;
     conn->next_id += 2;
 
-    struct vlc_h2_frame *f = vlc_http_msg_h2_frame(msg, s->id, true);
+    // Pre-read one block in order to see if there is payload or not
+    struct block_t *block = vlc_http_msg_read( msg );
+    bool last_block = block == NULL;
+
+    // Queue headers (HEADERS)
+    struct vlc_h2_frame *f = vlc_http_msg_h2_frame(msg, s->id, last_block);
     if (f == NULL)
         goto error;
-
     vlc_h2_conn_queue(conn, f);
+
+    // Stream the data in blocks
+    while (!last_block)
+    {
+        // Read next block in order to inform if the current frame is the last
+        // or not from the stream
+        struct block_t *block_next = vlc_http_msg_read( msg );
+        last_block = block_next == NULL;
+
+        struct vlc_h2_frame *frame_data = vlc_h2_frame_data(s->id,
+                block->p_buffer, block->i_buffer, last_block);
+        if (frame_data == NULL)
+            goto error;
+        vlc_h2_conn_queue(conn, frame_data);
+
+        block_Release(block);
+        block = block_next;
+    }
 
     s->older = conn->streams;
     if (s->older != NULL)

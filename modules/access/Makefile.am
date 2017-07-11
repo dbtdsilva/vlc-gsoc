@@ -319,10 +319,14 @@ libcloudstorage_plugin_la_SOURCES = \
 	access/cloudstorage/services_discovery.h \
 	access/cloudstorage/services_discovery.cpp \
 	access/cloudstorage/provider_callback.h \
+	access/cloudstorage/provider_http.h \
+	access/cloudstorage/provider_http.cpp \
+	access/cloudstorage/provider_http_stream.h \
+	access/cloudstorage/provider_http_stream.cpp \
 	access/cloudstorage/provider_httpd.h \
 	access/cloudstorage/provider_httpd.cpp
 libcloudstorage_plugin_la_CXXFLAGS = $(CXXFLAGS_cloudstorage) $(AM_CXXFLAGS)
-libcloudstorage_plugin_la_LIBADD = $(LIBS_cloudstorage)
+libcloudstorage_plugin_la_LIBADD = $(LIBS_cloudstorage) libvlc_http.la
 libcloudstorage_plugin_la_LDFLAGS = $(AM_LDFLAGS) -rpath '$(accessdir)'
 access_LTLIBRARIES += $(LTLIBcloudstorage)
 EXTRA_LTLIBRARIES += libcloudstorage_plugin.la
