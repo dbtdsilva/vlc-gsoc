@@ -86,4 +86,3 @@ private:
 };
 
 #endif /* VLC_CLOUDSTORAGE_PROVIDER_HTTP_H */
-
