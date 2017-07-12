@@ -296,6 +296,11 @@ void PLSelector::createItems()
                 else
                     icon = QIcon( iconname );
             }
+            else if ( name.startsWith( "cloudstorage" ))
+            {
+                selItem->addAction( ADD_ACTION, qtr( "Add a new service" ) );
+                CONNECT( selItem, action( PLSelItem* ), this, cloudProviderAdd( PLSelItem* ) );
+            }
             }
             break;
         case SD_CAT_DEVICES:
@@ -615,6 +620,20 @@ void PLSelector::podcastRemove( PLSelItem* item )
 
 void PLSelector::cloudProviderAdd( PLSelItem * )
 {
+    // TODO: This should probably have its own UI and load the items based on
+    // the existing supported providers
+    QStringList items;
+    items << "google" << "onedrive" << "dropbox" << "amazon" << "box";
+    items << "youtube" << "yandex" << "amazons3" << "owncloud" << "mega";
+
+    bool ok;
+    QString provider = QInputDialog::getItem( this,
+                           qtr( "Cloud Storage Provider" ),
+                           qtr( "Select the provider to authenticate" ),
+                           items, 0, false, &ok);
+    if( !ok || provider.isEmpty() ) return;
+
+    var_SetString( THEPL, "cloudstorage-request", qtu( provider ) );
 }
 
 void PLSelector::cloudProviderRemove( PLSelItem* item )
