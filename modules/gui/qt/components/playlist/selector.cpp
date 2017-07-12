@@ -613,6 +613,14 @@ void PLSelector::podcastRemove( PLSelItem* item )
     free( psz_uri );
 }
 
+void PLSelector::cloudProviderAdd( PLSelItem * )
+{
+}
+
+void PLSelector::cloudProviderRemove( PLSelItem* item )
+{
+}
+
 PLSelItem * PLSelector::itemWidget( QTreeWidgetItem *item )
 {
     return ( static_cast<PLSelItem*>( QTreeWidget::itemWidget( item, 0 ) ) );
