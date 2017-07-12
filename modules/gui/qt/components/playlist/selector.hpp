@@ -153,6 +153,8 @@ private slots:
     void inputItemUpdate( input_item_t * );
     void podcastAdd( PLSelItem* );
     void podcastRemove( PLSelItem* );
+    void cloudProviderAdd( PLSelItem* );
+    void cloudProviderRemove( PLSelItem* );
 
 signals:
     void categoryActivated( playlist_item_t *, bool );
