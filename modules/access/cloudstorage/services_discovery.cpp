@@ -37,6 +37,8 @@ static int RepresentAuthenticatedUsers( services_discovery_t * );
 static char * GenerateUserIdentifier( services_discovery_t *, const char * );
 static int NewAuthenticationCallback( vlc_object_t *, char const *,
                      vlc_value_t, vlc_value_t, void * );
+static int RequestedFromUI( vlc_object_t *, char const *,
+                     vlc_value_t, vlc_value_t, void * );
 
 using cloudstorage::ICloudStorage;
 
@@ -70,6 +72,12 @@ int SDOpen( vlc_object_t *p_this )
         goto error;
     var_AddCallback( p_sd->obj.libvlc, "cloud-new-auth",
             NewAuthenticationCallback, p_sd );
+
+    if ( var_Create( p_sd->obj.parent, "cloudstorage-request",
+            VLC_VAR_STRING ) != VLC_SUCCESS )
+        goto error;
+    var_AddCallback( p_sd->obj.parent, "cloudstorage-request",
+            RequestedFromUI, p_sd );
     return VLC_SUCCESS;
 
 error:
@@ -281,6 +289,16 @@ static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
         services_discovery_AddSubItem( p_sd, it->second->root,
                 p_item_assoc );
     }
+
+    return VLC_SUCCESS;
+}
+
+static int RequestedFromUI( vlc_object_t *p_this, char const *psz_var,
+                     vlc_value_t oldval, vlc_value_t newval, void *p_data )
+{
+    (void) oldval; (void) p_this; (void) psz_var;
+    services_discovery_t * p_sd = (services_discovery_t *) p_data;
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
     return VLC_SUCCESS;
 }
