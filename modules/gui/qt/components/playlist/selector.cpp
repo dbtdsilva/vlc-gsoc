@@ -160,6 +160,8 @@ PLSelector::PLSelector( QWidget *p, intf_thread_t *_p_intf )
              this, setSource( QTreeWidgetItem *) );
     CONNECT( this, itemClicked( QTreeWidgetItem *, int ),
              this, setSource( QTreeWidgetItem *) );
+    CONNECT( this, itemExpanded( QTreeWidgetItem * ),
+             this, setSource( QTreeWidgetItem *) );
 }
 
 PLSelector::~PLSelector()
@@ -279,6 +281,7 @@ void PLSelector::createItems()
             selItem = addItem( SD_TYPE, *ppsz_longname, false, false, internet );
             if( name.startsWith( "podcast" ) )
             {
+                selItem->treeItem()->setChildIndicatorPolicy(QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
                 selItem->treeItem()->setData( 0, SPECIAL_ROLE, QVariant( IS_PODCAST ) );
                 selItem->addAction( ADD_ACTION, qtr( "Subscribe to a podcast" ) );
                 CONNECT( selItem, action( PLSelItem* ), this, podcastAdd( PLSelItem* ) );
@@ -300,6 +303,8 @@ void PLSelector::createItems()
             {
                 selItem->addAction( ADD_ACTION, qtr( "Add a new service" ) );
                 CONNECT( selItem, action( PLSelItem* ), this, cloudProviderAdd( PLSelItem* ) );
+
+                selItem->treeItem()->setChildIndicatorPolicy(QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
             }
             }
             break;
