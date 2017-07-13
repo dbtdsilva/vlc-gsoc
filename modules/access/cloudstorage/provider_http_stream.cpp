@@ -31,7 +31,9 @@
 
 #include <istream>
 
+extern "C" {
 #include "access/http/message.h"
+}
 
 struct vlc_payload_stream
 {
