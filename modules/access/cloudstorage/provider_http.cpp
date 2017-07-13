@@ -29,9 +29,11 @@
 #include <json/json.h>
 #include <iterator>
 
+extern "C" {
 #include "access/http/resource.h"
 #include "access/http/connmgr.h"
 #include "access/http/message.h"
+}
 
 #include "provider_http_stream.h"
 
