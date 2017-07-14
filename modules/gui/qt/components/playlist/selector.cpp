@@ -62,7 +62,7 @@ void SelectorActionButton::paintEvent( QPaintEvent *event )
 }
 
 PLSelItem::PLSelItem ( QTreeWidgetItem *i, const QString& text )
-    : qitem(i), lblAction( NULL)
+    : qitem(i), lblAction( NULL), innerTree( false )
 {
     layout = new QHBoxLayout( this );
     layout->setContentsMargins(0,0,0,0);
@@ -304,6 +304,7 @@ void PLSelector::createItems()
                 selItem->addAction( ADD_ACTION, qtr( "Add a new service" ) );
                 CONNECT( selItem, action( PLSelItem* ), this, cloudProviderAdd( PLSelItem* ) );
                 selItem->treeItem()->setChildIndicatorPolicy(QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
+                selItem->setInnerTree();
             }
             }
             break;
@@ -393,6 +394,14 @@ void PLSelector::setSource( QTreeWidgetItem *item )
         /* FIXME: searching by name - what could possibly go wrong? */
         pl_item = playlist_ChildSearchName( &(THEPL->root),
             vlc_gettext(qtu(item->data(0, LONGNAME_ROLE).toString())) );
+
+        PLSelItem* sel_item = itemWidget( item );
+        if (sel_item != NULL && sel_item->hasInnerTree())
+        {
+            if ( pl_item && !sd_loaded )
+                sel_item->setInnerTreeParentId( pl_item->i_id );
+            pl_item = NULL; // prevent sidebar item activation
+        }
 
         if ( item->data( 0, SPECIAL_ROLE ).toInt() == IS_PODCAST )
         {
