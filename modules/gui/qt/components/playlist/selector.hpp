@@ -142,6 +142,7 @@ private:
     PLSelItem * addItem ( SelectorItemType type, const char* str,
             bool drop = false, bool bold = false, QTreeWidgetItem* parentItem = 0 );
     PLSelItem * addPodcastItem( playlist_item_t *p_item );
+    PLSelItem * addItemOnTree( playlist_item_t *p_item, QTreeWidgetItem* parent );
 
     PLSelItem* playlistItem;
 
@@ -153,6 +154,7 @@ private:
     QTreeWidgetItem  *podcastsParent;
     int               podcastsParentId;
     QTreeWidgetItem  *curItem;
+    std::vector<PLSelItem*> listItems;
 
 private slots:
     void setSource( QTreeWidgetItem *item );
