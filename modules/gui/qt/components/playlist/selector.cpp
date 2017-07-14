@@ -371,8 +371,6 @@ void PLSelector::setSource( QTreeWidgetItem *item )
     playlist_item_t *pl_item = NULL;
     if( i_type == SD_TYPE )
     {
-        
-
         QString qs = item->data( 0, NAME_ROLE ).toString();
         fprintf( stderr, "QS: %s\n", qtu(qs) );
         sd_loaded = playlist_IsServicesDiscoveryLoaded( THEPL, qtu( qs ) );
@@ -395,16 +393,21 @@ void PLSelector::setSource( QTreeWidgetItem *item )
         /* FIXME: searching by name - what could possibly go wrong? */
         pl_item = playlist_ChildSearchName( &(THEPL->root),
             vlc_gettext(qtu(item->data(0, LONGNAME_ROLE).toString())) );
-        playlist_Unlock( THEPL );
-        
-        if( pl_item && !sd_loaded && item->data( 0, SPECIAL_ROLE ).toInt() == IS_PODCAST )
+
+        if ( item->data( 0, SPECIAL_ROLE ).toInt() == IS_PODCAST )
         {
-            podcastsParentId = pl_item->i_id;
-            for( int i=0; i < pl_item->i_children; i++ )
-                addPodcastItem( pl_item->pp_children[i] );
+            if( pl_item && !sd_loaded )
+            {
+                podcastsParentId = pl_item->i_id;
+                for( int i=0; i < pl_item->i_children; i++ )
+                    addPodcastItem( pl_item->pp_children[i] );
+            }
+            pl_item = NULL; //to prevent activating it
         }
-        pl_item = NULL; //to prevent activating it
-    } else {
+        playlist_Unlock( THEPL );
+    } 
+    else
+    {
         pl_item = item->data( 0, PL_ITEM_ROLE ).value<playlist_item_t*>();
     }
 
