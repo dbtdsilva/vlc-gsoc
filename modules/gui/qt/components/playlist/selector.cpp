@@ -166,6 +166,9 @@ PLSelector::PLSelector( QWidget *p, intf_thread_t *_p_intf )
 
 PLSelector::~PLSelector()
 {
+    for ( auto& item : listItems )
+        delete item;
+
     if( podcastsParent )
     {
         int c = podcastsParent->childCount();
@@ -347,6 +350,8 @@ void PLSelector::createItems()
 
         free( *ppsz_name );
         free( *ppsz_longname );
+
+        listItems.push_back( selItem );
     }
     free( ppsz_names );
     free( ppsz_longnames );
@@ -463,6 +468,22 @@ PLSelItem *PLSelector::addPodcastItem( playlist_item_t *p_item )
     return item;
 }
 
+PLSelItem *PLSelector::addItemOnTree( playlist_item_t *p_item, QTreeWidgetItem* parent )
+{
+    input_item_Hold( p_item->p_input );
+
+    char *psz_name = input_item_GetName( p_item->p_input );
+    PLSelItem *item = addItem( PL_ITEM_TYPE,  psz_name, false, false, parent );
+    free( psz_name );
+
+    item->addAction( RM_ACTION, qtr( "Remove this podcast subscription" ) );
+    item->treeItem()->setData( 0, PL_ITEM_ROLE, QVariant::fromValue( p_item ) );
+    item->treeItem()->setData( 0, PL_ITEM_ID_ROLE, QVariant(p_item->i_id) );
+    item->treeItem()->setData( 0, IN_ITEM_ROLE, QVariant::fromValue( p_item->p_input ) );
+    CONNECT( item, action( PLSelItem* ), this, podcastRemove( PLSelItem* ) );
+    return item;
+}
+
 QStringList PLSelector::mimeTypes() const
 {
     QStringList types;
@@ -514,12 +535,37 @@ void PLSelector::dragMoveEvent ( QDragMoveEvent * event )
 void PLSelector::plItemAdded( int item, int parent )
 {
     updateTotalDuration(playlistItem, "Playlist");
-    if( parent != podcastsParentId || podcastsParent == NULL ) return;
 
     playlist_Lock( THEPL );
-
+    
     playlist_item_t *p_item = playlist_ItemGetById( THEPL, item );
     if( !p_item ) {
+        playlist_Unlock( THEPL );
+        return;
+    }
+
+    for ( auto& sel_item : listItems )
+    {
+        if (!sel_item->hasInnerTree() || sel_item->getInnerTreeParentId() != parent)
+            continue;
+
+        // Check if the item already exists on the tree
+        int childsCounter = sel_item->treeItem()->childCount();
+        for( int i = 0; i < childsCounter; i++ )
+        {
+            QTreeWidgetItem *widgetItem = sel_item->treeItem()->child(i);
+            if( widgetItem->data( 0, PL_ITEM_ID_ROLE ).toInt() == item )
+            {
+                // Item already exists
+                //playlist_Unlock( THEPL );
+                break;
+            }
+        }
+
+        addItemOnTree( p_item, sel_item->treeItem() );
+    }
+
+    if( parent != podcastsParentId || podcastsParent == NULL ) {
         playlist_Unlock( THEPL );
         return;
     }
