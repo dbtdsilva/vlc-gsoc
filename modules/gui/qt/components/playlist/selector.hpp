@@ -88,6 +88,12 @@ public:
     void addAction( ItemAction, const QString& toolTip = 0 );
     QTreeWidgetItem *treeItem() { return qitem; }
 
+    void setInnerTree() { innerTree = true; }
+    bool hasInnerTree() const { return innerTree; }
+
+    void setInnerTreeParentId(int id) { treeParentId = id; }
+    int getInnerTreeParentId() const { return treeParentId; }
+
 public slots:
     void showAction() { if( lblAction ) lblAction->show();  }
     void hideAction() { if( lblAction ) lblAction->hide(); }
@@ -106,6 +112,8 @@ private:
     QFramelessButton* lblAction;
     QLabel*              lbl;
     QHBoxLayout*         layout;
+    bool                 innerTree;
+    int                  treeParentId;
 };
 
 #include <vlc_input_item.h>
