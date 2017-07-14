@@ -303,7 +303,6 @@ void PLSelector::createItems()
             {
                 selItem->addAction( ADD_ACTION, qtr( "Add a new service" ) );
                 CONNECT( selItem, action( PLSelItem* ), this, cloudProviderAdd( PLSelItem* ) );
-
                 selItem->treeItem()->setChildIndicatorPolicy(QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
             }
             }
@@ -369,9 +368,13 @@ void PLSelector::setSource( QTreeWidgetItem *item )
         return;
 
     bool sd_loaded;
+    playlist_item_t *pl_item = NULL;
     if( i_type == SD_TYPE )
     {
+        
+
         QString qs = item->data( 0, NAME_ROLE ).toString();
+        fprintf( stderr, "QS: %s\n", qtu(qs) );
         sd_loaded = playlist_IsServicesDiscoveryLoaded( THEPL, qtu( qs ) );
         if( !sd_loaded )
         {
@@ -386,41 +389,27 @@ void PLSelector::setSource( QTreeWidgetItem *item )
                 item->setData( 0, CAP_SEARCH_ROLE, (test.i_capabilities & SD_CAP_SEARCH) );
             }
         }
-    }
 
-    curItem = item;
-
-    /* */
-    playlist_Lock( THEPL );
-    playlist_item_t *pl_item = NULL;
-
-    /* Special case for podcast */
-    // FIXME: simplify
-    if( i_type == SD_TYPE )
-    {
+        playlist_Lock( THEPL );
         /* Find the right item for the SD */
         /* FIXME: searching by name - what could possibly go wrong? */
         pl_item = playlist_ChildSearchName( &(THEPL->root),
             vlc_gettext(qtu(item->data(0, LONGNAME_ROLE).toString())) );
-
-        /* Podcasts */
-        if( item->data( 0, SPECIAL_ROLE ).toInt() == IS_PODCAST )
+        playlist_Unlock( THEPL );
+        
+        if( pl_item && !sd_loaded && item->data( 0, SPECIAL_ROLE ).toInt() == IS_PODCAST )
         {
-            if( pl_item && !sd_loaded )
-            {
-                podcastsParentId = pl_item->i_id;
-                for( int i=0; i < pl_item->i_children; i++ )
-                    addPodcastItem( pl_item->pp_children[i] );
-            }
-            pl_item = NULL; //to prevent activating it
+            podcastsParentId = pl_item->i_id;
+            for( int i=0; i < pl_item->i_children; i++ )
+                addPodcastItem( pl_item->pp_children[i] );
         }
-    }
-    else
+        pl_item = NULL; //to prevent activating it
+    } else {
         pl_item = item->data( 0, PL_ITEM_ROLE ).value<playlist_item_t*>();
+    }
 
-    playlist_Unlock( THEPL );
+    curItem = item;
 
-    /* */
     if( pl_item )
     {
         emit categoryActivated( pl_item, false );
