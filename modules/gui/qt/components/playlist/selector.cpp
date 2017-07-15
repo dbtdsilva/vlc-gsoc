@@ -539,17 +539,24 @@ void PLSelector::plItemAdded( int item, int parent )
     playlist_Lock( THEPL );
     
     playlist_item_t *p_item = playlist_ItemGetById( THEPL, item );
-    if( !p_item ) {
+    if( !p_item )
+    {
         playlist_Unlock( THEPL );
         return;
     }
 
-    for ( auto& sel_item : listItems )
+    PLSelItem* sel_item = NULL;
+    for ( auto& lItem : listItems )
     {
-        if (!sel_item->hasInnerTree() || sel_item->getInnerTreeParentId() != parent)
+        if (!lItem->hasInnerTree() || lItem->getInnerTreeParentId() != parent)
             continue;
+        sel_item = lItem;
+    }
 
+    if ( sel_item != NULL )
+    {
         // Check if the item already exists on the tree
+        bool found = false;
         int childsCounter = sel_item->treeItem()->childCount();
         for( int i = 0; i < childsCounter; i++ )
         {
@@ -558,11 +565,16 @@ void PLSelector::plItemAdded( int item, int parent )
             {
                 // Item already exists
                 //playlist_Unlock( THEPL );
+                found = true;
                 break;
             }
         }
 
-        addItemOnTree( p_item, sel_item->treeItem() );
+        if ( !found )
+        {
+            addItemOnTree( p_item, sel_item->treeItem() );
+            sel_item->treeItem()->setExpanded( true );
+        }
     }
 
     if( parent != podcastsParentId || podcastsParent == NULL ) {
