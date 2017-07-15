@@ -47,8 +47,7 @@ enum SelectorItemType {
 };
 
 enum SpecialData {
-    IS_PODCAST = 1,
-    IS_PL,
+    IS_PL = 1,
     IS_ML
 };
 
@@ -108,12 +107,12 @@ private:
     inline void enterEvent( QEvent* ){ showAction(); }
     inline void leaveEvent( QEvent* ){ hideAction(); }
 
-    QTreeWidgetItem*     qitem;
-    QFramelessButton* lblAction;
-    QLabel*              lbl;
-    QHBoxLayout*         layout;
-    bool                 innerTree;
-    int                  treeParentId;
+    QTreeWidgetItem *   qitem;
+    QFramelessButton *  lblAction;
+    QLabel*             lbl;
+    QHBoxLayout*        layout;
+    bool                innerTree;
+    int                 treeParentId;
 };
 
 #include <vlc_input_item.h>
@@ -149,11 +148,9 @@ private:
 
     inline PLSelItem * itemWidget( QTreeWidgetItem * );
 
-    intf_thread_t    *p_intf;
-    QTreeWidgetItem  *podcastsParent;
-    int               podcastsParentId;
-    QTreeWidgetItem  *curItem;
-    std::vector<PLSelItem*> listItems;
+    intf_thread_t *             p_intf;
+    QTreeWidgetItem *           curItem;
+    std::vector<PLSelItem *>    listItems;
 
 private slots:
     void setSource( QTreeWidgetItem *item );
