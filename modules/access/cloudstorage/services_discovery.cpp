@@ -28,6 +28,7 @@
 #include <ICloudStorage.h>
 #include <vlc_keystore.h>
 #include <sstream>
+#include <algorithm>
 
 #include "services_discovery.h"
 
@@ -91,15 +92,12 @@ void SDClose( vlc_object_t *p_this )
         vlc_keystore_release( p_sys->p_keystore );
 
     for ( auto& p_item_root : p_sys->providers_items )
-    {
-        input_item_Release( p_item_root.second->root );
-        input_item_Release( p_item_root.second->service_add );
-
-        delete p_item_root.second;
-    }
+        input_item_Release( p_item_root.second );
 
     var_DelCallback( p_sd->obj.libvlc, "cloud-new-auth",
             NewAuthenticationCallback, p_sd );
+    var_DelCallback( p_sd->obj.parent, "cloudstorage-request", RequestedFromUI,
+            p_sd);
     delete p_sys;
 }
 
@@ -117,29 +115,6 @@ static int GetProvidersList( services_discovery_t * p_sd )
     return VLC_SUCCESS;
 }
 
-static int CreateProviderEntry( services_discovery_t * p_sd )
-{
-    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
-
-    cloudstorage::ICloudStorage::Pointer storage = cloudstorage::
-            ICloudStorage::create();
-    for ( const auto& provider : storage->providers() )
-    {
-        const std::string& provider_name = provider->name();
-        input_item_t *p_item = input_item_NewExt("vlc://nop",
-                _(provider_name.c_str()), -1, ITEM_TYPE_NODE, ITEM_LOCAL);
-        if ( p_item == nullptr )
-            continue;
-
-        provider_item_t * prov = new provider_item_t();
-        prov->root = p_item;
-        p_sys->providers_items[provider_name] = prov;
-        //services_discovery_AddItem( p_sd, p_item );
-    }
-
-    return VLC_SUCCESS;
-}
-
 static int RepresentAuthenticatedUsers( services_discovery_t * p_sd )
 {
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
@@ -148,20 +123,21 @@ static int RepresentAuthenticatedUsers( services_discovery_t * p_sd )
     VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
     p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
     unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
-            p_sys->ppsz_values, &p_entries );
+                    p_sys->ppsz_values, &p_entries );
     for (unsigned int i = 0; i < i_entries; i++)
     {
-        std::map< std::string, provider_item_t * >::iterator prov =
-            p_sys->providers_items.find(p_entries[i].ppsz_values[KEY_SERVER]);
-        // Invalid provider was found
-        if ( prov == p_sys->providers_items.end() )
+        // Check if provider exists
+        if ( std::find( p_sys->providers_list.begin(),
+                        p_sys->providers_list.end(),
+                        p_entries[i].ppsz_values[KEY_SERVER] ) ==
+                p_sys->providers_list.end() )
             continue;
-
-        char *uri, *user_with_provider;
+        char *user_with_provider;
         if ( asprintf(&user_with_provider, "%s@%s",
-                p_entries[i].ppsz_values[KEY_USER], prov->first.c_str() ) < 0 )
+                p_entries[i].ppsz_values[KEY_USER],
+                p_entries[i].ppsz_values[KEY_SERVER] ) < 0 )
             return VLC_EGENERIC;
-
+        char *uri;
         if ( asprintf(&uri, "cloudstorage://%s/", user_with_provider ) < 0 )
         {
             free( user_with_provider );
@@ -172,12 +148,14 @@ static int RepresentAuthenticatedUsers( services_discovery_t * p_sd )
                 user_with_provider, ITEM_NET );
         if ( p_item_user != NULL ) {
             services_discovery_AddItem( p_sd, p_item_user );
-            input_item_Release ( p_item_user );
+            p_sys->providers_items.insert(
+                std::make_pair( user_with_provider, p_item_user ) );
         }
 
         free( user_with_provider );
         free( uri );
     }
+
     return VLC_SUCCESS;
 }
 
@@ -221,7 +199,7 @@ static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
                      vlc_value_t oldval, vlc_value_t newval, void *p_data )
 {
     (void) oldval; (void) p_this; (void) psz_var;
-    services_discovery_t * p_sd = (services_discovery_t *) p_data;
+    /*services_discovery_t * p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
     std::string provider_name, username;
@@ -265,7 +243,7 @@ static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
         it->second->service_add = p_item_assoc;
         services_discovery_AddSubItem( p_sd, it->second->root,
                 p_item_assoc );
-    }
+    }*/
 
     return VLC_SUCCESS;
 }
