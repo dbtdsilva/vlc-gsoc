@@ -31,8 +31,7 @@
 
 #include "services_discovery.h"
 
-static int CreateProviderEntry( services_discovery_t * );
-static int CreateAssociationEntries( services_discovery_t * );
+static int GetProvidersList( services_discovery_t * );
 static int RepresentAuthenticatedUsers( services_discovery_t * );
 static char * GenerateUserIdentifier( services_discovery_t *, const char * );
 static int NewAuthenticationCallback( vlc_object_t *, char const *,
@@ -59,12 +58,10 @@ int SDOpen( vlc_object_t *p_this )
         goto error;
     }
 
-    if ( CreateProviderEntry( p_sd ) != VLC_SUCCESS )
+    if ( GetProvidersList( p_sd ) != VLC_SUCCESS )
         goto error;
     if ( RepresentAuthenticatedUsers ( p_sd ) != VLC_SUCCESS )
         goto error;
-    //if ( CreateAssociationEntries ( p_sd ) != VLC_SUCCESS )
-    //    goto error;
 
     // Associate callbacks to detect when a user is authenticated with success!
     if ( var_Create( p_sd->obj.libvlc, "cloud-new-auth",
@@ -106,6 +103,20 @@ void SDClose( vlc_object_t *p_this )
     delete p_sys;
 }
 
+static int GetProvidersList( services_discovery_t * p_sd )
+{
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
+    for ( const auto& provider_ptr : ICloudStorage::create()->providers() )
+        p_sys->providers_list.push_back( provider_ptr->name() );
+
+    if ( p_sys->providers_list.empty() )
+    {
+        msg_Err( p_sd, "Failed to load providers from libcloudstorage" );
+        return VLC_EGENERIC;
+    }
+    return VLC_SUCCESS;
+}
+
 static int CreateProviderEntry( services_discovery_t * p_sd )
 {
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
@@ -126,39 +137,6 @@ static int CreateProviderEntry( services_discovery_t * p_sd )
         //services_discovery_AddItem( p_sd, p_item );
     }
 
-    return VLC_SUCCESS;
-}
-
-static int CreateAssociationEntries( services_discovery_t * p_sd )
-{
-    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
-
-    int error_code;
-    for ( const auto& provider : p_sys->providers_items )
-    {
-        char * uri;
-        const char * provider_name = provider.first.c_str();
-        char * username = GenerateUserIdentifier( p_sd, provider_name );
-        if ( username == nullptr )
-            return VLC_EGENERIC;
-        error_code = asprintf(&uri, "cloudstorage://%s@%s/", username,
-                provider_name );
-        free( username );
-        if ( error_code < 0)
-            return VLC_EGENERIC;
-
-        msg_Dbg( p_sd, "Creating MRL with %s", uri );
-        input_item_t *p_item_new = input_item_New( uri,
-                "Associate new account" );
-        free( uri );
-
-        if ( p_item_new != nullptr )
-        {
-            services_discovery_AddSubItem( p_sd, provider.second->root,
-                    p_item_new );
-            provider.second->service_add = p_item_new;
-        }
-    }
     return VLC_SUCCESS;
 }
 
