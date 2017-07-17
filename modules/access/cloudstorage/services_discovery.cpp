@@ -63,8 +63,8 @@ int SDOpen( vlc_object_t *p_this )
         goto error;
     if ( RepresentAuthenticatedUsers ( p_sd ) != VLC_SUCCESS )
         goto error;
-    if ( CreateAssociationEntries ( p_sd ) != VLC_SUCCESS )
-        goto error;
+    //if ( CreateAssociationEntries ( p_sd ) != VLC_SUCCESS )
+    //    goto error;
 
     // Associate callbacks to detect when a user is authenticated with success!
     if ( var_Create( p_sd->obj.libvlc, "cloud-new-auth",
@@ -123,7 +123,7 @@ static int CreateProviderEntry( services_discovery_t * p_sd )
         provider_item_t * prov = new provider_item_t();
         prov->root = p_item;
         p_sys->providers_items[provider_name] = prov;
-        services_discovery_AddItem( p_sd, p_item );
+        //services_discovery_AddItem( p_sd, p_item );
     }
 
     return VLC_SUCCESS;
@@ -191,10 +191,9 @@ static int RepresentAuthenticatedUsers( services_discovery_t * p_sd )
         }
 
         input_item_t *p_item_user = input_item_NewDirectory( uri,
-                p_entries[i].ppsz_values[KEY_USER], ITEM_NET );
+                user_with_provider, ITEM_NET );
         if ( p_item_user != NULL ) {
-            services_discovery_AddSubItem( p_sd, prov->second->root,
-                    p_item_user );
+            services_discovery_AddItem( p_sd, p_item_user );
             input_item_Release ( p_item_user );
         }
 
