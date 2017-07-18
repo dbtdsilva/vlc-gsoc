@@ -423,7 +423,7 @@ void PLSelector::setSource( QTreeWidgetItem *item )
             {
                 sel_item->innerTree()->setParentId( pl_item->i_id );
                 for ( int i = 0; i < pl_item->i_children; i++ )
-                    addItemOnTree( pl_item->pp_children[i], sel_item->treeItem() );
+                    addItemOnTree( pl_item->pp_children[i], sel_item );
             }
             pl_item = NULL; // prevent sidebar item activation
         }
@@ -461,19 +461,25 @@ PLSelItem * PLSelector::addItem (
   return selItem;
 }
 
-PLSelItem *PLSelector::addItemOnTree( playlist_item_t *p_item, QTreeWidgetItem* parent )
+PLSelItem *PLSelector::addItemOnTree( playlist_item_t *p_item, PLSelItem* sel_item )
 {
     input_item_Hold( p_item->p_input );
 
     char *psz_name = input_item_GetName( p_item->p_input );
+    QTreeWidgetItem* parent = sel_item->innerTree()->parent();
     PLSelItem *item = addItem( PL_ITEM_TYPE,  psz_name, false, false, parent );
     free( psz_name );
 
-    item->addAction( RM_ACTION, qtr( "Remove this podcast subscription" ) );
     item->treeItem()->setData( 0, PL_ITEM_ROLE, QVariant::fromValue( p_item ) );
     item->treeItem()->setData( 0, PL_ITEM_ID_ROLE, QVariant(p_item->i_id) );
     item->treeItem()->setData( 0, IN_ITEM_ROLE, QVariant::fromValue( p_item->p_input ) );
-    CONNECT( item, action( PLSelItem* ), this, podcastRemove( PLSelItem* ) );
+
+    if (sel_item->innerTree()->slotRemoveFunct() != nullptr)
+    {
+        item->addAction( RM_ACTION, qtr( "Remove item" ) );
+        connect( item, SIGNAL(action( PLSelItem* )),
+                 this, sel_item->innerTree()->slotRemoveFunct() );
+    }
     return item;
 }
 
@@ -561,7 +567,7 @@ void PLSelector::plItemAdded( int item, int parent )
             }
         }
         // The items does not exists yet
-        addItemOnTree( p_item, sel_item->treeItem() );
+        addItemOnTree( p_item, sel_item );
         sel_item->treeItem()->setExpanded( true );
     }
 
@@ -619,7 +625,7 @@ void PLSelector::inputItemUpdate( input_item_t *arg )
     }
 }
 
-void PLSelector::podcastAdd( PLSelItem * )
+void PLSelector::podcastAdd( PLSelItem * item)
 {
     //assert( podcastsParent );
 
@@ -629,7 +635,8 @@ void PLSelector::podcastAdd( PLSelItem * )
                                          QLineEdit::Normal, QString(), &ok );
     if( !ok || url.isEmpty() ) return;
 
-    //setSource( podcastsParent ); //to load the SD in case it's not loaded
+    //to load the SD in case it's not loaded
+    setSource( item->innerTree()->parent() );
 
     QString request("ADD:");
     request += url.trimmed();
