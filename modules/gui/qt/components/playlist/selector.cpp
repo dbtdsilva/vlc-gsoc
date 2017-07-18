@@ -305,6 +305,7 @@ void PLSelector::createItems()
             {
                 selItem->createInnerTree(SLOT(cloudProviderAdd(PLSelItem*)),
                                          SLOT(cloudProviderRemove(PLSelItem*)));
+                icon = QIcon( ":/sidebar/cloud" );
             }
             else if ( name.startsWith( "lua{" ) )
             {
