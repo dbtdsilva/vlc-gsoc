@@ -529,7 +529,7 @@ void PLSelector::plItemAdded( int item, int parent )
     PLSelItem* sel_item = NULL;
     for ( auto& lItem : listItems )
     {
-        if (lItem->innerTree() != nullptr || lItem->innerTree()->parentId() != parent)
+        if (lItem->innerTree() == nullptr || lItem->innerTree()->parentId() != parent)
             continue;
         sel_item = lItem;
     }
@@ -562,7 +562,7 @@ void PLSelector::plItemRemoved( int id )
 
     for ( auto& lItem : listItems )
     {
-        if (lItem->innerTree() != nullptr)
+        if (lItem->innerTree() == nullptr)
             continue;
 
         int c = lItem->treeItem()->childCount();
@@ -587,7 +587,7 @@ void PLSelector::inputItemUpdate( input_item_t *arg )
 
     for ( auto& lItem : listItems )
     {
-        if (lItem->innerTree() != nullptr)
+        if (lItem->innerTree() == nullptr)
             continue;
 
         int c = lItem->treeItem()->childCount();
