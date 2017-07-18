@@ -220,7 +220,6 @@ static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
 {
     (void) oldval; (void) p_this; (void) psz_var;
     services_discovery_t * p_sd = (services_discovery_t *) p_data;
-    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
     std::string provider_name, username;
     std::string provider_with_user( newval.psz_string );
@@ -244,24 +243,38 @@ static int RequestedFromUI( vlc_object_t *p_this, char const *psz_var,
     services_discovery_t * p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
-    std::string request( newval.psz_string );
+    std::string raw( newval.psz_string );
 
-    std::string operation = request.substr(0, request.find_first_of(":"));
-    std::string remaining = request.substr(request.find_first_of(":") + 1);
-    fprintf(stderr, "Op: %s, Remaining: %s\n", operation.c_str(), remaining.c_str());
+    std::string operation = raw.substr(0, raw.find_first_of(":"));
+    std::string request = raw.substr(raw.find_first_of(":") + 1);
     if ( operation == "ADD" )
     {
-        char* gen_user = GenerateUserIdentifier( p_sd, remaining.c_str() );
+        char* gen_user = GenerateUserIdentifier( p_sd, request.c_str() );
         input_item_t * new_item = GetNewUserInput( p_sd, gen_user,
-                remaining.c_str() );
+                request.c_str() );
         input_CreateAndStart( p_sd, new_item, NULL);
+        input_item_Release( new_item );
     }
     else if ( operation == "RM" )
     {
+        std::string user = request.substr(0, request.find_first_of("@"));
+        std::string provider = request.substr(request.find_first_of("@") + 1);
 
+        VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
+        p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
+        p_sys->ppsz_values[KEY_SERVER] = strdup( provider.c_str() );
+        p_sys->ppsz_values[KEY_USER] = strdup( user.c_str() );
+
+        int num_entries = vlc_keystore_remove( p_sys->p_keystore,
+                p_sys->ppsz_values );
+        if ( num_entries > 0 )
+        {
+            auto it = p_sys->providers_items.find( request );
+            services_discovery_RemoveItem( p_sd, it->second );
+            input_item_Release( it->second );
+            p_sys->providers_items.erase( it );
+        }
     }
-
-
 
     return VLC_SUCCESS;
 }
