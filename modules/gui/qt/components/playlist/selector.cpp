@@ -297,10 +297,14 @@ void PLSelector::createItems()
             selItem = addItem( SD_TYPE, *ppsz_longname, false, false, internet );
             if( name.startsWith( "podcast" ) )
             {
-                selItem->addAction( ADD_ACTION, qtr( "Subscribe to a podcast" ) );
-                CONNECT( selItem, action( PLSelItem* ), this, podcastAdd( PLSelItem* ) );
-                selItem->createInnerTree(SLOT(podcastAdd(PLSelItem*)), nullptr);
+                selItem->createInnerTree(SLOT(podcastAdd(PLSelItem*)),
+                                         SLOT(podcastRemove(PLSelItem*)));
                 icon = QIcon( ":/sidebar/podcast" );
+            }
+            else if ( name.startsWith( "cloudstorage" ))
+            {
+                selItem->createInnerTree(SLOT(cloudProviderAdd(PLSelItem*)),
+                                         SLOT(cloudProviderRemove(PLSelItem*)));
             }
             else if ( name.startsWith( "lua{" ) )
             {
@@ -312,12 +316,6 @@ void PLSelector::createItems()
                     icon = QIcon( ":/sidebar/network" );
                 else
                     icon = QIcon( iconname );
-            }
-            else if ( name.startsWith( "cloudstorage" ))
-            {
-                selItem->addAction( ADD_ACTION, qtr( "Add a new service" ) );
-                connect( selItem, &PLSelItem::action, [=]() { this->cloudProviderAdd( selItem ); });
-                selItem->createInnerTree(nullptr, nullptr);
             }
             }
             break;
@@ -351,6 +349,14 @@ void PLSelector::createItems()
             break;
         default:
             selItem = addItem( SD_TYPE, *ppsz_longname );
+        }
+
+        if (selItem->innerTree() != nullptr &&
+            selItem->innerTree()->slotAddFunct() != nullptr)
+        {
+            selItem->addAction( ADD_ACTION, qtr( "Add a new item" ) );
+            connect( selItem, SIGNAL(action( PLSelItem* )),
+                     this, selItem->innerTree()->slotAddFunct() );
         }
 
         selItem->treeItem()->setData( 0, SD_CATEGORY_ROLE, *p_category );
