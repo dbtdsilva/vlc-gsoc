@@ -75,11 +75,23 @@ protected:
     void paintEvent( QPaintEvent * ) Q_DECL_OVERRIDE;
 };
 
+class PLSelItemTree
+{
+public:
+    void setParentId(int id) { parent_id = id; }
+    int parentId() const { return parent_id; }
+private:
+    int parent_id;
+    const char* item_add_funct;
+    const char* item_remove_funct;
+};
+
 class PLSelItem : public QWidget
 {
     Q_OBJECT
 public:
     PLSelItem( QTreeWidgetItem*, const QString& );
+    virtual ~PLSelItem();
 
     void setText( const QString& text ) { lbl->setText( text ); }
     QString text() const { return lbl->text(); }
@@ -87,11 +99,10 @@ public:
     void addAction( ItemAction, const QString& toolTip = 0 );
     QTreeWidgetItem *treeItem() { return qitem; }
 
-    void setInnerTree() { innerTree = true; }
-    bool hasInnerTree() const { return innerTree; }
+    void createInnerTree() { pInnerTree = new PLSelItemTree(); }
+    PLSelItemTree* innerTree() const { return pInnerTree; }
 
-    void setInnerTreeParentId(int id) { treeParentId = id; }
-    int getInnerTreeParentId() const { return treeParentId; }
+    
 
 public slots:
     void showAction() { if( lblAction ) lblAction->show();  }
@@ -111,8 +122,7 @@ private:
     QFramelessButton *  lblAction;
     QLabel*             lbl;
     QHBoxLayout*        layout;
-    bool                innerTree;
-    int                 treeParentId;
+    PLSelItemTree*      pInnerTree;
 };
 
 #include <vlc_input_item.h>
