@@ -78,6 +78,7 @@ protected:
 class PLSelItemTree
 {
 public:
+    PLSelItemTree() : parent_id(-1) {}
     void setParentId(int id) { parent_id = id; }
     int parentId() const { return parent_id; }
 private:
