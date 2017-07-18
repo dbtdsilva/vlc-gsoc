@@ -34,8 +34,9 @@
 
 static int GetProvidersList( services_discovery_t * );
 static int RepresentUsers( services_discovery_t * );
-static int RepresentNewUser( services_discovery_t *, const char *,
+static input_item_t * GetNewUserInput( services_discovery_t *, const char *,
                      const char * );
+static int InsertNewUserInput( services_discovery_t *, input_item_t * );
 static char * GenerateUserIdentifier( services_discovery_t *, const char * );
 static int NewAuthenticationCallback( vlc_object_t *, char const *,
                      vlc_value_t, vlc_value_t, void * );
@@ -128,15 +129,17 @@ static int RepresentUsers( services_discovery_t * p_sd )
                     p_sys->ppsz_values, &p_entries );
     for (unsigned int i = 0; i < i_entries; i++)
     {
-        RepresentNewUser( p_sd, p_entries[i].ppsz_values[KEY_USER],
+        input_item_t * item = GetNewUserInput( p_sd,
+                p_entries[i].ppsz_values[KEY_USER],
                 p_entries[i].ppsz_values[KEY_SERVER] );
+        InsertNewUserInput( p_sd, item );
     }
 
     return VLC_SUCCESS;
 }
 
-static int RepresentNewUser( services_discovery_t * p_sd, const char * user,
-        const char * provider )
+static input_item_t * GetNewUserInput( services_discovery_t * p_sd,
+        const char * user, const char * provider )
 {
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
@@ -144,29 +147,35 @@ static int RepresentNewUser( services_discovery_t * p_sd, const char * user,
                     p_sys->providers_list.end(),
                     provider ) ==
             p_sys->providers_list.end() )
-        return VLC_EGENERIC;
+        return nullptr;
 
     char *user_with_provider;
     if ( asprintf( &user_with_provider, "%s@%s", user, provider ) < 0 )
-        return VLC_EGENERIC;
+        return nullptr;
     char *uri;
     if ( asprintf(&uri, "cloudstorage://%s/", user_with_provider ) < 0 )
     {
         free( user_with_provider );
-        return VLC_EGENERIC;
+        return nullptr;
     }
 
     input_item_t *p_item_user = input_item_NewDirectory( uri,
                 user_with_provider, ITEM_NET );
-    if ( p_item_user != NULL ) {
-        services_discovery_AddItem( p_sd, p_item_user );
-        p_sys->providers_items.insert(
-            std::make_pair( user_with_provider, p_item_user ) );
-    }
-
     free( user_with_provider );
     free( uri );
 
+    return p_item_user;
+}
+
+static int InsertNewUserInput( services_discovery_t * p_sd, input_item_t* item )
+{
+    if ( item == NULL )
+        return VLC_EGENERIC;
+
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
+    services_discovery_AddItem( p_sd, item );
+    p_sys->providers_items.insert(
+        std::make_pair( item->psz_name, item ) );
     return VLC_SUCCESS;
 }
 
@@ -223,7 +232,9 @@ static int NewAuthenticationCallback( vlc_object_t *p_this, char const *psz_var,
     username = provider_with_user.substr( 0, pos_user );
     provider_name = provider_with_user.substr( pos_user + 1);
 
-    return RepresentNewUser( p_sd, username.c_str(), provider_name.c_str() );
+    input_item_t * item = GetNewUserInput( p_sd, username.c_str(),
+            provider_name.c_str() );
+    return InsertNewUserInput( p_sd, item );
 }
 
 static int RequestedFromUI( vlc_object_t *p_this, char const *psz_var,
@@ -232,6 +243,25 @@ static int RequestedFromUI( vlc_object_t *p_this, char const *psz_var,
     (void) oldval; (void) p_this; (void) psz_var;
     services_discovery_t * p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
+
+    std::string request( newval.psz_string );
+
+    std::string operation = request.substr(0, request.find_first_of(":"));
+    std::string remaining = request.substr(request.find_first_of(":") + 1);
+    fprintf(stderr, "Op: %s, Remaining: %s\n", operation.c_str(), remaining.c_str());
+    if ( operation == "ADD" )
+    {
+        char* gen_user = GenerateUserIdentifier( p_sd, remaining.c_str() );
+        input_item_t * new_item = GetNewUserInput( p_sd, gen_user,
+                remaining.c_str() );
+        input_CreateAndStart( p_sd, new_item, NULL);
+    }
+    else if ( operation == "RM" )
+    {
+
+    }
+
+
 
     return VLC_SUCCESS;
 }
