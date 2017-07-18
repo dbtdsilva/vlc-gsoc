@@ -78,13 +78,18 @@ protected:
 class PLSelItemTree
 {
 public:
-    PLSelItemTree() : parent_id(-1) {}
+    PLSelItemTree(QTreeWidgetItem*, const char* = nullptr,
+            const char* = nullptr);
     void setParentId(int id) { parent_id = id; }
     int parentId() const { return parent_id; }
+    QTreeWidgetItem* parent() const { return parent_ptr; }
+    const char* slotAddFunct() const { return slot_add_funct; }
+    const char* slotRemoveFunct() const { return slot_add_funct; }
 private:
-    int parent_id;
-    const char* item_add_funct;
-    const char* item_remove_funct;
+    QTreeWidgetItem*    parent_ptr;
+    int                 parent_id;
+    const char*         slot_add_funct;
+    const char*         slot_remove_funct;
 };
 
 class PLSelItem : public QWidget
@@ -100,10 +105,8 @@ public:
     void addAction( ItemAction, const QString& toolTip = 0 );
     QTreeWidgetItem *treeItem() { return qitem; }
 
-    void createInnerTree() { pInnerTree = new PLSelItemTree(); }
+    void createInnerTree(const char* = nullptr, const char* = nullptr);
     PLSelItemTree* innerTree() const { return pInnerTree; }
-
-
 
 public slots:
     void showAction() { if( lblAction ) lblAction->show();  }
