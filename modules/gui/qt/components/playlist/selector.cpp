@@ -663,7 +663,7 @@ void PLSelector::podcastRemove( PLSelItem* item )
     free( psz_uri );
 }
 
-void PLSelector::cloudProviderAdd( PLSelItem * )
+void PLSelector::cloudProviderAdd( PLSelItem * item )
 {
     QStringList items;
     items << "google" << "onedrive" << "dropbox" << "amazon" << "box";
@@ -675,6 +675,9 @@ void PLSelector::cloudProviderAdd( PLSelItem * )
                            qtr( "Select the provider to authenticate" ),
                            items, 0, false, &ok);
     if( !ok || provider.isEmpty() ) return;
+
+    //to load the SD in case it's not loaded
+    setSource( item->innerTree()->parent() );
 
     QString request("ADD:" + provider);
     var_SetString( THEPL, "cloudstorage-request", qtu( request ) );
@@ -694,10 +697,8 @@ void PLSelector::cloudProviderRemove( PLSelItem* item )
     if( !input ) return;
 
     QString request("RM:");
-    char *psz_uri = input_item_GetURI( input );
-    request += qfu( psz_uri );
+    request += qfu( input->psz_name );
     var_SetString( THEPL, "cloudstorage-request", qtu( request ) );
-    free( psz_uri );
 }
 
 PLSelItem * PLSelector::itemWidget( QTreeWidgetItem *item )
