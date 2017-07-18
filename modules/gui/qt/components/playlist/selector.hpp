@@ -84,7 +84,7 @@ public:
     int parentId() const { return parent_id; }
     QTreeWidgetItem* parent() const { return parent_ptr; }
     const char* slotAddFunct() const { return slot_add_funct; }
-    const char* slotRemoveFunct() const { return slot_add_funct; }
+    const char* slotRemoveFunct() const { return slot_remove_funct; }
 private:
     QTreeWidgetItem*    parent_ptr;
     int                 parent_id;
@@ -154,7 +154,7 @@ private:
     void createItems();
     PLSelItem * addItem ( SelectorItemType type, const char* str,
             bool drop = false, bool bold = false, QTreeWidgetItem* parentItem = 0 );
-    PLSelItem * addItemOnTree( playlist_item_t *p_item, QTreeWidgetItem* parent );
+    PLSelItem * addItemOnTree( playlist_item_t *p_item, PLSelItem* sel_item );
 
     PLSelItem* playlistItem;
 
