@@ -81,6 +81,13 @@ PLSelItem::~PLSelItem()
         delete pInnerTree;
 }
 
+void PLSelItem::createInnerTree(const char* slot_add, const char* slot_remove)
+{
+    QTreeWidgetItem* parent = this->treeItem();
+    pInnerTree = new PLSelItemTree(parent, slot_add, slot_remove);
+    parent->setChildIndicatorPolicy(
+            QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
+}
 
 void PLSelItem::addAction( ItemAction act, const QString& tooltip )
 {
@@ -292,8 +299,7 @@ void PLSelector::createItems()
             {
                 selItem->addAction( ADD_ACTION, qtr( "Subscribe to a podcast" ) );
                 CONNECT( selItem, action( PLSelItem* ), this, podcastAdd( PLSelItem* ) );
-                selItem->treeItem()->setChildIndicatorPolicy(QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
-                selItem->createInnerTree();
+                selItem->createInnerTree(SLOT(podcastAdd(PLSelItem*)), nullptr);
                 icon = QIcon( ":/sidebar/podcast" );
             }
             else if ( name.startsWith( "lua{" ) )
@@ -310,9 +316,8 @@ void PLSelector::createItems()
             else if ( name.startsWith( "cloudstorage" ))
             {
                 selItem->addAction( ADD_ACTION, qtr( "Add a new service" ) );
-                CONNECT( selItem, action( PLSelItem* ), this, cloudProviderAdd( PLSelItem* ) );
-                selItem->treeItem()->setChildIndicatorPolicy(QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
-                selItem->createInnerTree();
+                connect( selItem, &PLSelItem::action, [=]() { this->cloudProviderAdd( selItem ); });
+                selItem->createInnerTree(nullptr, nullptr);
             }
             }
             break;
@@ -719,4 +724,11 @@ void PLSelector::wheelEvent( QWheelEvent *e )
 
     // Accept this event in order to prevent unwanted volume up/down changes
     e->accept();
+}
+
+PLSelItemTree::PLSelItemTree(QTreeWidgetItem* parent, const char* slot_add_funct,
+            const char* slot_remove_funct) :
+        parent_ptr(parent), parent_id(-1), slot_add_funct(slot_add_funct),
+        slot_remove_funct(slot_remove_funct)
+{
 }
