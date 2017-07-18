@@ -62,7 +62,7 @@ void SelectorActionButton::paintEvent( QPaintEvent *event )
 }
 
 PLSelItem::PLSelItem ( QTreeWidgetItem *i, const QString& text )
-    : qitem(i), lblAction( NULL), innerTree( false )
+    : qitem(i), lblAction( NULL), pInnerTree( nullptr )
 {
     layout = new QHBoxLayout( this );
     layout->setContentsMargins(0,0,0,0);
@@ -74,6 +74,13 @@ PLSelItem::PLSelItem ( QTreeWidgetItem *i, const QString& text )
     int height = qMax( 22, fontMetrics().height() + 8 );
     setMinimumHeight( height );
 }
+
+PLSelItem::~PLSelItem()
+{
+    if ( pInnerTree != nullptr )
+        delete pInnerTree;
+}
+
 
 void PLSelItem::addAction( ItemAction act, const QString& tooltip )
 {
@@ -164,7 +171,7 @@ PLSelector::~PLSelector()
 {
     for ( auto& lItem : listItems )
     {
-        if (!lItem->hasInnerTree())
+        if (lItem->innerTree() == nullptr)
             continue;
 
         int c = lItem->treeItem()->childCount();
@@ -286,7 +293,7 @@ void PLSelector::createItems()
                 selItem->addAction( ADD_ACTION, qtr( "Subscribe to a podcast" ) );
                 CONNECT( selItem, action( PLSelItem* ), this, podcastAdd( PLSelItem* ) );
                 selItem->treeItem()->setChildIndicatorPolicy(QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
-                selItem->setInnerTree();
+                selItem->createInnerTree();
                 icon = QIcon( ":/sidebar/podcast" );
             }
             else if ( name.startsWith( "lua{" ) )
@@ -305,7 +312,7 @@ void PLSelector::createItems()
                 selItem->addAction( ADD_ACTION, qtr( "Add a new service" ) );
                 CONNECT( selItem, action( PLSelItem* ), this, cloudProviderAdd( PLSelItem* ) );
                 selItem->treeItem()->setChildIndicatorPolicy(QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
-                selItem->setInnerTree();
+                selItem->createInnerTree();
             }
             }
             break;
@@ -398,11 +405,11 @@ void PLSelector::setSource( QTreeWidgetItem *item )
             vlc_gettext(qtu(item->data(0, LONGNAME_ROLE).toString())) );
 
         PLSelItem* sel_item = itemWidget( item );
-        if (sel_item != NULL && sel_item->hasInnerTree())
+        if (sel_item != nullptr && sel_item->innerTree() != nullptr)
         {
             if ( pl_item && !sd_loaded )
             {
-                sel_item->setInnerTreeParentId( pl_item->i_id );
+                sel_item->innerTree()->setParentId( pl_item->i_id );
                 for ( int i = 0; i < pl_item->i_children; i++ )
                     addItemOnTree( pl_item->pp_children[i], sel_item->treeItem() );
             }
@@ -522,7 +529,7 @@ void PLSelector::plItemAdded( int item, int parent )
     PLSelItem* sel_item = NULL;
     for ( auto& lItem : listItems )
     {
-        if (!lItem->hasInnerTree() || lItem->getInnerTreeParentId() != parent)
+        if (lItem->innerTree() != nullptr || lItem->innerTree()->parentId() != parent)
             continue;
         sel_item = lItem;
     }
@@ -555,7 +562,7 @@ void PLSelector::plItemRemoved( int id )
 
     for ( auto& lItem : listItems )
     {
-        if (!lItem->hasInnerTree())
+        if (lItem->innerTree() != nullptr)
             continue;
 
         int c = lItem->treeItem()->childCount();
@@ -580,7 +587,7 @@ void PLSelector::inputItemUpdate( input_item_t *arg )
 
     for ( auto& lItem : listItems )
     {
-        if (!lItem->hasInnerTree())
+        if (lItem->innerTree() != nullptr)
             continue;
 
         int c = lItem->treeItem()->childCount();
