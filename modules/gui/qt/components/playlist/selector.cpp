@@ -639,8 +639,6 @@ void PLSelector::podcastRemove( PLSelItem* item )
 
 void PLSelector::cloudProviderAdd( PLSelItem * )
 {
-    // TODO: This should probably have its own UI and load the items based on
-    // the existing supported providers
     QStringList items;
     items << "google" << "onedrive" << "dropbox" << "amazon" << "box";
     items << "youtube" << "yandex" << "amazons3" << "owncloud" << "mega";
@@ -652,11 +650,28 @@ void PLSelector::cloudProviderAdd( PLSelItem * )
                            items, 0, false, &ok);
     if( !ok || provider.isEmpty() ) return;
 
-    var_SetString( THEPL, "cloudstorage-request", qtu( provider ) );
+    QString request("ADD:" + provider);
+    var_SetString( THEPL, "cloudstorage-request", qtu( request ) );
 }
 
 void PLSelector::cloudProviderRemove( PLSelItem* item )
 {
+    QString question ( qtr( "Do you really want to remove the service %1?" ) );
+    question = question.arg( item->text() );
+    QMessageBox::StandardButton res =
+        QMessageBox::question( this, qtr( "Logout" ), question,
+                               QMessageBox::Yes | QMessageBox::No,
+                               QMessageBox::No );
+    if( res == QMessageBox::No ) return;
+
+    input_item_t *input = item->treeItem()->data( 0, IN_ITEM_ROLE ).value<input_item_t*>();
+    if( !input ) return;
+
+    QString request("RM:");
+    char *psz_uri = input_item_GetURI( input );
+    request += qfu( psz_uri );
+    var_SetString( THEPL, "cloudstorage-request", qtu( request ) );
+    free( psz_uri );
 }
 
 PLSelItem * PLSelector::itemWidget( QTreeWidgetItem *item )
