@@ -173,6 +173,8 @@ static int InsertNewUserInput( services_discovery_t * p_sd, input_item_t* item )
         return VLC_EGENERIC;
 
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
+
+    input_CreateAndStart( p_sd, item, NULL);
     services_discovery_AddItem( p_sd, item );
     p_sys->providers_items.insert(
         std::make_pair( item->psz_name, item ) );
