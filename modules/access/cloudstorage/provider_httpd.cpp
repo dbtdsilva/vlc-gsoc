@@ -93,9 +93,8 @@ Httpd::Connection::Connection(const char* url,
 const char* Httpd::Connection::getParameter(
     const std::string& name) const
 {
-    std::unordered_map<std::string, std::string>::const_iterator it =
-            m_args.find(name);
-    return it == m_args.end() ? "" : "";
+    auto element = m_args.find(name);
+    return element == m_args.end() ? "" : element->second.c_str();
 }
 
 std::string Httpd::Connection::url() const
@@ -156,17 +155,13 @@ Httpd::IResponse::Pointer Httpd::createResponse(int code,
     return std::make_unique<Response>(code, headers, body);
 }
 
-Httpd::IResponse::Pointer Httpd::createResponse(int code,
-        const IResponse::Headers& headers, int size, int chunk_size,
-        IResponse::ICallback::Pointer cb) const
+Httpd::IResponse::Pointer Httpd::createResponse(int,
+        const IResponse::Headers&, int, int,
+        IResponse::ICallback::Pointer) const
 {
-    return std::make_unique<CallbackResponse>(code, headers, size, chunk_size,
-            std::move(cb));
-    //return std::make_unique<CallbackResponse>( code, headers, size,
-    //        chunk_size, std::move(cb));
     // Does not support streaming a response through a callback, and does not
     // need to. The responses used are not required.
-    //return std::unique_ptr<CallbackResponse>( nullptr );
+    return std::unique_ptr<CallbackResponse>( nullptr );
 }
 
 HttpdFactory::HttpdFactory( access_t* access ) : p_access( access ) {}
