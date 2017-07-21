@@ -26,6 +26,12 @@
 #include <sstream>
 #include <map>
 
+int Httpd::httpRequestCallback( httpd_callback_sys_t * args,
+        httpd_client_t * client, httpd_message_t * answer,
+        const httpd_message_t * query )
+{
+
+}
 Httpd::Response::Response(int code, const IResponse::Headers& headers,
                            const std::string& body)
 {
@@ -57,14 +63,51 @@ std::string Httpd::Connection::url() const
     return c_url;
 }
 
-Httpd::Httpd(IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
-             int port) :
+Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
+             int port, access_t * access ) :
       p_callback(cb)
 {
+    (void) type;
+
+    int default_port = var_GetInteger( access->obj.libvlc, "http-port" );
+    var_SetInteger( access->obj.libvlc, "http-port", port );
+    host = vlc_http_HostNew( VLC_OBJECT( access ) );
+    var_SetInteger( access->obj.libvlc, "http-port", default_port );
+
+    url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
+    url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );
+
+    if ( url_root != nullptr )
+    {
+        httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+        httpd_UrlCatch( url_root, HTTPD_MSG_GET, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+        httpd_UrlCatch( url_root, HTTPD_MSG_POST, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+    }
+
+    if ( url_login != nullptr )
+    {
+        httpd_UrlCatch( url_login, HTTPD_MSG_HEAD, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+        httpd_UrlCatch( url_login, HTTPD_MSG_GET, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+        httpd_UrlCatch( url_login, HTTPD_MSG_POST, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+    }
 }
 
 Httpd::~Httpd()
 {
+    if ( host != nullptr )
+    {
+        if ( url_root != nullptr )
+            httpd_UrlDelete( url_root );
+        if ( url_login != nullptr )
+            httpd_UrlDelete( url_login );
+        httpd_HostDelete ( host );
+    }
 }
 
 Httpd::IResponse::Pointer Httpd::createResponse(int code,
@@ -87,5 +130,5 @@ IHttpServer::Pointer HttpdFactory::create(
         IHttpServer::ICallback::Pointer cb, const std::string&,
         IHttpServer::Type type, int port)
 {
-    return std::make_unique<Httpd>(cb, type, port);
+    return std::make_unique<Httpd>(cb, type, port, p_access);
 }
