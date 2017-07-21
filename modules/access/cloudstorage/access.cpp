@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <fstream>
 #include <ICloudStorage.h>
 #include <IRequest.h>
 
@@ -42,6 +43,7 @@ static int InitKeystore( stream_t * );
 static int InitProvider( stream_t * );
 static int ParseUrl( stream_t * );
 static int ReadDir( stream_t *, input_item_node_t * );
+static std::string ReadFile( const std::string& path );
 
 int Open( vlc_object_t *p_this )
 {
@@ -134,9 +136,27 @@ static int InitProvider( stream_t * p_access )
     std::string redirect_port = std::to_string(
             var_InheritInteger( p_access, "http-port" ) ) ;
 
+    // Get predifined port and prefix
     hints["redirect_uri_port"] = redirect_port;
     hints["redirect_uri_prefix"] = "/auth";
-    hints["requesting_app_name"] = "VLC";
+
+    // Load custom-made pages
+    std::string parent = "cloudstorage";
+    parent.append(DIR_SEP);
+    if ( p_sys->provider_name == "amazons3" ||
+            p_sys->provider_name  == "mega" ||
+            p_sys->provider_name  == "owncloud" )
+    {
+        hints["login_page"] = ReadFile(
+                parent + p_sys->provider_name + "_login.html");
+        hints["success_page"] = ReadFile(
+                parent + p_sys->provider_name + "_success.html");
+    }
+    else
+        hints["success_page"] = ReadFile( parent + "default_success.html" );
+    hints["error_page"] = ReadFile( parent + "default_error.html" );
+
+    // Initialize the provider
     p_sys->provider = cloudstorage::ICloudStorage::
             create()->provider( p_sys->provider_name );
     if ( !p_sys->provider ) {
@@ -236,4 +256,23 @@ static int ParseUrl( access_t * p_access )
     }
 
     return VLC_SUCCESS;
+}
+
+static std::string ReadFile(const std::string& filename)
+{
+    std::string data_filename = config_GetDataDir();
+    data_filename.append(DIR_SEP);
+    data_filename.append(filename);
+    std::ifstream stream(data_filename, std::ios::in | std::ios::binary);
+    if (!stream)
+        return "";
+
+    std::string contents;
+    stream.seekg(0, std::ios::end);
+    contents.resize(stream.tellg());
+    stream.seekg(0, std::ios::beg);
+    stream.read(&contents[0], contents.size());
+    stream.close();
+
+    return contents;
 }
