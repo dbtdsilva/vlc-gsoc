@@ -28,26 +28,59 @@
 #include <string>
 #include <vlc_httpd.h>
 
-using cloudstorage::IHttpd;
+using cloudstorage::IHttpServer;
+using cloudstorage::IHttpServerFactory;
 
-class Httpd : public IHttpd {
+class Httpd : public IHttpServer
+{
 public:
-    Httpd( access_t *access );
-    void startServer(uint16_t port, CallbackFunction request_callback,
-            void* data) override;
-    void stopServer() override;
-private:
-    static int internalCallback( httpd_callback_sys_t * args, httpd_client_t *,
-            httpd_message_t * answer, const httpd_message_t * query_t );
-    access_t *p_access;
-    access_sys_t *p_sys;
-    httpd_host_t *host;
-    httpd_url_t *url_root, *url_login;
+    Httpd(IHttpServer::ICallback::Pointer cb, IHttpServer::Type type, int port);
+    ~Httpd();
 
-    struct CallbackData {
-        CallbackFunction request_callback;
-        void* custom_data;
+    class Response : public IResponse {
+    public:
+        Response() = default;
+        Response(int code, const IResponse::Headers&, const std::string& body);
+        ~Response();
+
+        void send(const IConnection&) override;
     };
+
+    class CallbackResponse : public Response {
+    public:
+        CallbackResponse(int code, const IResponse::Headers&, int size,
+                int chunk_size, IResponse::ICallback::Pointer);
+    };
+
+    class Connection : public IConnection {
+    public:
+        Connection(const char* url);
+        const char* getParameter(const std::string& name) const override;
+        std::string url() const override;
+
+    private:
+        std::string c_url;
+    };
+
+    IResponse::Pointer createResponse(int code, const IResponse::Headers&,
+                                const std::string& body) const override;
+    IResponse::Pointer createResponse(int code, const IResponse::Headers&,
+                                int size, int chunk_size,
+                                IResponse::ICallback::Pointer) const override;
+    ICallback::Pointer callback() const { return p_callback; }
+private:
+    ICallback::Pointer p_callback;
+};
+
+class HttpdFactory : public IHttpServerFactory
+{
+public:
+    HttpdFactory( access_t* access );
+    IHttpServer::Pointer create(IHttpServer::ICallback::Pointer,
+                              const std::string& session_id, IHttpServer::Type,
+                              int port) override;
+private:
+    access_t* p_access;
 };
 
 #endif
