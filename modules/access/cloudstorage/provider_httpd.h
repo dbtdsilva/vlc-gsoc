@@ -34,7 +34,8 @@ using cloudstorage::IHttpServerFactory;
 class Httpd : public IHttpServer
 {
 public:
-    Httpd(IHttpServer::ICallback::Pointer cb, IHttpServer::Type type, int port);
+    Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type, int port,
+           access_t * access );
     ~Httpd();
 
     class Response : public IResponse {
@@ -69,7 +70,13 @@ public:
                                 IResponse::ICallback::Pointer) const override;
     ICallback::Pointer callback() const { return p_callback; }
 private:
+    static int httpRequestCallback( httpd_callback_sys_t * args,
+            httpd_client_t *, httpd_message_t * answer,
+            const httpd_message_t * query_t );
+
     ICallback::Pointer p_callback;
+    httpd_host_t *host;
+    httpd_url_t *url_root, *url_login;
 };
 
 class HttpdFactory : public IHttpServerFactory
