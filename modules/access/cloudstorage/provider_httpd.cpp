@@ -26,36 +26,76 @@
 #include <sstream>
 #include <map>
 
-int Httpd::httpRequestCallback( httpd_callback_sys_t * args,
+int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
         httpd_client_t * client, httpd_message_t * answer,
         const httpd_message_t * query )
 {
+    Httpd* server = (Httpd *) cls;
 
+    // Pre-fill data to be sent to the callback
+    std::unordered_map<std::string, std::string> args;
+    std::string argument;
+    if ( query->psz_args != nullptr )
+    {
+        std::istringstream iss( std::string(
+            vlc_uri_decode( (char*) query->psz_args ) ) );
+        while ( std::getline( iss, argument, '&' ) ) {
+            size_t equal_div = argument.find('=');
+            if ( equal_div == std::string::npos )
+                continue;
+
+            std::string key = argument.substr( 0, equal_div );
+            std::string value = argument.substr( equal_div + 1 );
+            args.insert( std::make_pair( key, value ) );
+        }
+    }
+    Httpd::Connection connection( query->psz_url, args );
+
+    // Inform about a received connection in order to get the proper response
+    Httpd::Response* response = static_cast<Httpd::Response*>(
+        server->callback()->receivedConnection( *server, connection ).get() );
+
+    // Fill the data to be requests to the lib
+    answer->i_proto = HTTPD_PROTO_HTTP;
+    answer->i_version= 1;
+    answer->i_type = HTTPD_MSG_ANSWER;
+    answer->i_status = response->getCode();
+
+    IResponse::Headers headers = response->getHeaders();
+    answer->i_headers = headers.size();
+    for ( auto header : headers )
+        httpd_MsgAdd( answer,
+                header.first.c_str(), "%s", header.second.c_str() );
+    answer->i_body = response->getBody().length();
+    char * message = strdup( response->getBody().c_str() );
+    answer->p_body = (unsigned char *) message;
+
+    httpd_MsgAdd( answer, "Content-Length", "%d", answer->i_body );
+
+    return VLC_SUCCESS;
 }
 Httpd::Response::Response(int code, const IResponse::Headers& headers,
-                           const std::string& body)
-{
-}
+                           const std::string& body) :
+    i_code( code ), m_headers( headers ), p_body( body ) {}
 
 Httpd::Response::~Response()
 {
 }
 
-void Httpd::Response::send(const IConnection& c)
-{
-}
+Httpd::CallbackResponse::CallbackResponse(int,
+        const IResponse::Headers&, int, int,
+    IResponse::ICallback::Pointer) {}
 
-Httpd::CallbackResponse::CallbackResponse(
-    int code, const IResponse::Headers& headers, int size, int chunk_size,
-    IResponse::ICallback::Pointer callback)
-{
-}
-
-Httpd::Connection::Connection(const char* url) : c_url(url) {}
+Httpd::Connection::Connection(const char* url,
+        const std::unordered_map<std::string, std::string> args) :
+    c_url(url), m_args(args) {}
 
 const char* Httpd::Connection::getParameter(
     const std::string& name) const
 {
+    std::unordered_map<std::string, std::string>::const_iterator it =
+            m_args.find(name);
+    return it == m_args.end() ? "" : "";
 }
 
 std::string Httpd::Connection::url() const
@@ -122,6 +162,11 @@ Httpd::IResponse::Pointer Httpd::createResponse(int code,
 {
     return std::make_unique<CallbackResponse>(code, headers, size, chunk_size,
             std::move(cb));
+    //return std::make_unique<CallbackResponse>( code, headers, size,
+    //        chunk_size, std::move(cb));
+    // Does not support streaming a response through a callback, and does not
+    // need to. The responses used are not required.
+    //return std::unique_ptr<CallbackResponse>( nullptr );
 }
 
 HttpdFactory::HttpdFactory( access_t* access ) : p_access( access ) {}

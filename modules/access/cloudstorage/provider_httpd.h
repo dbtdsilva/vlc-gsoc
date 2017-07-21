@@ -26,6 +26,7 @@
 #include "access.h"
 
 #include <string>
+#include <unordered_map>
 #include <vlc_httpd.h>
 
 using cloudstorage::IHttpServer;
@@ -44,7 +45,13 @@ public:
         Response(int code, const IResponse::Headers&, const std::string& body);
         ~Response();
 
-        void send(const IConnection&) override;
+        int getCode() { return i_code; }
+        IResponse::Headers getHeaders() { return m_headers; }
+        const std::string& getBody() { return p_body; }
+    private:
+        int i_code;
+        IResponse::Headers m_headers;
+        const std::string p_body;
     };
 
     class CallbackResponse : public Response {
@@ -55,12 +62,14 @@ public:
 
     class Connection : public IConnection {
     public:
-        Connection(const char* url);
+        Connection(const char* url,
+                const std::unordered_map<std::string, std::string> args);
         const char* getParameter(const std::string& name) const override;
         std::string url() const override;
 
     private:
         std::string c_url;
+        const std::unordered_map<std::string, std::string> m_args;
     };
 
     IResponse::Pointer createResponse(int code, const IResponse::Headers&,
