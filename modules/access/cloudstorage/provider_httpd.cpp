@@ -30,6 +30,7 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
         httpd_client_t * client, httpd_message_t * answer,
         const httpd_message_t * query )
 {
+    (void) client;
     Httpd* server = (Httpd *) cls;
 
     // Pre-fill data to be sent to the callback
@@ -94,7 +95,7 @@ const char* Httpd::Connection::getParameter(
     const std::string& name) const
 {
     auto element = m_args.find(name);
-    return element == m_args.end() ? "" : element->second.c_str();
+    return element == m_args.end() ? nullptr : element->second.c_str();
 }
 
 std::string Httpd::Connection::url() const
