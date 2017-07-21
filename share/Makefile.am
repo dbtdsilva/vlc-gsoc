@@ -54,7 +54,8 @@ EXTRA_DIST += \
 	$(DIST_skins2) \
 	$(DIST_icons) \
 	$(DIST_http_lua) \
-	$(DIST_solid)
+	$(DIST_solid) \
+	$(DIST_cloudstorage)
 
 nobase_vlcdata_DATA =
 if BUILD_SKINS
@@ -309,3 +310,13 @@ DIST_solid = \
 	solid/vlc-opencda.desktop \
 	solid/vlc-opendvd.desktop \
 	solid/vlc-openvcd.desktop
+
+DIST_cloudstorage = \
+	cloudstorage/amazons3_login.html \
+	cloudstorage/amazons3_success.html \
+	cloudstorage/default_error.html \
+	cloudstorage/default_success.html \
+	cloudstorage/mega_login.html \
+	cloudstorage/mega_success.html \
+	cloudstorage/owncloud_login.html \
+	cloudstorage/owncloud_success.html
