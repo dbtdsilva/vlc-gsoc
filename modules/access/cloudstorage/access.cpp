@@ -118,7 +118,7 @@ static int InitKeystore( stream_t * p_access )
     {
         std::string stored_value = std::string((char *) p_entries[0].p_secret,
                                    p_entries[0].i_secret_len);
-        if ( ICloudProvider::restoreSession(stored_value,
+        if ( !ICloudProvider::restoreSession(stored_value,
                 p_sys->token, p_sys->hints) )
         {
             msg_Warn( p_access, "Cloudstorage found invalid credentials in the "
