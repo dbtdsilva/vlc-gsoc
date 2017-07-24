@@ -63,13 +63,16 @@ public:
     class Connection : public IConnection {
     public:
         Connection(const char* url,
-                const std::unordered_map<std::string, std::string> args);
+                const std::unordered_map<std::string, std::string> args,
+                const std::unordered_map<std::string, std::string> headers);
         const char* getParameter(const std::string& name) const override;
+        const char* header(const std::string& name) const override;
         std::string url() const override;
 
     private:
         std::string c_url;
         const std::unordered_map<std::string, std::string> m_args;
+        const std::unordered_map<std::string, std::string> m_headers;
     };
 
     IResponse::Pointer createResponse(int code, const IResponse::Headers&,
