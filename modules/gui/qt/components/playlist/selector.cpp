@@ -62,7 +62,7 @@ void SelectorActionButton::paintEvent( QPaintEvent *event )
 }
 
 PLSelItem::PLSelItem ( QTreeWidgetItem *i, const QString& text )
-    : qitem(i), lblAction( NULL), pInnerTree( nullptr )
+    : qitem(i), lblAction( NULL), pInnerTree( NULL )
 {
     layout = new QHBoxLayout( this );
     layout->setContentsMargins(0,0,0,0);
@@ -77,7 +77,7 @@ PLSelItem::PLSelItem ( QTreeWidgetItem *i, const QString& text )
 
 PLSelItem::~PLSelItem()
 {
-    if ( pInnerTree != nullptr )
+    if ( pInnerTree != NULL )
         delete pInnerTree;
 }
 
@@ -178,7 +178,7 @@ PLSelector::~PLSelector()
 {
     for ( auto& lItem : listItems )
     {
-        if (lItem->innerTree() == nullptr)
+        if (lItem->innerTree() == NULL)
             continue;
 
         int c = lItem->treeItem()->childCount();
@@ -190,8 +190,9 @@ PLSelector::~PLSelector()
         }
     }
 
-    for ( auto& item : listItems )
-        delete item;
+    for (std::vector<PLSelItem*>::iterator it = listItems.begin();
+            it != listItems.end(); ++it)
+        delete *it;
 }
 
 PLSelItem * putSDData( PLSelItem* item, const char* name, const char* longname )
@@ -352,8 +353,8 @@ void PLSelector::createItems()
             selItem = addItem( SD_TYPE, *ppsz_longname );
         }
 
-        if (selItem->innerTree() != nullptr &&
-            selItem->innerTree()->slotAddFunct() != nullptr)
+        if (selItem->innerTree() != NULL &&
+            selItem->innerTree()->slotAddFunct() != NULL)
         {
             selItem->addAction( ADD_ACTION, qtr( "Add a new item" ) );
             connect( selItem, SIGNAL(action( PLSelItem* )),
@@ -417,7 +418,7 @@ void PLSelector::setSource( QTreeWidgetItem *item )
             vlc_gettext(qtu(item->data(0, LONGNAME_ROLE).toString())) );
 
         PLSelItem* sel_item = itemWidget( item );
-        if (sel_item != nullptr && sel_item->innerTree() != nullptr)
+        if (sel_item != NULL && sel_item->innerTree() != NULL)
         {
             if ( pl_item && !sd_loaded )
             {
@@ -474,7 +475,7 @@ PLSelItem *PLSelector::addItemOnTree( playlist_item_t *p_item, PLSelItem* sel_it
     item->treeItem()->setData( 0, PL_ITEM_ID_ROLE, QVariant(p_item->i_id) );
     item->treeItem()->setData( 0, IN_ITEM_ROLE, QVariant::fromValue( p_item->p_input ) );
 
-    if (sel_item->innerTree()->slotRemoveFunct() != nullptr)
+    if (sel_item->innerTree()->slotRemoveFunct() != NULL)
     {
         item->addAction( RM_ACTION, qtr( "Remove item" ) );
         connect( item, SIGNAL(action( PLSelItem* )),
@@ -545,9 +546,13 @@ void PLSelector::plItemAdded( int item, int parent )
     }
 
     PLSelItem* sel_item = NULL;
-    for ( auto& lItem : listItems )
+
+    for (std::vector<PLSelItem*>::iterator it = listItems.begin();
+            it != listItems.end(); ++it)
     {
-        if (lItem->innerTree() == nullptr || lItem->innerTree()->parentId() != parent)
+        PLSelItem* lItem = *it;
+        if (lItem->innerTree() == NULL || lItem->innerTree()->parentId()
+                != parent)
             continue;
         sel_item = lItem;
     }
@@ -578,9 +583,11 @@ void PLSelector::plItemRemoved( int id )
 {
     updateTotalDuration(playlistItem, "Playlist");
 
-    for ( auto& lItem : listItems )
+    for (std::vector<PLSelItem*>::iterator it = listItems.begin();
+            it != listItems.end(); ++it)
     {
-        if (lItem->innerTree() == nullptr)
+        PLSelItem* lItem = *it;
+        if (lItem->innerTree() == NULL)
             continue;
 
         int c = lItem->treeItem()->childCount();
@@ -603,9 +610,11 @@ void PLSelector::inputItemUpdate( input_item_t *arg )
 {
     updateTotalDuration(playlistItem, "Playlist");
 
-    for ( auto& lItem : listItems )
+    for (std::vector<PLSelItem*>::iterator it = listItems.begin();
+            it != listItems.end(); ++it)
     {
-        if (lItem->innerTree() == nullptr)
+        PLSelItem* lItem = *it;
+        if (lItem->innerTree() == NULL)
             continue;
 
         int c = lItem->treeItem()->childCount();
