@@ -536,7 +536,7 @@ void PLSelector::plItemAdded( int item, int parent )
     updateTotalDuration(playlistItem, "Playlist");
 
     playlist_Lock( THEPL );
-    
+
     playlist_item_t *p_item = playlist_ItemGetById( THEPL, item );
     if( !p_item )
     {
@@ -570,7 +570,7 @@ void PLSelector::plItemAdded( int item, int parent )
         addItemOnTree( p_item, sel_item );
         sel_item->treeItem()->setExpanded( true );
     }
-    
+
     playlist_Unlock( THEPL );
 }
 
