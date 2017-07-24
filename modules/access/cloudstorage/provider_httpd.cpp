@@ -34,7 +34,7 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
     Httpd* server = (Httpd *) cls;
 
     // Pre-fill data to be sent to the callback
-    std::unordered_map<std::string, std::string> args;
+    std::unordered_map<std::string, std::string> args, headers;
     std::string argument;
     if ( query->psz_args != nullptr )
     {
@@ -50,7 +50,11 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
             args.insert( std::make_pair( key, value ) );
         }
     }
-    Httpd::Connection connection( query->psz_url, args );
+    for (unsigned int i = 0; i < query->i_headers; i++) {
+        headers.insert( std::make_pair(
+            query->p_headers[i].name, query->p_headers[i].value ) );
+    }
+    Httpd::Connection connection( query->psz_url, args, headers );
 
     // Inform about a received connection in order to get the proper response
     Httpd::Response* response = static_cast<Httpd::Response*>(
@@ -62,9 +66,9 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
     answer->i_type = HTTPD_MSG_ANSWER;
     answer->i_status = response->getCode();
 
-    IResponse::Headers headers = response->getHeaders();
-    answer->i_headers = headers.size();
-    for ( auto header : headers )
+    IResponse::Headers r_headers = response->getHeaders();
+    answer->i_headers = r_headers.size();
+    for ( auto header : r_headers )
         httpd_MsgAdd( answer,
                 header.first.c_str(), "%s", header.second.c_str() );
     answer->i_body = response->getBody().length();
@@ -88,14 +92,21 @@ Httpd::CallbackResponse::CallbackResponse(int,
     IResponse::ICallback::Pointer) {}
 
 Httpd::Connection::Connection(const char* url,
-        const std::unordered_map<std::string, std::string> args) :
-    c_url(url), m_args(args) {}
+        const std::unordered_map<std::string, std::string> args,
+        const std::unordered_map<std::string, std::string> headers) :
+    c_url(url), m_args(args), m_headers(headers) {}
 
 const char* Httpd::Connection::getParameter(
     const std::string& name) const
 {
     auto element = m_args.find(name);
     return element == m_args.end() ? nullptr : element->second.c_str();
+}
+
+const char* Httpd::Connection::header(const std::string& name) const
+{
+    auto element = m_headers.find(name);
+    return element == m_headers.end() ? nullptr : element->second.c_str();
 }
 
 std::string Httpd::Connection::url() const

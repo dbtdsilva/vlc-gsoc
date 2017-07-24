@@ -25,7 +25,6 @@
 #define VLC_CLOUDSTORAGE_ACCESS_H
 
 #include <string>
-#include <IHttpd.h>
 #include <ICloudProvider.h>
 #include <IItem.h>
 
