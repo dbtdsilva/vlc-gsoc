@@ -120,10 +120,10 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
 {
     (void) type;
 
-    int default_port = var_GetInteger( access->obj.libvlc, "http-port" );
-    var_SetInteger( access->obj.libvlc, "http-port", port );
+    int default_port = config_GetInt( access, "http-port" );
+    config_PutInt( access, "http-port", port );
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
-    var_SetInteger( access->obj.libvlc, "http-port", default_port );
+    config_PutInt( access->obj.libvlc, "http-port", default_port );
 
     url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
     url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );

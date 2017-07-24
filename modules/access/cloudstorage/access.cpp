@@ -134,7 +134,7 @@ static int InitProvider( stream_t * p_access )
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     ICloudProvider::Hints hints;
     std::string redirect_port = std::to_string(
-            var_InheritInteger( p_access, "http-port" ) ) ;
+            config_GetInt( p_access, "http-port" ) );
 
     // Get predifined port and prefix
     hints["redirect_uri_port"] = redirect_port;
