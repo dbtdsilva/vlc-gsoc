@@ -148,7 +148,7 @@ static input_item_t * GetNewUserInput( services_discovery_t * p_sd,
                     provider ) ==
             p_sys->providers_list.end() )
         return nullptr;
-    
+
     char *user_with_provider;
     if ( asprintf( &user_with_provider, "%s@%s", user, provider ) < 0 )
         return nullptr;
@@ -267,7 +267,7 @@ static int RequestedFromUI( vlc_object_t *p_this, char const *psz_var,
         p_sys->ppsz_values[KEY_SERVER] = strdup( provider.c_str() );
         p_sys->ppsz_values[KEY_USER] = strdup( user.c_str() );
 
-        int num_entries = vlc_keystore_remove( p_sys->p_keystore, 
+        int num_entries = vlc_keystore_remove( p_sys->p_keystore,
                 p_sys->ppsz_values );
         if ( num_entries > 0 )
         {
