@@ -115,7 +115,7 @@ std::string Httpd::Connection::url() const
 }
 
 Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
-             int port, access_t * access ) :
+             int port, stream_t * access ) :
       p_callback(cb)
 {
     (void) type;
@@ -176,7 +176,7 @@ Httpd::IResponse::Pointer Httpd::createResponse(int,
     return std::unique_ptr<CallbackResponse>( nullptr );
 }
 
-HttpdFactory::HttpdFactory( access_t* access ) : p_access( access ) {}
+HttpdFactory::HttpdFactory( stream_t* access ) : p_access( access ) {}
 
 IHttpServer::Pointer HttpdFactory::create(
         IHttpServer::ICallback::Pointer cb, const std::string&,
