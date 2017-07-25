@@ -36,19 +36,19 @@
 class Http : public cloudstorage::IHttp
 {
 public:
-    Http( access_t *access );
+    Http( stream_t *access );
     cloudstorage::IHttpRequest::Pointer create( const std::string&,
             const std::string&, bool ) const override;
     std::string error( int ) const override;
 
 private:
-    access_t *p_access;
+    stream_t *p_access;
 };
 
 class HttpRequest : public cloudstorage::IHttpRequest
 {
 public:
-    HttpRequest( access_t* access, const std::string& url,
+    HttpRequest( stream_t* access, const std::string& url,
             const std::string& method, bool follow_redirect );
     ~HttpRequest();
 
@@ -76,7 +76,7 @@ private:
     static int httpResponseHandler( const struct vlc_http_resource *res,
                              const struct vlc_http_msg *resp, void *opaque );
 
-    access_t *p_access;
+    stream_t *p_access;
     std::unordered_map<std::string, std::string> req_parameters;
     std::unordered_map<std::string, std::string> req_header_parameters;
     std::string req_url, req_method;

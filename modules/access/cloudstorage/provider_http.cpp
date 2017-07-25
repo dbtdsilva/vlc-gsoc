@@ -49,7 +49,7 @@ struct HttpRequestData {
     std::istream *data;
 };
 
-HttpRequest::HttpRequest( access_t* access, const std::string& url,
+HttpRequest::HttpRequest( stream_t* access, const std::string& url,
         const std::string& method, bool follow_redirect ) :
     p_access( access ), req_url( url ), req_method( method ),
     req_follow_redirect( follow_redirect ),
@@ -262,7 +262,7 @@ int HttpRequest::httpResponseHandler( const struct vlc_http_resource *res,
 }
 
 // Http interface implementation
-Http::Http( access_t *access ) : p_access( access )
+Http::Http( stream_t *access ) : p_access( access )
 {
 }
 

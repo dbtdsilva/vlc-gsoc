@@ -36,7 +36,7 @@ class Httpd : public IHttpServer
 {
 public:
     Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type, int port,
-           access_t * access );
+           stream_t * access );
     ~Httpd();
 
     class Response : public IResponse {
@@ -94,12 +94,12 @@ private:
 class HttpdFactory : public IHttpServerFactory
 {
 public:
-    HttpdFactory( access_t* access );
+    HttpdFactory( stream_t* access );
     IHttpServer::Pointer create(IHttpServer::ICallback::Pointer,
                               const std::string& session_id, IHttpServer::Type,
                               int port) override;
 private:
-    access_t* p_access;
+    stream_t* p_access;
 };
 
 #endif

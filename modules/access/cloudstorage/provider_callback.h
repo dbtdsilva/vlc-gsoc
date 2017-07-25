@@ -32,7 +32,7 @@ using cloudstorage::ICloudProvider;
 
 class Callback : public ICloudProvider::ICallback {
 public:
-    Callback( access_t *access ) :
+    Callback( stream_t *access ) :
         p_access( access ), p_sys( (access_sys_t*) access->p_sys )
     {}
 
@@ -87,7 +87,7 @@ public:
         msg_Err( p_access, "%s", desc.c_str() );
     }
 
-    access_t *p_access;
+    stream_t *p_access;
     access_sys_t *p_sys;
 };
 
