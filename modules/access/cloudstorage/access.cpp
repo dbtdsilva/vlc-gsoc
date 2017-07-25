@@ -47,7 +47,7 @@ static std::string ReadFile( const std::string& path );
 
 int Open( vlc_object_t *p_this )
 {
-    access_t *p_access = (access_t*) p_this;
+    stream_t *p_access = (stream_t*) p_this;
     access_sys_t *p_sys;
 
     p_access->p_sys = p_sys = new access_sys_t();
@@ -79,7 +79,7 @@ error:
 
 void Close( vlc_object_t *p_this )
 {
-    access_t *p_access = (access_t*) p_this;
+    stream_t *p_access = (stream_t*) p_this;
     access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
 
     if ( p_sys != nullptr ) {
@@ -224,7 +224,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     return error_code;
 }
 
-static int ParseUrl( access_t * p_access )
+static int ParseUrl( stream_t * p_access )
 {
     // Expected MRL is cloudstorage://[user@]{provider}/{path}
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
