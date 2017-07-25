@@ -1,7 +1,7 @@
 /*****************************************************************************
  * services_discovery.h: cloud storage services discovery module
  *****************************************************************************
- * Copyright (C) 2017
+ * Copyright (C) 2017 VideoLabs and VideoLAN
  *
  * Authors: William Ung <williamung@msn.com>
  *          Diogo Silva <dbtdsilva@gmail.com>

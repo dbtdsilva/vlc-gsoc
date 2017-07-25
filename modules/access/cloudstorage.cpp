@@ -1,7 +1,7 @@
 /*****************************************************************************
  * cloudstorage.cpp: cloud access module using libcloudstorage for VLC
  *****************************************************************************
- * Copyright (C) 2017 William Ung
+ * Copyright (C) 2017 VideoLabs and VideoLAN
  *
  * Authors: William Ung <williamung@msn.com>
  *          Diogo Silva <dbtdsilva@gmail.com>

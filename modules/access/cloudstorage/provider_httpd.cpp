@@ -1,7 +1,7 @@
 /*****************************************************************************
  * provider_httpd.cpp: Inherit class IHttpd from libcloudstorage
  *****************************************************************************
- * Copyright (C) 2017
+ * Copyright (C) 2017 VideoLabs and VideoLAN
  *
  * Authors: Diogo Silva <dbtdsilva@gmail.com>
  *

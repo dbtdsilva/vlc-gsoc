@@ -1,7 +1,7 @@
 /*****************************************************************************
  * access.cpp: cloud storage access module using libcloudstorage
  *****************************************************************************
- * Copyright (C) 2017
+ * Copyright (C) 2017 VideoLabs and VideoLAN
  *
  * Authors: William Ung <williamung@msn.com>
  *          Diogo Silva <dbtdsilva@gmail.com>

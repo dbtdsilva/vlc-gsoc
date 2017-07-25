@@ -1,7 +1,7 @@
 /*****************************************************************************
  * provider_http_stream.cpp: Stream for sending a payload to the request
  *****************************************************************************
- * Copyright (C) 2017
+ * Copyright (C) 2017 VideoLabs and VideoLAN
  *
  * Authors: Diogo Silva <dbtdsilva@gmail.com>
  *
