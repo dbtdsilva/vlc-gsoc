@@ -43,7 +43,6 @@ public:
     public:
         Response() = default;
         Response(int code, const IResponse::Headers&, const std::string& body);
-        ~Response();
 
         int getCode() { return i_code; }
         IResponse::Headers getHeaders() { return m_headers; }
