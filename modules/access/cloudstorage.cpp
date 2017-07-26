@@ -36,14 +36,16 @@ VLC_SD_PROBE_HELPER( "cloudstorage", N_("Cloud Storage"), SD_CAT_INTERNET )
 vlc_module_begin()
     set_shortname(N_("cloudstorage"))
     set_capability("access", 0)
-    set_description(N_("cloudstorage input"))
+    set_description(N_("Cloud storage services (such as Drive, Dropbox) input"
+        " using libcloudstorage"))
     set_category(CAT_INPUT)
     set_subcategory(SUBCAT_INPUT_ACCESS)
     // callbacks are defined under cloudstorage/access.h
     set_callbacks(Open, Close)
 
     add_submodule()
-        set_description( N_("Cloudstorage Services Discovery") )
+        set_description( N_("Cloud storage services (such as Drive, Dropbox)"
+        " services discovery module using libcloudstorage") )
         set_category( CAT_PLAYLIST )
         set_subcategory( SUBCAT_PLAYLIST_SD )
         set_capability( "services_discovery", 0 )
