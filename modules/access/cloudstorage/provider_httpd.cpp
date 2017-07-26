@@ -57,8 +57,9 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
     Httpd::Connection connection( query->psz_url, args, headers );
 
     // Inform about a received connection in order to get the proper response
-    Httpd::Response* response = static_cast<Httpd::Response*>(
-        server->callback()->receivedConnection( *server, connection ).get() );
+    auto response_ptr = server->callback()->
+        receivedConnection( *server, connection );
+    auto response = static_cast<Httpd::Response*>( response_ptr.get() );
 
     // Fill the data to be requests to the lib
     answer->i_proto = HTTPD_PROTO_HTTP;
@@ -79,13 +80,10 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
 
     return VLC_SUCCESS;
 }
+
 Httpd::Response::Response(int code, const IResponse::Headers& headers,
                            const std::string& body) :
     i_code( code ), m_headers( headers ), p_body( body ) {}
-
-Httpd::Response::~Response()
-{
-}
 
 Httpd::CallbackResponse::CallbackResponse(int,
         const IResponse::Headers&, int, int,
