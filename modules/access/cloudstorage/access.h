@@ -32,6 +32,7 @@
 #include <vlc_access.h>
 #include <vlc_input.h>
 #include <vlc_keystore.h>
+#include <vlc_url.h>
 
 int Open( vlc_object_t * );
 void Close( vlc_object_t * );
@@ -39,10 +40,7 @@ void Close( vlc_object_t * );
 struct access_sys_t
 {
     // Parsed parameters
-    std::string protocol;
-    std::string path;
-    std::string provider_name;
-    std::string username;
+    vlc_url_t url;
     bool memory_keystore;
 
     // Loaded on Open

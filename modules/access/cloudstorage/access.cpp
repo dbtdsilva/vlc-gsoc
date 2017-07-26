@@ -41,7 +41,6 @@ using cloudstorage::IItem;
 static int AddItem( struct access_fsdir *, stream_t *, IItem::Pointer );
 static int InitKeystore( stream_t * );
 static int InitProvider( stream_t * );
-static int ParseUrl( stream_t * );
 static int ReadDir( stream_t *, input_item_node_t * );
 static std::string ReadFile( const std::string& path );
 
@@ -54,8 +53,12 @@ int Open( vlc_object_t *p_this )
     if ( p_sys == nullptr )
         return VLC_ENOMEM;
 
-    if ( ParseUrl( p_access ) != VLC_SUCCESS )
+    if ( vlc_UrlParse(&p_sys->url,
+            vlc_uri_fixup(p_access->psz_url)) != VLC_SUCCESS )
         goto error;
+    if ( p_sys->url.psz_path == NULL )
+        p_sys->url.psz_path = strdup("/");
+
     if ( InitKeystore( p_access ) != VLC_SUCCESS )
         goto error;
     if ( InitProvider( p_access ) != VLC_SUCCESS )
@@ -94,11 +97,11 @@ static int InitKeystore( stream_t * p_access )
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     vlc_keystore_entry *p_entries;
     // Keystore is never created when there is no user specified
-    p_sys->memory_keystore = p_sys->username.empty();
-    if ( p_sys->username.empty() )
+    p_sys->memory_keystore = p_sys->url.psz_username == NULL;
+    if ( p_sys->memory_keystore )
     {
         p_sys->p_keystore = vlc_get_memory_keystore( VLC_OBJECT( p_access ) );
-        p_sys->username = std::string( "memory_user" );
+        p_sys->url.psz_username = strdup( "memory_user" );
     }
     else
         p_sys->p_keystore = vlc_keystore_create( p_access );
@@ -110,8 +113,8 @@ static int InitKeystore( stream_t * p_access )
 
     VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
     p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
-    p_sys->ppsz_values[KEY_USER] = strdup( p_sys->username.c_str() );
-    p_sys->ppsz_values[KEY_SERVER] = strdup( p_sys->provider_name.c_str() );
+    p_sys->ppsz_values[KEY_USER] = strdup( p_sys->url.psz_username );
+    p_sys->ppsz_values[KEY_SERVER] = strdup( p_sys->url.psz_host );
 
     if ( vlc_keystore_find( p_sys->p_keystore,
             p_sys->ppsz_values, &p_entries ) > 0 )
@@ -123,7 +126,7 @@ static int InitKeystore( stream_t * p_access )
         {
             msg_Warn( p_access, "Cloudstorage found invalid credentials in the "
                     "keystore under %s@%s, it is going to overwrite them.",
-                    p_sys->username.c_str(), p_sys->provider_name.c_str() );
+                    p_sys->url.psz_username, p_sys->url.psz_host );
         }
     }
     return VLC_SUCCESS;
@@ -143,14 +146,14 @@ static int InitProvider( stream_t * p_access )
     // Load custom-made pages
     std::string parent = "cloudstorage";
     parent.append(DIR_SEP);
-    if ( p_sys->provider_name == "amazons3" ||
-            p_sys->provider_name  == "mega" ||
-            p_sys->provider_name  == "owncloud" )
+    if ( strcmp( p_sys->url.psz_host, "amazons3" ) == 0 ||
+         strcmp( p_sys->url.psz_host, "mega" ) == 0 ||
+         strcmp( p_sys->url.psz_host, "owncloud" ) == 0 )
     {
         hints["login_page"] = ReadFile(
-                parent + p_sys->provider_name + "_login.html");
+                parent + p_sys->url.psz_host + "_login.html");
         hints["success_page"] = ReadFile(
-                parent + p_sys->provider_name + "_success.html");
+                parent + p_sys->url.psz_host + "_success.html");
     }
     else
         hints["success_page"] = ReadFile( parent + "default_success.html" );
@@ -158,7 +161,7 @@ static int InitProvider( stream_t * p_access )
 
     // Initialize the provider
     p_sys->provider = cloudstorage::ICloudStorage::
-            create()->provider( p_sys->provider_name );
+            create()->provider( p_sys->url.psz_host );
     if ( !p_sys->provider ) {
         msg_Err( p_access, "Failed to load the given provider" );
         return VLC_EGENERIC;
@@ -173,11 +176,12 @@ static int InitProvider( stream_t * p_access )
         hints
     });
 
-    msg_Dbg( p_access, "Path: %s", p_sys->path.c_str() );
-    p_sys->current_item = p_sys->provider->getItemAsync( p_sys->path )->result();
+    msg_Dbg( p_access, "Path: %s", p_sys->url.psz_path );
+    p_sys->current_item = p_sys->provider->
+            getItemAsync( vlc_uri_decode( p_sys->url.psz_path ) )->result();
     if (p_sys->current_item == nullptr) {
         msg_Err( p_access, "Item %s does not exist in the provider %s",
-                 p_sys->path.c_str(), p_sys->provider_name.c_str() );
+                 p_sys->url.psz_path, p_sys->url.psz_host );
         return VLC_EGENERIC;
     }
     return VLC_SUCCESS;
@@ -222,40 +226,6 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     }
     access_fsdir_finish( &fsdir, error_code );
     return error_code;
-}
-
-static int ParseUrl( stream_t * p_access )
-{
-    // Expected MRL is cloudstorage://[user@]{provider}/{path}
-    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-    std::string url( p_access->psz_url );
-    const std::string access_token( "://" );
-    const std::size_t pos = url.find(access_token);
-
-    p_sys->protocol = url.substr( 0, pos );
-    if ( p_sys->protocol != "cloudstorage" )
-        return VLC_EGENERIC;
-
-    std::string full_path = url.substr( pos + access_token.size() );
-    size_t pos_provider = full_path.find("/");
-    std::string provider_with_user;
-    if ( pos_provider == std::string::npos ) {
-        provider_with_user = full_path;
-        p_sys->path = "/";
-    } else {
-        provider_with_user = full_path.substr( 0, pos_provider );
-        p_sys->path = full_path.substr( pos_provider );
-    }
-
-    size_t pos_user = provider_with_user.find_last_of("@");
-    if ( pos_user == std::string::npos ) {
-        p_sys->provider_name = provider_with_user;
-    } else {
-        p_sys->username = provider_with_user.substr( 0, pos_user );
-        p_sys->provider_name = provider_with_user.substr( pos_user + 1);
-    }
-
-    return VLC_SUCCESS;
 }
 
 static std::string ReadFile(const std::string& filename)
