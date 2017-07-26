@@ -49,7 +49,8 @@ public:
             return;
 
         std::stringstream ss_psz_label;
-        ss_psz_label << "vlc_" << p_sys->username << "@" << p_sys->provider_name;
+        ss_psz_label << "vlc_" << p_sys->url.psz_username << "@" <<
+                p_sys->url.psz_host;
 
         vlc_keystore_entry* pp_entries;
         unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
@@ -68,9 +69,9 @@ public:
         if ( i_entries == 0 )
         {
             msg_Dbg( p_access, "%s (new) was authenticated at %s",
-                     p_sys->username.c_str(), p_sys->provider_name.c_str() );
+                     p_sys->url.psz_username, p_sys->url.psz_host );
             std::stringstream ss_user;
-            ss_user << p_sys->username << "@" << p_sys->provider_name;
+            ss_user << p_sys->url.psz_username << "@" << p_sys->url.psz_host;
             var_SetString( p_access->obj.libvlc, "cloud-new-auth",
                     ss_user.str().c_str() );
         }
