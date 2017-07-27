@@ -148,8 +148,8 @@ libvlc_InternalKeystoreClean(libvlc_int_t *p_libvlc)
     }
 }
 
-vlc_keystore *
-vlc_get_memory_keystore(vlc_object_t *p_obj)
+static vlc_keystore *
+get_memory_keystore(vlc_object_t *p_obj)
 {
     return libvlc_priv(p_obj->obj.libvlc)->p_memory_keystore;
 }
@@ -438,7 +438,7 @@ vlc_credential_get(vlc_credential *p_credential, vlc_object_t *p_parent,
             break;
 
         case GET_FROM_MEMORY_KEYSTORE:
-            vlc_keystore *p_keystore = vlc_get_memory_keystore(p_parent);
+            vlc_keystore *p_keystore = get_memory_keystore(p_parent);
             if (p_keystore != NULL)
                 credential_find_keystore(p_credential, p_keystore);
 
@@ -517,7 +517,7 @@ vlc_credential_store(vlc_credential *p_credential, vlc_object_t *p_parent)
     else
     {
         /* Store in memory keystore */
-        p_keystore = vlc_get_memory_keystore(p_parent);
+        p_keystore = get_memory_keystore(p_parent);
     }
     if (p_keystore == NULL)
         return false;
