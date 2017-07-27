@@ -438,21 +438,13 @@ vlc_credential_get(vlc_credential *p_credential, vlc_object_t *p_parent,
             break;
 
         case GET_FROM_MEMORY_KEYSTORE:
-        {
-            if (!psz_dialog_title || !psz_dialog_fmt)
-                return false;
-
             vlc_keystore *p_keystore = vlc_get_memory_keystore(p_parent);
             if (p_keystore != NULL)
                 credential_find_keystore(p_credential, p_keystore);
+
             p_credential->i_get_order++;
             break;
-        }
-
         case GET_FROM_KEYSTORE:
-            if (!psz_dialog_title || !psz_dialog_fmt)
-                return false;
-
             if (p_credential->p_keystore == NULL)
                 p_credential->p_keystore = vlc_keystore_create(p_parent);
             if (p_credential->p_keystore != NULL)
