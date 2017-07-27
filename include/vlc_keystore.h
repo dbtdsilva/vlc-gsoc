@@ -151,12 +151,6 @@ VLC_API void
 vlc_keystore_release_entries(vlc_keystore_entry *p_entries, unsigned int i_count);
 
 /**
- *
- */
-VLC_API vlc_keystore *
-vlc_get_memory_keystore(vlc_object_t *p_obj);
-
-/**
  * @}
  * @defgroup credential Credential API
  * @{
