@@ -103,6 +103,13 @@ static int ParseMRL( stream_t * p_access )
     // If no path was specific, then it is root
     if ( p_sys->url.psz_path == NULL )
         p_sys->url.psz_path = strdup("/");
+    // Since there is no info to store the authenticated user, creates a dummy
+    // user and stores it temporarly under a in-memory credentials.
+    if ( p_sys->url.psz_username == NULL )
+    {
+        p_sys->memory_keystore = true;
+        p_sys->url.psz_username = strdup("dummy_user");
+    }
 
     return VLC_SUCCESS;
 }
@@ -110,9 +117,6 @@ static int ParseMRL( stream_t * p_access )
 static int GetCredentials( stream_t * p_access )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-
-    p_sys->memory_keystore = p_sys->url.psz_username == NULL;
-
     // Init credentials and clean within the same scope to prevent the keystore
     // to be loaded at all times
     vlc_credential credentials;
