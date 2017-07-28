@@ -47,6 +47,7 @@ static int ParseMRL( stream_t * );
 
 int Open( vlc_object_t *p_this )
 {
+    int err = VLC_EGENERIC;
     stream_t *p_access = (stream_t*) p_this;
     access_sys_t *p_sys;
 
@@ -54,11 +55,11 @@ int Open( vlc_object_t *p_this )
     if ( p_sys == nullptr )
         return VLC_ENOMEM;
 
-    if ( ParseMRL( p_access ) != VLC_SUCCESS )
+    if ( (err = ParseMRL( p_access )) != VLC_SUCCESS )
         goto error;
-    if ( InitKeystore( p_access ) != VLC_SUCCESS )
+    if ( (err = InitKeystore( p_access )) != VLC_SUCCESS )
         goto error;
-    if ( InitProvider( p_access ) != VLC_SUCCESS )
+    if ( (err = InitProvider( p_access )) != VLC_SUCCESS )
         goto error;
 
     if ( p_sys->current_item->type() == IItem::FileType::Directory ) {
@@ -74,7 +75,7 @@ int Open( vlc_object_t *p_this )
 
 error:
     Close( p_this );
-    return VLC_EGENERIC;
+    return err;
 }
 
 void Close( vlc_object_t *p_this )
@@ -85,6 +86,7 @@ void Close( vlc_object_t *p_this )
     if ( p_sys != nullptr ) {
         if ( p_sys->p_keystore != nullptr && !p_sys->memory_keystore )
             vlc_keystore_release( p_sys->p_keystore );
+        vlc_UrlClean( &p_sys->url );
         delete p_sys;
     }
 }
