@@ -25,8 +25,10 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
-#include <ICloudStorage.h>
 #include <vlc_keystore.h>
+#include <vlc_url.h>
+
+#include <ICloudStorage.h>
 #include <sstream>
 #include <algorithm>
 
@@ -122,19 +124,23 @@ static int RepresentUsers( services_discovery_t * p_sd )
 {
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
-    vlc_keystore_entry *p_entries;
-    VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
-    p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
-    unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
-                    p_sys->ppsz_values, &p_entries );
-    for (unsigned int i = 0; i < i_entries; i++)
+    for ( auto& provider : p_sys->providers_list )
     {
-        input_item_t * item = GetNewUserInput( p_sd,
-                p_entries[i].ppsz_values[KEY_USER],
-                p_entries[i].ppsz_values[KEY_SERVER] );
-        InsertNewUserInput( p_sd, item );
+        std::string mrl_base = "cloudstorage://" + provider;
+        vlc_url_t dummy_url;
+        vlc_UrlParse( &dummy_url, mrl_base.c_str() );
+        vlc_credential cred;
+        vlc_credential_init( &cred, &dummy_url );
+        vlc_credential_get( &cred, p_sd, NULL, NULL, NULL, NULL );
+        for (unsigned int i = 0; i < cred.i_entries_count; i++)
+        {
+            input_item_t * item = GetNewUserInput( p_sd,
+                    cred.p_entries[i].ppsz_values[KEY_USER],
+                    cred.p_entries[i].ppsz_values[KEY_SERVER] );
+            InsertNewUserInput( p_sd, item );
+        }
+        vlc_credential_clean( &cred );
     }
-
     return VLC_SUCCESS;
 }
 
@@ -187,12 +193,13 @@ static char * GenerateUserIdentifier( services_discovery_t * p_sd,
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
     // Find the last generated identifier for the Association MRL
     // MRL in the item will contain a predefined user
-    vlc_keystore_entry *p_entries;
-    VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
-    p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
-    p_sys->ppsz_values[KEY_SERVER] = strdup( provider );
-    unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
-            p_sys->ppsz_values, &p_entries );
+    std::string mrl_base = "cloudstorage://";
+    mrl_base += provider;
+    vlc_url_t dummy_url;
+    vlc_UrlParse( &dummy_url, mrl_base.c_str() );
+    vlc_credential cred;
+    vlc_credential_init( &cred, &dummy_url );
+    vlc_credential_get( &cred, p_sd, NULL, NULL, NULL, NULL );
 
     unsigned int id = 1;
     bool name_exists;
@@ -202,9 +209,10 @@ static char * GenerateUserIdentifier( services_discovery_t * p_sd,
         if ( asprintf( &gen_user, "user%d", id ) < 0 )
             return nullptr;
         name_exists = false;
-        for ( unsigned int i = 0; i < i_entries; i++ )
+        for ( unsigned int i = 0; i < cred.i_entries_count; i++ )
         {
-            if ( strcmp( p_entries[i].ppsz_values[KEY_USER], gen_user ) == 0)
+            if ( strcmp( cred.p_entries[i].ppsz_values[KEY_USER],
+                         gen_user ) == 0)
             {
                 id += 1;
                 name_exists = true;
