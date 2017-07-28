@@ -45,16 +45,10 @@ public:
 
     void accepted( const ICloudProvider& provider ) override
     {
-        if ( p_sys->p_keystore == nullptr )
-            return;
-
-        std::stringstream ss_psz_label;
-        ss_psz_label << "vlc_" << p_sys->url.psz_username << "@" <<
-                p_sys->url.psz_host;
-
-        vlc_keystore_entry* pp_entries;
-        unsigned int i_entries = vlc_keystore_find( p_sys->p_keystore,
-                p_sys->ppsz_values, &pp_entries );
+        vlc_credential credentials;
+        vlc_credential_init( &credentials, &p_sys->url );
+        bool found = vlc_credential_get( &credentials, p_access,
+                NULL, NULL, NULL, NULL );
 
         p_sys->token = provider.token();
         p_sys->hints = provider.hints();
@@ -62,11 +56,17 @@ public:
         // Store hints and token
         std::string serialized_value = ICloudProvider::serializeSession(
                 p_sys->token, p_sys->hints);
-        vlc_keystore_store( p_sys->p_keystore, p_sys->ppsz_values,
-            (const uint8_t *)serialized_value.c_str(), serialized_value.size(),
-            ss_psz_label.str().c_str() );
 
-        if ( i_entries == 0 )
+        // Store the data related with the session using the credentials API
+        credentials.b_store = !p_sys->memory_keystore;
+        credentials.psz_password = strdup( serialized_value.c_str() );
+        if ( vlc_credential_store( &credentials, p_access ) != VLC_SUCCESS )
+        {
+            msg_Warn( p_access, "Failed to store the credentials");
+        }
+
+        // Inform about new authentications
+        if ( !found )
         {
             msg_Dbg( p_access, "%s (new) was authenticated at %s",
                      p_sys->url.psz_username, p_sys->url.psz_host );
