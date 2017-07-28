@@ -39,7 +39,7 @@ using cloudstorage::IDownloadFileCallback;
 using cloudstorage::IItem;
 
 static int AddItem( struct access_fsdir *, stream_t *, IItem::Pointer );
-static int InitKeystore( stream_t * );
+static int GetCredentials( stream_t * );
 static int InitProvider( stream_t * );
 static int ReadDir( stream_t *, input_item_node_t * );
 static std::string ReadFile( const std::string& path );
@@ -57,7 +57,7 @@ int Open( vlc_object_t *p_this )
 
     if ( (err = ParseMRL( p_access )) != VLC_SUCCESS )
         goto error;
-    if ( (err = InitKeystore( p_access )) != VLC_SUCCESS )
+    if ( (err = GetCredentials( p_access )) != VLC_SUCCESS )
         goto error;
     if ( (err = InitProvider( p_access )) != VLC_SUCCESS )
         goto error;
@@ -84,8 +84,6 @@ void Close( vlc_object_t *p_this )
     access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
 
     if ( p_sys != nullptr ) {
-        if ( p_sys->p_keystore != nullptr && !p_sys->memory_keystore )
-            vlc_keystore_release( p_sys->p_keystore );
         vlc_UrlClean( &p_sys->url );
         delete p_sys;
     }
@@ -109,35 +107,20 @@ static int ParseMRL( stream_t * p_access )
     return VLC_SUCCESS;
 }
 
-static int InitKeystore( stream_t * p_access )
+static int GetCredentials( stream_t * p_access )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-    vlc_keystore_entry *p_entries;
-    // Keystore is never created when there is no user specified
+
     p_sys->memory_keystore = p_sys->url.psz_username == NULL;
-    if ( p_sys->memory_keystore )
+
+    // Init credentials and clean within the same scope to prevent the keystore
+    // to be loaded at all times
+    vlc_credential credentials;
+    vlc_credential_init( &credentials, &p_sys->url );
+    if ( vlc_credential_get( &credentials, p_access,
+            NULL, NULL, NULL, NULL) )
     {
-        p_sys->p_keystore = vlc_get_memory_keystore( VLC_OBJECT( p_access ) );
-        p_sys->url.psz_username = strdup( "memory_user" );
-    }
-    else
-        p_sys->p_keystore = vlc_keystore_create( p_access );
-
-    if ( p_sys->p_keystore == nullptr ) {
-        msg_Err( p_access, "Failed to create keystore" );
-        return VLC_EGENERIC;
-    }
-
-    VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
-    p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
-    p_sys->ppsz_values[KEY_USER] = strdup( p_sys->url.psz_username );
-    p_sys->ppsz_values[KEY_SERVER] = strdup( p_sys->url.psz_host );
-
-    if ( vlc_keystore_find( p_sys->p_keystore,
-            p_sys->ppsz_values, &p_entries ) > 0 )
-    {
-        std::string stored_value = std::string((char *) p_entries[0].p_secret,
-                                   p_entries[0].i_secret_len);
+        std::string stored_value = std::string( credentials.psz_password );
         if ( !ICloudProvider::deserializeSession(stored_value,
                 p_sys->token, p_sys->hints) )
         {
@@ -146,6 +129,7 @@ static int InitKeystore( stream_t * p_access )
                     p_sys->url.psz_username, p_sys->url.psz_host );
         }
     }
+    vlc_credential_clean( &credentials );
     return VLC_SUCCESS;
 }
 
