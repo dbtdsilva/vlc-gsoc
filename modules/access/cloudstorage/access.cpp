@@ -43,6 +43,7 @@ static int InitKeystore( stream_t * );
 static int InitProvider( stream_t * );
 static int ReadDir( stream_t *, input_item_node_t * );
 static std::string ReadFile( const std::string& path );
+static int ParseMRL( stream_t * );
 
 int Open( vlc_object_t *p_this )
 {
@@ -53,12 +54,8 @@ int Open( vlc_object_t *p_this )
     if ( p_sys == nullptr )
         return VLC_ENOMEM;
 
-    if ( vlc_UrlParse(&p_sys->url,
-            vlc_uri_fixup(p_access->psz_url)) != VLC_SUCCESS )
+    if ( ParseMRL( p_access ) != VLC_SUCCESS )
         goto error;
-    if ( p_sys->url.psz_path == NULL )
-        p_sys->url.psz_path = strdup("/");
-
     if ( InitKeystore( p_access ) != VLC_SUCCESS )
         goto error;
     if ( InitProvider( p_access ) != VLC_SUCCESS )
@@ -90,6 +87,24 @@ void Close( vlc_object_t *p_this )
             vlc_keystore_release( p_sys->p_keystore );
         delete p_sys;
     }
+}
+
+static int ParseMRL( stream_t * p_access )
+{
+    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
+
+    // Correct the path if there are any invalid characters like spaces
+    char *url = vlc_uri_fixup(p_access->psz_url);
+    // Parse into a vlc_url_t
+    int error = vlc_UrlParse( &p_sys->url, url );
+    if ( error != VLC_SUCCESS )
+        return error;
+
+    // If no path was specific, then it is root
+    if ( p_sys->url.psz_path == NULL )
+        p_sys->url.psz_path = strdup("/");
+
+    return VLC_SUCCESS;
 }
 
 static int InitKeystore( stream_t * p_access )
