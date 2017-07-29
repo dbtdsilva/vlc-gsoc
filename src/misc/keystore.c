@@ -576,3 +576,31 @@ vlc_credential_store(vlc_credential *p_credential, vlc_object_t *p_parent)
     free(psz_path);
     return b_ret;
 }
+
+#undef vlc_credential_delete
+bool
+vlc_credential_delete(vlc_credential *p_credential, vlc_object_t *p_parent)
+{
+    if (!is_credential_valid(p_credential))
+        return false;
+
+    bool deleted_entries = false;
+    vlc_keystore *mem_keystore = get_memory_keystore(p_parent);
+    for (unsigned int i = 0; i < p_credential->i_entries_count; i++)
+    {
+        const char * const * ppsz_values =
+            (const char *const*) p_credential->p_entries[i].ppsz_values;
+
+        // Find the possible entries in the memory keystore and delete
+        if (mem_keystore != NULL &&
+                vlc_keystore_remove(mem_keystore, ppsz_values) > 0)
+            deleted_entries = true;
+
+        // Find the possible entries in the permanent keystore and delete
+        if (p_credential->p_keystore != NULL &&
+                vlc_keystore_remove(p_credential->p_keystore, ppsz_values) > 0)
+            deleted_entries = true;
+    }
+    // Only returns true if at least one entry was deleted
+    return deleted_entries;
+}
