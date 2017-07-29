@@ -57,13 +57,6 @@ int SDOpen( vlc_object_t *p_this )
         return VLC_ENOMEM;
     p_sd->description = _( "Cloud Storage" );
 
-    p_sys->p_keystore = vlc_keystore_create( p_sd );
-    if ( p_sys->p_keystore == nullptr )
-    {
-        msg_Err( p_sd, "Failed to create keystore" );
-        goto error;
-    }
-
     if ( GetProvidersList( p_sd ) != VLC_SUCCESS )
         goto error;
     if ( RepresentUsers( p_sd ) != VLC_SUCCESS )
@@ -92,9 +85,6 @@ void SDClose( vlc_object_t *p_this )
 {
     services_discovery_t *p_sd = (services_discovery_t *) p_this;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t*) p_sd->p_sys;
-
-    if ( p_sys->p_keystore != nullptr )
-        vlc_keystore_release( p_sys->p_keystore );
 
     for ( auto& p_item_root : p_sys->providers_items )
         input_item_Release( p_item_root.second );
@@ -190,7 +180,6 @@ static int InsertNewUserInput( services_discovery_t * p_sd, input_item_t* item )
 static char * GenerateUserIdentifier( services_discovery_t * p_sd,
         const char * provider)
 {
-    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
     // Find the last generated identifier for the Association MRL
     // MRL in the item will contain a predefined user
     std::string mrl_base = "cloudstorage://";
