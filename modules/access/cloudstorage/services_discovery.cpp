@@ -222,6 +222,8 @@ static char * GenerateUserIdentifier( services_discovery_t * p_sd,
         }
     } while ( name_exists );
 
+    vlc_credential_clean( &cred );
+
     return gen_user;
 }
 
@@ -267,23 +269,20 @@ static int RequestedFromUI( vlc_object_t *p_this, char const *psz_var,
     }
     else if ( operation == "RM" )
     {
-        std::string user = request.substr(0, request.find_first_of("@"));
-        std::string provider = request.substr(request.find_first_of("@") + 1);
-
-        VLC_KEYSTORE_VALUES_INIT( p_sys->ppsz_values );
-        p_sys->ppsz_values[KEY_PROTOCOL] = strdup( "cloudstorage" );
-        p_sys->ppsz_values[KEY_SERVER] = strdup( provider.c_str() );
-        p_sys->ppsz_values[KEY_USER] = strdup( user.c_str() );
-
-        int num_entries = vlc_keystore_remove( p_sys->p_keystore,
-                p_sys->ppsz_values );
-        if ( num_entries > 0 )
+        std::string mrl_base = "cloudstorage://" + request;
+        vlc_url_t dummy_url;
+        vlc_UrlParse( &dummy_url, mrl_base.c_str() );
+        vlc_credential cred;
+        vlc_credential_init( &cred, &dummy_url );
+        vlc_credential_get( &cred, p_sd, NULL, NULL, NULL, NULL );
+        if ( vlc_credential_delete( &cred, p_sd ) )
         {
             auto it = p_sys->providers_items.find( request );
             services_discovery_RemoveItem( p_sd, it->second );
             input_item_Release( it->second );
             p_sys->providers_items.erase( it );
         }
+        vlc_credential_clean( &cred );
     }
 
     return VLC_SUCCESS;
