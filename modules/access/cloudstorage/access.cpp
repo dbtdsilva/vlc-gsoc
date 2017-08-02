@@ -68,7 +68,7 @@ int Open( vlc_object_t *p_this )
         return VLC_SUCCESS;
     } else if ( p_sys->current_item->type() != IItem::FileType::Unknown ) {
         p_sys->current_item = p_sys->provider->
-                getItemDataAsync( p_sys->current_item->id() )->result();
+                getItemDataAsync( p_sys->current_item->id() )->result().right();
         p_access->psz_url = strdup( p_sys->current_item->url().c_str() );
         return VLC_ACCESS_REDIRECT;
     }
@@ -176,14 +176,14 @@ static int InitProvider( stream_t * p_access )
         std::unique_ptr<Callback>( new Callback( p_access ) ),
         nullptr,
         std::unique_ptr<Http>( new Http( p_access ) ),
-        nullptr,
         std::unique_ptr<HttpdFactory>( new HttpdFactory( p_access ) ),
         hints
     });
 
     msg_Dbg( p_access, "Path: %s", p_sys->url.psz_path );
     p_sys->current_item = p_sys->provider->
-            getItemAsync( vlc_uri_decode( p_sys->url.psz_path ) )->result();
+            getItemAsync( vlc_uri_decode( p_sys->url.psz_path ) )->
+            result().right();
     if (p_sys->current_item == nullptr) {
         msg_Err( p_access, "Item %s does not exist in the provider %s",
                  p_sys->url.psz_path, p_sys->url.psz_host );
@@ -221,7 +221,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     access_fsdir_init( &fsdir, p_access, p_node );
     fsdir.psz_ignored_exts = strdup("");
     int error_code = VLC_SUCCESS;
-    for ( auto &i : list_directory_request_->result() )
+    for ( auto &i : *list_directory_request_->result().right() )
     {
         if ( AddItem(&fsdir, p_access, i) != VLC_SUCCESS )
         {
