@@ -58,7 +58,7 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
 
     // Inform about a received connection in order to get the proper response
     auto response_ptr = server->callback()->
-        receivedConnection( *server, connection );
+        receivedConnection( *server, &connection );
     auto response = static_cast<Httpd::Response*>( response_ptr.get() );
 
     // Fill the data to be requests to the lib
@@ -110,6 +110,19 @@ const char* Httpd::Connection::header(const std::string& name) const
 std::string Httpd::Connection::url() const
 {
     return c_url;
+}
+
+void Httpd::Connection::onCompleted(CompletedCallback f)
+{
+    ptr_callback = f;
+}
+
+void Httpd::Connection::suspend()
+{
+}
+
+void Httpd::Connection::resume()
+{
 }
 
 Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
