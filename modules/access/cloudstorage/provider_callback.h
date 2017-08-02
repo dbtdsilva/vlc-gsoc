@@ -29,8 +29,9 @@
 #include "access.h"
 
 using cloudstorage::ICloudProvider;
+using cloudstorage::EitherError;
 
-class Callback : public ICloudProvider::ICallback {
+class Callback : public ICloudProvider::IAuthCallback {
 public:
     Callback( stream_t *access ) :
         p_access( access ), p_sys( (access_sys_t*) access->p_sys )
@@ -43,7 +44,22 @@ public:
         return Status::WaitForAuthorizationCode;
     }
 
-    void accepted( const ICloudProvider& provider ) override
+    void done( const ICloudProvider& provider,
+               EitherError<void> error ) override
+    {
+        // An error occurred
+        if ( error.left() )
+        {
+            msg_Err( p_access, "Authorization Error %d: %s",
+                    error.left()->code_, error.left()->description_.c_str() );
+        }
+        else // No error occurred
+        {
+            accepted( provider );
+        }
+    }
+
+    void accepted( const ICloudProvider& provider )
     {
         vlc_credential credentials;
         vlc_credential_init( &credentials, &p_sys->url );
@@ -78,16 +94,7 @@ public:
         msg_Dbg( p_access, "Accepted credentials!");
     }
 
-    void declined( const ICloudProvider& ) override
-    {
-        msg_Err( p_access, "Access was declined" );
-    }
-
-    void error( const ICloudProvider&, const std::string& desc ) override
-    {
-        msg_Err( p_access, "%s", desc.c_str() );
-    }
-
+private:
     stream_t *p_access;
     access_sys_t *p_sys;
 };
