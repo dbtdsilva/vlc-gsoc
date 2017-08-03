@@ -133,7 +133,7 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
 
     // Exception is handled by HttpdFactory right away
-    if ( host != nullptr )
+    if ( host == nullptr )
         throw std::runtime_error("Failed to create host");
 
     // Spawns two URLs that might receive requests
@@ -165,7 +165,7 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
     // Spawns an URL specific to stream files (used by Mega.Nz)
     else if ( type == IHttpServer::Type::FileProvider )
     {
-        file_stream = httpd_StreamNew( host, "/file", NULL, NULL, NULL );
+        file_stream = httpd_StreamNew( host, "/files", NULL, NULL, NULL );
     }
 }
 
