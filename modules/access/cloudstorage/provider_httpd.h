@@ -15,7 +15,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License
+ * You should have receivedaaaw a copy of the GNU Lesser General Public License
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
@@ -92,6 +92,7 @@ private:
     ICallback::Pointer p_callback;
     httpd_host_t *host;
     httpd_url_t *url_root, *url_login;
+    httpd_stream_t *file_stream;
 };
 
 class HttpdFactory : public IHttpServerFactory
