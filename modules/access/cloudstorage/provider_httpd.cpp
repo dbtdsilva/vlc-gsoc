@@ -81,18 +81,21 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
     return VLC_SUCCESS;
 }
 
-Httpd::Response::Response(int code, const IResponse::Headers& headers,
-                           const std::string& body) :
+Httpd::Response::Response( int code, const IResponse::Headers& headers,
+                           const std::string& body ) :
     i_code( code ), m_headers( headers ), p_body( body ) {}
 
-Httpd::CallbackResponse::CallbackResponse(int,
-        const IResponse::Headers&, int, int,
-    IResponse::ICallback::Pointer) {}
+Httpd::CallbackResponse::CallbackResponse( int code,
+        const IResponse::Headers& headers, int size, int chunk_size,
+        IResponse::ICallback::Pointer ptr )
+{
+    (void) code; (void) headers; (void) size; (void) chunk_size; (void) ptr;
+}
 
-Httpd::Connection::Connection(const char* url,
+Httpd::Connection::Connection( const char* url,
         const std::unordered_map<std::string, std::string> args,
-        const std::unordered_map<std::string, std::string> headers) :
-    c_url(url), m_args(args), m_headers(headers) {}
+        const std::unordered_map<std::string, std::string> headers ) :
+    c_url( url ), m_args( args ), m_headers( headers ) {}
 
 const char* Httpd::Connection::getParameter(
     const std::string& name) const
@@ -127,7 +130,8 @@ void Httpd::Connection::resume()
 
 Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
              int port, stream_t * access ) :
-      p_callback(cb)
+      p_callback( cb ), host( nullptr ), url_root( nullptr ),
+      url_login( nullptr ), file_stream( nullptr )
 {
     (void) port;
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
@@ -177,30 +181,31 @@ Httpd::~Httpd()
             httpd_UrlDelete( url_root );
         if ( url_login != nullptr )
             httpd_UrlDelete( url_login );
+        if ( file_stream != nullptr )
+            httpd_StreamDelete( file_stream );
         httpd_HostDelete ( host );
     }
 }
 
-Httpd::IResponse::Pointer Httpd::createResponse(int code,
-        const IResponse::Headers& headers, const std::string& body) const
+Httpd::IResponse::Pointer Httpd::createResponse( int code,
+        const IResponse::Headers& headers, const std::string& body ) const
 {
     return std::make_unique<Response>(code, headers, body);
 }
 
-Httpd::IResponse::Pointer Httpd::createResponse(int,
-        const IResponse::Headers&, int, int,
-        IResponse::ICallback::Pointer) const
+Httpd::IResponse::Pointer Httpd::createResponse( int code,
+        const IResponse::Headers& headers, int size, int chunk_size,
+        IResponse::ICallback::Pointer ptr ) const
 {
-    // Does not support streaming a response through a callback, and does not
-    // need to. The responses used are not required.
-    return std::unique_ptr<CallbackResponse>( nullptr );
+    return std::make_unique<CallbackResponse>( code, headers, size, chunk_size,
+            std::move( ptr ) );
 }
 
 HttpdFactory::HttpdFactory( stream_t* access ) : p_access( access ) {}
 
 IHttpServer::Pointer HttpdFactory::create(
         IHttpServer::ICallback::Pointer cb, const std::string&,
-        IHttpServer::Type type, int port)
+        IHttpServer::Type type, int port )
 {
     IHttpServer::Pointer ptr;
     try
