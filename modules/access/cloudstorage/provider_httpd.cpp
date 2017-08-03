@@ -129,8 +129,11 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
              int port, stream_t * access ) :
       p_callback(cb)
 {
-    (void) type;
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
+
+    // Exception is handled by HttpdFactory right away
+    if ( host != nullptr )
+        throw std::runtime_error("Failed to create host");
 
     url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
     url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );
@@ -189,5 +192,16 @@ IHttpServer::Pointer HttpdFactory::create(
         IHttpServer::ICallback::Pointer cb, const std::string&,
         IHttpServer::Type type, int port)
 {
-    return std::make_unique<Httpd>(cb, type, port, p_access);
+    IHttpServer::Pointer ptr;
+    try
+    {
+        ptr = std::make_unique<Httpd>( cb, type, port, p_access );
+    }
+    catch (const std::runtime_error& exception)
+    {
+        msg_Err( p_access, "Failed to create Http server: %s",
+                 exception.what() );
+        ptr = nullptr;
+    }
+    return ptr;
 }
