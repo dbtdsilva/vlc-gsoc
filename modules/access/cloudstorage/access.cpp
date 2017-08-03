@@ -146,7 +146,7 @@ static int InitProvider( stream_t * p_access )
 
     // Get predifined port and prefix
     hints["redirect_uri_port"] = redirect_port;
-    hints["redirect_uri_prefix"] = "/auth";
+    hints["redirect_uri_path"] = "/auth";
 
     // Load custom-made pages
     std::string parent = "cloudstorage";
