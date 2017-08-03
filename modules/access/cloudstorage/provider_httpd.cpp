@@ -129,33 +129,43 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
              int port, stream_t * access ) :
       p_callback(cb)
 {
+    (void) port;
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
 
     // Exception is handled by HttpdFactory right away
     if ( host != nullptr )
         throw std::runtime_error("Failed to create host");
 
-    url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
-    url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );
-
-    if ( url_root != nullptr )
+    // Spawns two URLs that might receive requests
+    if ( type == IHttpServer::Type::Authorization )
     {
-        httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, httpRequestCallback,
-                (httpd_callback_sys_t*) this );
-        httpd_UrlCatch( url_root, HTTPD_MSG_GET, httpRequestCallback,
-                (httpd_callback_sys_t*) this );
-        httpd_UrlCatch( url_root, HTTPD_MSG_POST, httpRequestCallback,
-                (httpd_callback_sys_t*) this );
+        url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
+        url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );
+
+        if ( url_root != nullptr )
+        {
+            httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, httpRequestCallback,
+                    (httpd_callback_sys_t*) this );
+            httpd_UrlCatch( url_root, HTTPD_MSG_GET, httpRequestCallback,
+                    (httpd_callback_sys_t*) this );
+            httpd_UrlCatch( url_root, HTTPD_MSG_POST, httpRequestCallback,
+                    (httpd_callback_sys_t*) this );
+        }
+
+        if ( url_login != nullptr )
+        {
+            httpd_UrlCatch( url_login, HTTPD_MSG_HEAD, httpRequestCallback,
+                    (httpd_callback_sys_t*) this );
+            httpd_UrlCatch( url_login, HTTPD_MSG_GET, httpRequestCallback,
+                    (httpd_callback_sys_t*) this );
+            httpd_UrlCatch( url_login, HTTPD_MSG_POST, httpRequestCallback,
+                    (httpd_callback_sys_t*) this );
+        }
     }
-
-    if ( url_login != nullptr )
+    // Spawns an URL specific to stream files (used by Mega.Nz)
+    else if ( type == IHttpServer::Type::FileProvider )
     {
-        httpd_UrlCatch( url_login, HTTPD_MSG_HEAD, httpRequestCallback,
-                (httpd_callback_sys_t*) this );
-        httpd_UrlCatch( url_login, HTTPD_MSG_GET, httpRequestCallback,
-                (httpd_callback_sys_t*) this );
-        httpd_UrlCatch( url_login, HTTPD_MSG_POST, httpRequestCallback,
-                (httpd_callback_sys_t*) this );
+        file_stream = httpd_StreamNew( host, "/file", NULL, NULL, NULL );
     }
 }
 
