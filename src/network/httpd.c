@@ -620,6 +620,9 @@ struct httpd_stream_t
     /* custom headers */
     size_t        i_http_headers;
     httpd_header * p_http_headers;
+
+    httpd_callback_t        p_callback_request_received;
+    httpd_callback_sys_t    *p_callback_data;
 };
 
 static int httpd_StreamCallBack(httpd_callback_sys_t *p_sys,
@@ -630,6 +633,10 @@ static int httpd_StreamCallBack(httpd_callback_sys_t *p_sys,
 
     if (!answer || !query || !cl)
         return VLC_SUCCESS;
+
+    if (stream->p_callback_request_received != NULL)
+        stream->p_callback_request_received( stream->p_callback_data, cl,
+                answer, query);
 
     if (answer->i_body_offset > 0) {
         int     i_pos;
@@ -746,7 +753,9 @@ static int httpd_StreamCallBack(httpd_callback_sys_t *p_sys,
 
 httpd_stream_t *httpd_StreamNew(httpd_host_t *host,
                                  const char *psz_url, const char *psz_mime,
-                                 const char *psz_user, const char *psz_password)
+                                 const char *psz_user, const char *psz_password,
+                                 httpd_callback_t cb, 
+                                 httpd_callback_sys_t *cb_data)
 {
     httpd_stream_t *stream = malloc(sizeof(*stream));
     if (!stream)
@@ -775,6 +784,8 @@ httpd_stream_t *httpd_StreamNew(httpd_host_t *host,
     stream->i_last_keyframe_seen_pos = 0;
     stream->i_http_headers = 0;
     stream->p_http_headers = NULL;
+    stream->p_callback_request_received = cb;
+    stream->p_callback_data = cb_data;
 
     httpd_UrlCatch(stream->url, HTTPD_MSG_HEAD, httpd_StreamCallBack,
                     (httpd_callback_sys_t*)stream);
@@ -1823,12 +1834,13 @@ static void httpdLoop(httpd_host_t *host)
                         /* Search the url and trigger callbacks */
                         for (int i = 0; i < host->i_url; i++) {
                             httpd_url_t *url = host->url[i];
-
+                            fprintf(stderr, "URL: %s! %s!\n", url->psz_url, query->psz_url);
                             if (strcmp(url->psz_url, query->psz_url))
                                 continue;
+                            fprintf(stderr, "Validated\n");
                             if (!url->catch[i_msg].cb)
                                 continue;
-
+                            fprintf(stderr, "Triggered\n");
                             if (answer) {
                                 b_auth_failed = !httpdAuthOk(url->psz_user,
                                    url->psz_password,
