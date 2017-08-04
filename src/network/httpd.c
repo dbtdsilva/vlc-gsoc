@@ -754,7 +754,7 @@ static int httpd_StreamCallBack(httpd_callback_sys_t *p_sys,
 httpd_stream_t *httpd_StreamNew(httpd_host_t *host,
                                  const char *psz_url, const char *psz_mime,
                                  const char *psz_user, const char *psz_password,
-                                 httpd_callback_t cb, 
+                                 httpd_callback_t cb,
                                  httpd_callback_sys_t *cb_data)
 {
     httpd_stream_t *stream = malloc(sizeof(*stream));
@@ -1834,13 +1834,12 @@ static void httpdLoop(httpd_host_t *host)
                         /* Search the url and trigger callbacks */
                         for (int i = 0; i < host->i_url; i++) {
                             httpd_url_t *url = host->url[i];
-                            fprintf(stderr, "URL: %s! %s!\n", url->psz_url, query->psz_url);
+
                             if (strcmp(url->psz_url, query->psz_url))
                                 continue;
-                            fprintf(stderr, "Validated\n");
                             if (!url->catch[i_msg].cb)
                                 continue;
-                            fprintf(stderr, "Triggered\n");
+
                             if (answer) {
                                 b_auth_failed = !httpdAuthOk(url->psz_user,
                                    url->psz_password,
