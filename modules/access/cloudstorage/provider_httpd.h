@@ -79,13 +79,14 @@ public:
         const char* getParameter(const std::string& name) const override;
         const char* header(const std::string& name) const override;
         std::string url() const override;
+        void invokeCallbackOnComplete();
         void onCompleted(CompletedCallback) override;
         void suspend() override;
         void resume() override;
 
     private:
         std::string c_url;
-        CompletedCallback ptr_callback;
+        CompletedCallback cb_complete;
         const std::unordered_map<std::string, std::string> m_args;
         const std::unordered_map<std::string, std::string> m_headers;
     };

@@ -88,76 +88,84 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
     Httpd* server = (Httpd *) cls;
 
     // First message was already processed
-    if ( server->received_once ) {
+    if ( server->received_once )
+    {
         auto response =
             static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
         int size = response->getSize();
-        block_t *p_block;
-        if (server->data_collected < size) {
+        // Data was already streamed
+        if (server->data_collected >= size)
+            return VLC_SUCCESS;
 
-        }
+        while (!(server->data_collected >= size)) {
+            block_t * p_block = block_Alloc( response->getChunkSize() );
+            if( p_block == NULL ) {
+                block_Release( p_block );
+                return VLC_SUCCESS;
+            }
+            int data_size = response->
+                putData( (char *) p_block->p_buffer, response->getChunkSize());
 
-        p_block = block_Alloc( response->getChunkSize() );
-        if( p_block == NULL ) {
+            // Represents an error
+            if (data_size < 0)
+                return VLC_EGENERIC;
+
+            p_block->i_buffer = data_size;
+            server->data_collected += data_size;
+
+            httpd_StreamHeader( server->file_stream, p_block->p_buffer,
+                    p_block->i_buffer );
+            httpd_StreamSend( server->file_stream, p_block );
             block_Release( p_block );
-            return VLC_SUCCESS;
         }
-        int data_size = response->
-            putData( (char *) p_block->p_buffer, response->getChunkSize());
-        if (data_size < 0) {
-            return VLC_SUCCESS;
-        }
-        p_block->i_buffer = data_size;
-        server->data_collected += data_size;
-
-        httpd_StreamSend( server->file_stream, p_block );
-        block_Release( p_block );
-
-        return VLC_SUCCESS;
+        server->connection_ptr->invokeCallbackOnComplete();
     }
-    server->received_once = true;
-    
-    // Pre-fill data to be sent to the callback
-    std::unordered_map<std::string, std::string> args, headers;
-    std::string argument;
-    if ( query->psz_args != nullptr )
+    else
     {
-        std::istringstream iss( std::string(
-            vlc_uri_decode( (char*) query->psz_args ) ) );
-        while ( std::getline( iss, argument, '&' ) ) {
-            size_t equal_div = argument.find('=');
-            if ( equal_div == std::string::npos )
-                continue;
+        server->received_once = true;
 
-            std::string key = argument.substr( 0, equal_div );
-            std::string value = argument.substr( equal_div + 1 );
-            args.insert( std::make_pair( key, value ) );
+        // Pre-fill data to be sent to the callback
+        std::unordered_map<std::string, std::string> args, headers;
+        std::string argument;
+        if ( query->psz_args != nullptr )
+        {
+            std::istringstream iss( std::string(
+                vlc_uri_decode( (char*) query->psz_args ) ) );
+            while ( std::getline( iss, argument, '&' ) ) {
+                size_t equal_div = argument.find('=');
+                if ( equal_div == std::string::npos )
+                    continue;
+
+                std::string key = argument.substr( 0, equal_div );
+                std::string value = argument.substr( equal_div + 1 );
+                args.insert( std::make_pair( key, value ) );
+            }
         }
-    }
-    for (unsigned int i = 0; i < query->i_headers; i++) {
-        headers.insert( std::make_pair(
-            query->p_headers[i].name, query->p_headers[i].value ) );
-    }
-    server->connection_ptr =
-        std::make_unique<Httpd::Connection>( query->psz_url, args, headers );
+        for (unsigned int i = 0; i < query->i_headers; i++) {
+            headers.insert( std::make_pair(
+                query->p_headers[i].name, query->p_headers[i].value ) );
+        }
+        server->connection_ptr =
+            std::make_unique<Httpd::Connection>( query->psz_url, args, headers );
 
-    server->p_response = server->callback()->
-        receivedConnection( *server, server->connection_ptr.get() );
-    auto response =
-        static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
+        server->p_response = server->callback()->
+            receivedConnection( *server, server->connection_ptr.get() );
+        auto response =
+            static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
 
-    IResponse::Headers r_headers = response->getHeaders();
-    httpd_header custom_headers[r_headers.size()];
-    int i = 0;
-    for ( auto& header : r_headers )
-    {
-        custom_headers[i].name = strdup(header.first.c_str());
-        custom_headers[i].value = strdup(header.second.c_str());
-        i++;
+        IResponse::Headers r_headers = response->getHeaders();
+        httpd_header custom_headers[r_headers.size()];
+        int i = 0;
+        for ( auto& header : r_headers )
+        {
+            custom_headers[i].name = strdup(header.first.c_str());
+            custom_headers[i].value = strdup(header.second.c_str());
+            i++;
+        }
+
+        httpd_StreamSetHTTPHeaders( server->file_stream, custom_headers, i);
+        server->data_collected = 0;
     }
-
-    httpd_StreamSetHTTPHeaders( server->file_stream, custom_headers, i);
-    server->data_collected = 0;
 
     return VLC_SUCCESS;
 }
@@ -176,7 +184,10 @@ Httpd::CallbackResponse::CallbackResponse( int code,
 Httpd::Connection::Connection( const char* url,
         const std::unordered_map<std::string, std::string> args,
         const std::unordered_map<std::string, std::string> headers ) :
-    c_url( url ), m_args( args ), m_headers( headers ) {}
+    c_url( url ), m_args( args ), m_headers( headers ),
+    cb_complete( nullptr )
+{
+}
 
 const char* Httpd::Connection::getParameter(
     const std::string& name) const
@@ -198,7 +209,13 @@ std::string Httpd::Connection::url() const
 
 void Httpd::Connection::onCompleted(CompletedCallback f)
 {
-    ptr_callback = f;
+    cb_complete = f;
+}
+
+void Httpd::Connection::invokeCallbackOnComplete()
+{
+    if (cb_complete != nullptr)
+        cb_complete();
 }
 
 void Httpd::Connection::suspend()
