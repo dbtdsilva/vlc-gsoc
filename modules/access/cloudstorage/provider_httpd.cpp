@@ -26,39 +26,6 @@
 #include <sstream>
 #include <map>
 
-void *Httpd::Run( void * data )
-{
-    Httpd* server = (Httpd *) data;
-    fprintf(stderr, "test\n");
-
-    auto response =
-        static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
-    
-    int data_collected = 0;
-    int chunk_size = response->getChunkSize();
-    int size = response->getSize();
-    block_t *p_block;
-    while (data_collected < size) {
-        p_block = block_Alloc( chunk_size );
-        if( p_block == NULL ) {
-            block_Release( p_block );
-            return nullptr;
-        }
-        int data_size = response->
-            putData( (char *) p_block->p_buffer, chunk_size);
-        if (data_size < 0) {
-            fprintf(stderr, "Error occured\n");
-            break;
-        }
-        p_block->i_buffer = data_size;
-        data_collected += data_size;
-
-        httpd_StreamSend( server->file_stream, p_block );
-        block_Release( p_block );
-    }
-    return nullptr;
-}
-
 int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
         httpd_client_t * client, httpd_message_t * answer,
         const httpd_message_t * query )
@@ -121,8 +88,33 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
     Httpd* server = (Httpd *) cls;
 
     // First message was already processed
-    if ( server->received_once )
+    if ( server->received_once ) {
+        auto response =
+            static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
+        int size = response->getSize();
+        block_t *p_block;
+        if (server->data_collected < size) {
+
+        }
+
+        p_block = block_Alloc( response->getChunkSize() );
+        if( p_block == NULL ) {
+            block_Release( p_block );
+            return VLC_SUCCESS;
+        }
+        int data_size = response->
+            putData( (char *) p_block->p_buffer, response->getChunkSize());
+        if (data_size < 0) {
+            return VLC_SUCCESS;
+        }
+        p_block->i_buffer = data_size;
+        server->data_collected += data_size;
+
+        httpd_StreamSend( server->file_stream, p_block );
+        block_Release( p_block );
+
         return VLC_SUCCESS;
+    }
     server->received_once = true;
     
     // Pre-fill data to be sent to the callback
@@ -146,14 +138,27 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
         headers.insert( std::make_pair(
             query->p_headers[i].name, query->p_headers[i].value ) );
     }
-    auto connection = 
+    server->connection_ptr =
         std::make_unique<Httpd::Connection>( query->psz_url, args, headers );
 
-    auto response_ptr = server->callback()->
-        receivedConnection( *server, connection.get() );
-    server->p_response = std::move( response_ptr );
+    server->p_response = server->callback()->
+        receivedConnection( *server, server->connection_ptr.get() );
+    auto response =
+        static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
 
-    if (vlc_clone (&server->thread, Httpd::Run, server, VLC_THREAD_PRIORITY_LOW)) {}
+    IResponse::Headers r_headers = response->getHeaders();
+    httpd_header custom_headers[r_headers.size()];
+    int i = 0;
+    for ( auto& header : r_headers )
+    {
+        custom_headers[i].name = strdup(header.first.c_str());
+        custom_headers[i].value = strdup(header.second.c_str());
+        i++;
+    }
+
+    httpd_StreamSetHTTPHeaders( server->file_stream, custom_headers, i);
+    server->data_collected = 0;
+
     return VLC_SUCCESS;
 }
 
