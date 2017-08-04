@@ -47,6 +47,8 @@ public:
         int getCode() { return i_code; }
         IResponse::Headers getHeaders() { return m_headers; }
         const std::string& getBody() { return p_body; }
+
+        std::function<int(void*, char*, size_t)> func_put_data;
     private:
         int i_code;
         IResponse::Headers m_headers;
@@ -57,6 +59,16 @@ public:
     public:
         CallbackResponse(int code, const IResponse::Headers&, int size,
                 int chunk_size, IResponse::ICallback::Pointer);
+        int getChunkSize() { return chunk_size; }
+        int getSize() { return size; }
+        int putData(char* buffer, size_t size)
+        {
+            return callback->putData(buffer, size);
+        }
+    private:
+        int size;
+        int chunk_size;
+        IResponse::ICallback::Pointer callback;
     };
 
     class Connection : public IConnection {
@@ -85,14 +97,22 @@ public:
                                 IResponse::ICallback::Pointer) const override;
     ICallback::Pointer callback() const { return p_callback; }
 private:
+    static void *Run( void * data );
     static int httpRequestCallback( httpd_callback_sys_t * args,
+            httpd_client_t *, httpd_message_t * answer,
+            const httpd_message_t * query_t );
+    static int connectionReceivedCallback( httpd_callback_sys_t * args,
             httpd_client_t *, httpd_message_t * answer,
             const httpd_message_t * query_t );
 
     ICallback::Pointer p_callback;
+    IResponse::Pointer p_response;
     httpd_host_t *host;
     httpd_url_t *url_root, *url_login;
     httpd_stream_t *file_stream;
+    bool received_once;
+    stream_t* p_access;
+    vlc_thread_t thread;
 };
 
 class HttpdFactory : public IHttpServerFactory

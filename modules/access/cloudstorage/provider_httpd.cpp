@@ -26,6 +26,39 @@
 #include <sstream>
 #include <map>
 
+void *Httpd::Run( void * data )
+{
+    Httpd* server = (Httpd *) data;
+    fprintf(stderr, "test\n");
+
+    auto response =
+        static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
+    
+    int data_collected = 0;
+    int chunk_size = response->getChunkSize();
+    int size = response->getSize();
+    block_t *p_block;
+    while (data_collected < size) {
+        p_block = block_Alloc( chunk_size );
+        if( p_block == NULL ) {
+            block_Release( p_block );
+            return nullptr;
+        }
+        int data_size = response->
+            putData( (char *) p_block->p_buffer, chunk_size);
+        if (data_size < 0) {
+            fprintf(stderr, "Error occured\n");
+            break;
+        }
+        p_block->i_buffer = data_size;
+        data_collected += data_size;
+
+        httpd_StreamSend( server->file_stream, p_block );
+        block_Release( p_block );
+    }
+    return nullptr;
+}
+
 int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
         httpd_client_t * client, httpd_message_t * answer,
         const httpd_message_t * query )
@@ -81,16 +114,59 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
     return VLC_SUCCESS;
 }
 
+int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
+            httpd_client_t *, httpd_message_t *,
+            const httpd_message_t * query )
+{
+    Httpd* server = (Httpd *) cls;
+
+    // First message was already processed
+    if ( server->received_once )
+        return VLC_SUCCESS;
+    server->received_once = true;
+    
+    // Pre-fill data to be sent to the callback
+    std::unordered_map<std::string, std::string> args, headers;
+    std::string argument;
+    if ( query->psz_args != nullptr )
+    {
+        std::istringstream iss( std::string(
+            vlc_uri_decode( (char*) query->psz_args ) ) );
+        while ( std::getline( iss, argument, '&' ) ) {
+            size_t equal_div = argument.find('=');
+            if ( equal_div == std::string::npos )
+                continue;
+
+            std::string key = argument.substr( 0, equal_div );
+            std::string value = argument.substr( equal_div + 1 );
+            args.insert( std::make_pair( key, value ) );
+        }
+    }
+    for (unsigned int i = 0; i < query->i_headers; i++) {
+        headers.insert( std::make_pair(
+            query->p_headers[i].name, query->p_headers[i].value ) );
+    }
+    auto connection = 
+        std::make_unique<Httpd::Connection>( query->psz_url, args, headers );
+
+    auto response_ptr = server->callback()->
+        receivedConnection( *server, connection.get() );
+    server->p_response = std::move( response_ptr );
+
+    if (vlc_clone (&server->thread, Httpd::Run, server, VLC_THREAD_PRIORITY_LOW)) {}
+    return VLC_SUCCESS;
+}
+
 Httpd::Response::Response( int code, const IResponse::Headers& headers,
                            const std::string& body ) :
     i_code( code ), m_headers( headers ), p_body( body ) {}
 
+
 Httpd::CallbackResponse::CallbackResponse( int code,
         const IResponse::Headers& headers, int size, int chunk_size,
-        IResponse::ICallback::Pointer ptr )
-{
-    (void) code; (void) headers; (void) size; (void) chunk_size; (void) ptr;
-}
+        IResponse::ICallback::Pointer callback ) :
+    Response( code, headers, "" ), size( size ), chunk_size( chunk_size ),
+    callback( std::move(callback) ) {}
 
 Httpd::Connection::Connection( const char* url,
         const std::unordered_map<std::string, std::string> args,
@@ -131,7 +207,8 @@ void Httpd::Connection::resume()
 Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
              int port, stream_t * access ) :
       p_callback( cb ), host( nullptr ), url_root( nullptr ),
-      url_login( nullptr ), file_stream( nullptr )
+      url_login( nullptr ), file_stream( nullptr ), p_access( access ),
+      received_once( false )
 {
     (void) port;
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
@@ -169,7 +246,8 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
     // Spawns an URL specific to stream files (used by Mega.Nz)
     else if ( type == IHttpServer::Type::FileProvider )
     {
-        file_stream = httpd_StreamNew( host, "/files", NULL, NULL, NULL );
+        file_stream = httpd_StreamNew( host, "/files/", NULL, NULL, NULL,
+                connectionReceivedCallback, (httpd_callback_sys_t*) this );
     }
 }
 
@@ -197,8 +275,8 @@ Httpd::IResponse::Pointer Httpd::createResponse( int code,
         const IResponse::Headers& headers, int size, int chunk_size,
         IResponse::ICallback::Pointer ptr ) const
 {
-    return std::make_unique<CallbackResponse>( code, headers, size, chunk_size,
-            std::move( ptr ) );
+    return std::make_unique<CallbackResponse>(code, headers, size, chunk_size,
+            std::move( ptr ));
 }
 
 HttpdFactory::HttpdFactory( stream_t* access ) : p_access( access ) {}
