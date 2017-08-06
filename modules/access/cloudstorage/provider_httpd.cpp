@@ -82,43 +82,61 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
 }
 
 int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
-            httpd_client_t *, httpd_message_t *,
+            httpd_client_t *, httpd_message_t * answer,
             const httpd_message_t * query )
 {
     Httpd* server = (Httpd *) cls;
 
+    
     // First message was already processed
-    if ( server->received_once )
+    if ( server->received_once && server->offset < answer->i_body_offset )
     {
+        server->offset = answer->i_body_offset;
         auto response =
             static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
+
+        //fprintf(stderr, "offset: %d - total: %d\n", answer->i_body_offset, response->getSize());
+        //if (server->data_collected >= response->getSize())
+        //{
+        //    server->connection_ptr->invokeCallbackOnComplete();
+        //    fprintf(stderr, "wat done\n");
+        //    return VLC_SUCCESS;
+        //}
+
         int size = response->getSize();
         // Data was already streamed
         if (server->data_collected >= size)
             return VLC_SUCCESS;
 
-        while (!(server->data_collected >= size)) {
-            block_t * p_block = block_Alloc( response->getChunkSize() );
-            if( p_block == NULL ) {
-                block_Release( p_block );
-                return VLC_SUCCESS;
-            }
-            int data_size = response->
-                putData( (char *) p_block->p_buffer, response->getChunkSize());
-
-            // Represents an error
-            if (data_size < 0)
-                return VLC_EGENERIC;
-
-            p_block->i_buffer = data_size;
-            server->data_collected += data_size;
-
-            httpd_StreamHeader( server->file_stream, p_block->p_buffer,
-                    p_block->i_buffer );
-            httpd_StreamSend( server->file_stream, p_block );
+        block_t * p_block = block_Alloc( response->getChunkSize() );
+        if( p_block == NULL ) {
             block_Release( p_block );
+            return VLC_SUCCESS;
         }
-        server->connection_ptr->invokeCallbackOnComplete();
+
+        int data_size = 0;
+        while (data_size == 0)
+        {
+            data_size = response->
+                putData( (char *) p_block->p_buffer, response->getChunkSize());
+        }
+
+        // Represents an error
+        if (data_size < 0) {
+            //fprintf(stderr, "ERROR\n\n");
+            return VLC_EGENERIC;
+        }
+
+        p_block->i_buffer = data_size;
+        server->data_collected += data_size;
+
+        //httpd_StreamHeader( server->file_stream, p_block->p_buffer,
+        //        p_block->i_buffer );
+        //fprintf(stderr, "Sent %d bytes\n", data_size);
+        httpd_StreamSend( server->file_stream, p_block );
+        block_Release( p_block );
+        
+        //server->connection_ptr->invokeCallbackOnComplete();
     }
     else
     {
@@ -165,6 +183,32 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
 
         httpd_StreamSetHTTPHeaders( server->file_stream, custom_headers, i);
         server->data_collected = 0;
+
+        block_t * p_block = block_Alloc( response->getChunkSize() );
+        if( p_block == NULL ) {
+            block_Release( p_block );
+            return VLC_SUCCESS;
+        }
+        int data_size = 0;
+
+        while (data_size == 0)
+        {
+            data_size = response->
+            putData( (char *) p_block->p_buffer, response->getChunkSize());
+        }
+
+        // Represents an error
+        if (data_size < 0)
+            return VLC_EGENERIC;
+
+        p_block->i_buffer = data_size;
+        server->data_collected += data_size;
+
+        //httpd_StreamHeader( server->file_stream, p_block->p_buffer,
+        //        p_block->i_buffer );
+        httpd_StreamSend( server->file_stream, p_block );
+        block_Release( p_block );
+        server->offset = answer->i_body_offset;
     }
 
     return VLC_SUCCESS;

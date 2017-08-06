@@ -116,6 +116,7 @@ private:
     bool received_once;
     stream_t* p_access;
     vlc_thread_t thread;
+    int64_t offset;
 };
 
 class HttpdFactory : public IHttpServerFactory
