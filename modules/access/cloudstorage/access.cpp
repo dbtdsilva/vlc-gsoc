@@ -66,7 +66,7 @@ int Open( vlc_object_t *p_this )
         p_access->pf_control = access_vaDirectoryControlHelper;
         p_access->pf_readdir = ReadDir;
         return VLC_SUCCESS;
-    } else if ( p_sys->current_item->type() != IItem::FileType::Unknown ) {
+    } else {
         p_sys->current_item = p_sys->provider->
                 getItemDataAsync( p_sys->current_item->id() )->result().right();
         p_access->psz_url = strdup( p_sys->current_item->url().c_str() );
