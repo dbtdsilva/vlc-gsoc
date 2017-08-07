@@ -145,10 +145,8 @@ static int InitProvider( stream_t * p_access )
             config_GetInt( p_access, "http-port" ) );
 
     // Get predifined port and prefix
-    hints["redirect_uri_port"] = redirect_port;
-    hints["redirect_uri_path"] = "/auth";
-    hints["file_url"] = "http://localhost/files";
-    hints["daemon_port"] = redirect_port;
+    hints["redirect_uri"] = "http://localhost:" + redirect_port + "/auth";
+    hints["file_url"] = "http://localhost:" + redirect_port + "/files";
 
     // Load custom-made pages
     std::string parent = "cloudstorage";
