@@ -231,7 +231,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
             break;
         }
     }
-    access_fsdir_finish( &fsdir, error_code );
+    access_fsdir_finish( &fsdir, error_code == VLC_SUCCESS );
     return error_code;
 }
 
