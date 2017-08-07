@@ -92,7 +92,6 @@ private:
     ICallback::Pointer p_callback;
     httpd_host_t *host;
     httpd_url_t *url_root, *url_login;
-    httpd_stream_t *file_stream;
 };
 
 class HttpdFactory : public IHttpServerFactory

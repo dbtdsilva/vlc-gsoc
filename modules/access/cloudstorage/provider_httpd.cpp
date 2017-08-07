@@ -89,6 +89,7 @@ Httpd::CallbackResponse::CallbackResponse( int code,
         const IResponse::Headers& headers, int size, int chunk_size,
         IResponse::ICallback::Pointer ptr )
 {
+    // Not required for authorization purposes
     (void) code; (void) headers; (void) size; (void) chunk_size; (void) ptr;
 }
 
@@ -122,17 +123,27 @@ void Httpd::Connection::onCompleted(CompletedCallback f)
 
 void Httpd::Connection::suspend()
 {
+    // Not required for authorization purposes
 }
 
 void Httpd::Connection::resume()
 {
+    // Not required for authorization purposes
 }
 
 Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
               stream_t * access ) :
       p_callback( cb ), host( nullptr ), url_root( nullptr ),
-      url_login( nullptr ), file_stream( nullptr )
+      url_login( nullptr )
 {
+    // Prevent the usage of this server for other effects than authorization
+    if ( type != IHttpServer::Type::Authorization )
+    {
+        throw std::runtime_error("Provider used for this purpose is not "
+                "support since this http server should only be used for "
+                "authorization purposes");
+    }
+
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
 
     // Exception is handled by HttpdFactory right away
@@ -140,35 +151,27 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
         throw std::runtime_error("Failed to create host");
 
     // Spawns two URLs that might receive requests
-    if ( type == IHttpServer::Type::Authorization )
+    url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
+    url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );
+
+    if ( url_root != nullptr )
     {
-        url_root = httpd_UrlNew( host, "/auth", NULL, NULL );
-        url_login = httpd_UrlNew( host, "/auth/login", NULL, NULL );
-
-        if ( url_root != nullptr )
-        {
-            httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, httpRequestCallback,
-                    (httpd_callback_sys_t*) this );
-            httpd_UrlCatch( url_root, HTTPD_MSG_GET, httpRequestCallback,
-                    (httpd_callback_sys_t*) this );
-            httpd_UrlCatch( url_root, HTTPD_MSG_POST, httpRequestCallback,
-                    (httpd_callback_sys_t*) this );
-        }
-
-        if ( url_login != nullptr )
-        {
-            httpd_UrlCatch( url_login, HTTPD_MSG_HEAD, httpRequestCallback,
-                    (httpd_callback_sys_t*) this );
-            httpd_UrlCatch( url_login, HTTPD_MSG_GET, httpRequestCallback,
-                    (httpd_callback_sys_t*) this );
-            httpd_UrlCatch( url_login, HTTPD_MSG_POST, httpRequestCallback,
-                    (httpd_callback_sys_t*) this );
-        }
+        httpd_UrlCatch( url_root, HTTPD_MSG_HEAD, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+        httpd_UrlCatch( url_root, HTTPD_MSG_GET, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+        httpd_UrlCatch( url_root, HTTPD_MSG_POST, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
     }
-    // Spawns an URL specific to stream files (used by Mega.Nz)
-    else if ( type == IHttpServer::Type::FileProvider )
+
+    if ( url_login != nullptr )
     {
-        file_stream = httpd_StreamNew( host, "/files", NULL, NULL, NULL );
+        httpd_UrlCatch( url_login, HTTPD_MSG_HEAD, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+        httpd_UrlCatch( url_login, HTTPD_MSG_GET, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
+        httpd_UrlCatch( url_login, HTTPD_MSG_POST, httpRequestCallback,
+                (httpd_callback_sys_t*) this );
     }
 }
 
@@ -180,8 +183,6 @@ Httpd::~Httpd()
             httpd_UrlDelete( url_root );
         if ( url_login != nullptr )
             httpd_UrlDelete( url_login );
-        if ( file_stream != nullptr )
-            httpd_StreamDelete( file_stream );
         httpd_HostDelete ( host );
     }
 }
