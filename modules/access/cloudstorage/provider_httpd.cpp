@@ -129,11 +129,10 @@ void Httpd::Connection::resume()
 }
 
 Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
-             int port, stream_t * access ) :
+              stream_t * access ) :
       p_callback( cb ), host( nullptr ), url_root( nullptr ),
       url_login( nullptr ), file_stream( nullptr )
 {
-    (void) port;
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
 
     // Exception is handled by HttpdFactory right away
@@ -205,12 +204,12 @@ HttpdFactory::HttpdFactory( stream_t* access ) : p_access( access ) {}
 
 IHttpServer::Pointer HttpdFactory::create(
         IHttpServer::ICallback::Pointer cb, const std::string&,
-        IHttpServer::Type type, int port )
+        IHttpServer::Type type )
 {
     IHttpServer::Pointer ptr;
     try
     {
-        ptr = std::make_unique<Httpd>( cb, type, port, p_access );
+        ptr = std::make_unique<Httpd>( cb, type, p_access );
     }
     catch (const std::runtime_error& exception)
     {

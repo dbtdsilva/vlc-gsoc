@@ -35,7 +35,7 @@ using cloudstorage::IHttpServerFactory;
 class Httpd : public IHttpServer
 {
 public:
-    Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type, int port,
+    Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
            stream_t * access );
     ~Httpd();
 
@@ -100,8 +100,8 @@ class HttpdFactory : public IHttpServerFactory
 public:
     HttpdFactory( stream_t* access );
     IHttpServer::Pointer create(IHttpServer::ICallback::Pointer,
-                              const std::string& session_id, IHttpServer::Type,
-                              int port) override;
+                              const std::string& session_id,
+                              IHttpServer::Type) override;
 private:
     stream_t* p_access;
 };
