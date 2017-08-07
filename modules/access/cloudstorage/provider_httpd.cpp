@@ -100,32 +100,38 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
         {
             s->stream->finished = true;
             s->stream->connection_ptr->invokeCallbackOnComplete();
+
+            delete s->stream;
+            s->stream = nullptr;
             return VLC_SUCCESS;
         }
 
-        while (s->stream->data_collected < response->getSize())
-        {
-            block_t * p_block = block_Alloc( response->getChunkSize() );
-            if( p_block == NULL ) {
-                block_Release( p_block );
-                return VLC_SUCCESS;
-            }
-            int data_size = response->
-                    putData( (char *) p_block->p_buffer, response->getChunkSize() );
-
-            // Represents an error
-            if ( data_size != 0 )
-            {
-                p_block->i_buffer = data_size;
-                s->stream->data_collected += data_size;
-
-                s->stream->offset = answer->i_body_offset;
-                httpd_StreamSend( s->url_stream, p_block );
-            }
-
+        block_t * p_block = block_Alloc( response->getChunkSize() );
+        if( p_block == NULL ) {
             block_Release( p_block );
+            return VLC_SUCCESS;
         }
-        return VLC_SUCCESS;
+
+        int data_size = response->
+                putData( (char *) p_block->p_buffer, response->getChunkSize() );
+
+        // Represents an error
+        int ret = VLC_SUCCESS;
+        if (data_size < 0)
+        {
+            ret = VLC_EGENERIC;
+        }
+        else if ( data_size != 0 )
+        {
+            p_block->i_buffer = data_size;
+            s->stream->data_collected += data_size;
+
+            s->stream->offset = answer->i_body_offset;
+            httpd_StreamSend( s->url_stream, p_block );
+        }
+
+        block_Release( p_block );
+        return ret;
     }
     else
     {
