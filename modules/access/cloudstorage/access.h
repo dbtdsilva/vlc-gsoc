@@ -47,9 +47,7 @@ struct access_sys_t
     cloudstorage::ICloudProvider::Pointer provider;
     std::string token;
     cloudstorage::ICloudProvider::Hints hints;
-    char *ppsz_values[KEY_MAX];
     cloudstorage::IItem::Pointer current_item;
-    void* httpd_data;
 };
 
 #endif
