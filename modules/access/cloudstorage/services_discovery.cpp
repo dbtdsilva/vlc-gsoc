@@ -93,6 +93,12 @@ void SDClose( vlc_object_t *p_this )
         input_Close( p_item_root.second->thread );
     }
 
+    if (p_sys->auth_thread != nullptr)
+    {
+        input_Stop( p_sys->auth_thread );
+        input_Close( p_sys->auth_thread );
+    }
+
     var_DelCallback( p_sd->obj.libvlc, "cloudstorage-new-auth",
             CallbackNewAuthentication, p_sd );
     var_DelCallback( p_sd->obj.parent, "cloudstorage-request",
@@ -257,10 +263,18 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
     std::string request = raw.substr(raw.find_first_of(":") + 1);
     if ( operation == "ADD" )
     {
+        // Only one add operation is allowed at the same time
+        if (p_sys->auth_thread != nullptr)
+        {
+            input_Stop( p_sys->auth_thread );
+            input_Close( p_sys->auth_thread );
+        }
+
+        // Generate the user and spawn the authorization
         char* gen_user = GenerateUserIdentifier( p_sd, request.c_str() );
         input_item_t * new_item = GetNewUserInput( p_sd, gen_user,
                 request.c_str() );
-        input_CreateAndStart( p_sd, new_item, NULL);
+        p_sys->auth_thread = input_CreateAndStart( p_sd, new_item, NULL);
         input_item_Release( new_item );
     }
     else if ( operation == "RM" )

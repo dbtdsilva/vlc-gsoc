@@ -46,6 +46,7 @@ struct services_discovery_sys_t
 {
     std::map< std::string, provider_item * > providers_items;
     std::vector< std::string > providers_list;
+    input_thread_t * auth_thread;
 };
 
 #endif
