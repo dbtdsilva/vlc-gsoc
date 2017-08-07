@@ -85,20 +85,24 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
             httpd_client_t *, httpd_message_t * answer,
             const httpd_message_t * query )
 {
-    Httpd* server = (Httpd *) cls;
+    Httpd* s = (Httpd *) cls;
 
-    // First message was already processed
-    if ( server->received_once)
+    // Initial response was already sent and the stream was started
+    if ( s->stream != nullptr )
     {
         auto response =
-            static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
+            static_cast<Httpd::CallbackResponse*>( s->stream->p_response.get() );
 
-        if ( server->offset >= answer->i_body_offset || server->done)
+        if ( s->stream->offset >= answer->i_body_offset ||
+             s->stream->finished)
             return VLC_SUCCESS;
-        if (server->data_collected >= response->getSize())
+        if (s->stream->data_collected >= response->getSize())
         {
-            server->done = true;
-            server->connection_ptr->invokeCallbackOnComplete();
+            s->stream->finished = true;
+            s->stream->connection_ptr->invokeCallbackOnComplete();
+
+            delete s->stream;
+            s->stream = nullptr;
             return VLC_SUCCESS;
         }
 
@@ -112,22 +116,29 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
                 putData( (char *) p_block->p_buffer, response->getChunkSize() );
 
         // Represents an error
+        int ret = VLC_SUCCESS;
         if (data_size < 0)
-            return VLC_EGENERIC;
-        // No data available to collect from libcloudstorage
-        else if ( data_size == 0 )
-            return VLC_SUCCESS;
+        {
+            ret = VLC_EGENERIC;
+        }
+        else if ( data_size != 0 )
+        {
+            p_block->i_buffer = data_size;
+            s->stream->data_collected += data_size;
 
-        p_block->i_buffer = data_size;
-        server->data_collected += data_size;
+            s->stream->offset = answer->i_body_offset;
+            httpd_StreamSend( s->url_stream, p_block );
+        }
 
-        server->offset = answer->i_body_offset;
-        httpd_StreamSend( server->file_stream, p_block );
         block_Release( p_block );
+        return ret;
     }
     else
     {
-        server->received_once = true;
+        s->stream = new stream_data_t();
+        s->stream->data_collected = 0;
+        s->stream->offset = -1;
+        s->stream->finished = false;
 
         // Pre-fill data to be sent to the callback
         std::unordered_map<std::string, std::string> args, headers;
@@ -152,19 +163,19 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
                 query->p_headers[i].name, query->p_headers[i].value ) );
         }
         // Send request headers to the connection
-        server->connection_ptr =
+        s->stream->connection_ptr =
             std::make_unique<Httpd::Connection>( query->psz_url, args, headers );
         // Retrieve an initial response from the server which has a callback
         // to retrieve data to be sent into a stream
-        server->p_response = server->callback()->
-            receivedConnection( *server, server->connection_ptr.get() );
+        s->stream->p_response = s->callback()->
+            receivedConnection( *s, s->stream->connection_ptr.get() );
         auto response =
-            static_cast<Httpd::CallbackResponse*>( server->p_response.get() );
+            static_cast<Httpd::CallbackResponse*>( s->stream->p_response.get() );
 
         // Retrieve the headers from the response and queue them
         IResponse::Headers r_headers = response->getHeaders();
         httpd_header custom_headers[ r_headers.size() ];
-        int i = 0;
+        unsigned int i = 0;
         for ( auto& header : r_headers )
         {
             custom_headers[i].name = strdup(header.first.c_str());
@@ -172,10 +183,7 @@ int Httpd::connectionReceivedCallback( httpd_callback_sys_t * cls,
             i++;
         }
 
-        httpd_StreamSetHTTPHeaders( server->file_stream, custom_headers, i );
-        server->data_collected = 0;
-        server->offset = -1;
-        server->done = false;
+        httpd_StreamSetHTTPHeaders( s->url_stream, custom_headers, i );
     }
 
     return VLC_SUCCESS;
@@ -195,8 +203,7 @@ Httpd::CallbackResponse::CallbackResponse( int code,
 Httpd::Connection::Connection( const char* url,
         const std::unordered_map<std::string, std::string> args,
         const std::unordered_map<std::string, std::string> headers ) :
-    c_url( url ), m_args( args ), m_headers( headers ),
-    cb_complete( nullptr )
+    c_url( url ), cb_complete( nullptr ), m_args( args ), m_headers( headers )
 {
 }
 
@@ -240,8 +247,8 @@ void Httpd::Connection::resume()
 Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
              int port, stream_t * access ) :
       p_callback( cb ), host( nullptr ), url_root( nullptr ),
-      url_login( nullptr ), file_stream( nullptr ), p_access( access ),
-      received_once( false )
+      url_login( nullptr ), url_stream( nullptr ), 
+      stream( nullptr ), p_access( access )
 {
     (void) port;
     host = vlc_http_HostNew( VLC_OBJECT( access ) );
@@ -279,23 +286,23 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
     // Spawns an URL specific to stream files (used by Mega.Nz)
     else if ( type == IHttpServer::Type::FileProvider )
     {
-        file_stream = httpd_StreamNew( host, "/files/", NULL, NULL, NULL,
+        url_stream = httpd_StreamNew( host, "/files/", NULL, NULL, NULL,
                 connectionReceivedCallback, (httpd_callback_sys_t*) this );
     }
 }
 
 Httpd::~Httpd()
 {
+    if ( stream != nullptr )
+        delete stream;
+    if ( url_root != nullptr )
+        httpd_UrlDelete( url_root );
+    if ( url_login != nullptr )
+         httpd_UrlDelete( url_login );
+    if ( url_stream != nullptr )
+        httpd_StreamDelete( url_stream );
     if ( host != nullptr )
-    {
-        if ( url_root != nullptr )
-            httpd_UrlDelete( url_root );
-        if ( url_login != nullptr )
-            httpd_UrlDelete( url_login );
-        if ( file_stream != nullptr )
-            httpd_StreamDelete( file_stream );
         httpd_HostDelete ( host );
-    }
 }
 
 Httpd::IResponse::Pointer Httpd::createResponse( int code,

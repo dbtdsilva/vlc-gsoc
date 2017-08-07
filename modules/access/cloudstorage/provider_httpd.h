@@ -106,18 +106,20 @@ private:
             httpd_client_t *, httpd_message_t * answer,
             const httpd_message_t * query_t );
 
-    std::unique_ptr<Httpd::Connection> connection_ptr;
+    typedef struct {
+        int64_t offset;
+        int64_t data_collected;
+        bool finished;
+        std::unique_ptr<Httpd::Connection> connection_ptr;
+        IResponse::Pointer p_response;
+    } stream_data_t;
+    
     ICallback::Pointer p_callback;
-    IResponse::Pointer p_response;
-    int data_collected;
     httpd_host_t *host;
     httpd_url_t *url_root, *url_login;
-    httpd_stream_t *file_stream;
-    bool received_once;
+    httpd_stream_t *url_stream;
+    stream_data_t *stream;
     stream_t* p_access;
-    vlc_thread_t thread;
-    int64_t offset;
-    bool done;
 };
 
 class HttpdFactory : public IHttpServerFactory
