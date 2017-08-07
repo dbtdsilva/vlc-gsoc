@@ -91,6 +91,7 @@ public:
             var_SetString( p_access->obj.libvlc, "cloud-new-auth",
                     ss_user.str().c_str() );
         }
+        vlc_credential_clean( &credentials );
         msg_Dbg( p_access, "Accepted credentials!");
     }
 
