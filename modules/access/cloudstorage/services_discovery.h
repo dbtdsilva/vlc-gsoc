@@ -35,9 +35,16 @@
 int SDOpen( vlc_object_t * );
 void SDClose( vlc_object_t * );
 
+struct provider_item
+{
+    input_item_t * item;
+    input_thread_t * thread;
+};
+typedef struct provider_item provider_item;
+
 struct services_discovery_sys_t
 {
-    std::map< std::string, input_item_t * > providers_items;
+    std::map< std::string, provider_item * > providers_items;
     std::vector< std::string > providers_list;
 };
 
