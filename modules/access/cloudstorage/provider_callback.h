@@ -88,7 +88,7 @@ public:
                      p_sys->url.psz_username, p_sys->url.psz_host );
             std::stringstream ss_user;
             ss_user << p_sys->url.psz_username << "@" << p_sys->url.psz_host;
-            var_SetString( p_access->obj.libvlc, "cloud-new-auth",
+            var_SetString( p_access->obj.libvlc, "cloudstorage-new-auth",
                     ss_user.str().c_str() );
         }
         vlc_credential_clean( &credentials );
