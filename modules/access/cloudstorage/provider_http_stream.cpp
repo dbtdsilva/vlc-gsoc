@@ -41,34 +41,34 @@ struct vlc_payload_stream
     std::istream *payload_stream;
 };
 
-static struct vlc_http_msg *vlc_payload_wait(struct vlc_http_stream *stream)
+static struct vlc_http_msg *vlc_payload_wait( struct vlc_http_stream *stream )
 {
     /* There cannot be headers during this stream. */
     (void) stream;
     return NULL;
 }
 
-static block_t *vlc_payload_read(struct vlc_http_stream *stream)
+static block_t *vlc_payload_read( struct vlc_http_stream *stream )
 {
     struct vlc_payload_stream *s =
-        container_of(stream, struct vlc_payload_stream, stream);
+        container_of( stream, struct vlc_payload_stream, stream );
     block_t *block;
 
-    if (s->payload_stream->eof())
+    if ( s->payload_stream->eof() )
         return NULL;
 
     size_t size = 16384;
-    block = block_Alloc(size);
-    if (unlikely(block == NULL))
+    block = block_Alloc( size );
+    if ( unlikely( block == NULL ) )
         return NULL;
 
-    s->payload_stream->read((char *) block->p_buffer, size);
+    s->payload_stream->read( (char *) block->p_buffer, size );
     block->i_buffer = s->payload_stream->gcount();
 
     return block;
 }
 
-static void vlc_payload_close(struct vlc_http_stream *stream, bool abort)
+static void vlc_payload_close( struct vlc_http_stream *stream, bool abort )
 {
     (void) stream;
     (void) abort;
@@ -81,10 +81,10 @@ static struct vlc_http_stream_cbs vlc_payload_callbacks =
     vlc_payload_close,
 };
 
-struct vlc_http_stream *vlc_payload_stream_open(std::istream *payload_stream)
+struct vlc_http_stream *vlc_payload_stream_open( std::istream *payload_stream )
 {
-    struct vlc_payload_stream *s = (vlc_payload_stream*) malloc(sizeof (*s));
-    if (unlikely(s == NULL))
+    struct vlc_payload_stream *s = (vlc_payload_stream*) malloc( sizeof (*s) );
+    if ( unlikely( s == NULL ) )
         return NULL;
 
     s->stream.cbs = &vlc_payload_callbacks;

@@ -212,7 +212,7 @@ IHttpServer::Pointer HttpdFactory::create(
     {
         ptr = std::make_unique<Httpd>( cb, type, p_access );
     }
-    catch (const std::runtime_error& exception)
+    catch ( const std::runtime_error& exception )
     {
         msg_Err( p_access, "Failed to create Http server: %s",
                  exception.what() );

@@ -62,11 +62,14 @@ int Open( vlc_object_t *p_this )
     if ( (err = InitProvider( p_access )) != VLC_SUCCESS )
         goto error;
 
-    if ( p_sys->current_item->type() == IItem::FileType::Directory ) {
+    if ( p_sys->current_item->type() == IItem::FileType::Directory )
+    {
         p_access->pf_control = access_vaDirectoryControlHelper;
         p_access->pf_readdir = ReadDir;
         return VLC_SUCCESS;
-    } else {
+    }
+    else
+    {
         p_sys->current_item = p_sys->provider->
                 getItemDataAsync( p_sys->current_item->id() )->result().right();
         p_access->psz_url = strdup( p_sys->current_item->url().c_str() );
@@ -93,9 +96,9 @@ static int ParseMRL( stream_t * p_access )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
 
-    // Correct the path if there are any invalid characters like spaces
-    char *url = vlc_uri_fixup(p_access->psz_url);
-    // Parse into a vlc_url_t
+    // Correct the path if there are any invalid characters like spaces and
+    // Parse the URL into a VLC object
+    char *url = vlc_uri_fixup( p_access->psz_url );
     int error = vlc_UrlParse( &p_sys->url, url );
     if ( error != VLC_SUCCESS )
         return error;
@@ -150,7 +153,7 @@ static int InitProvider( stream_t * p_access )
 
     // Load custom-made pages
     std::string parent = "cloudstorage";
-    parent.append(DIR_SEP);
+    parent.append( DIR_SEP );
     if ( strcmp( p_sys->url.psz_host, "amazons3" ) == 0 ||
          strcmp( p_sys->url.psz_host, "mega" ) == 0 ||
          strcmp( p_sys->url.psz_host, "owncloud" ) == 0 )
@@ -193,7 +196,7 @@ static int InitProvider( stream_t * p_access )
 }
 
 static int AddItem( struct access_fsdir *p_fsdir, stream_t *p_access,
-                     IItem::Pointer item )
+                    IItem::Pointer item )
 {
     std::stringstream url;
     int i_type;
@@ -223,7 +226,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     int error_code = VLC_SUCCESS;
     for ( auto &i : *list_directory_request_->result().right() )
     {
-        if ( AddItem(&fsdir, p_access, i) != VLC_SUCCESS )
+        if ( AddItem( &fsdir, p_access, i ) != VLC_SUCCESS )
         {
             error_code = VLC_EGENERIC;
             break;
@@ -233,20 +236,20 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     return error_code;
 }
 
-static std::string ReadFile(const std::string& filename)
+static std::string ReadFile( const std::string& filename )
 {
     std::string data_filename = config_GetDataDir();
-    data_filename.append(DIR_SEP);
-    data_filename.append(filename);
-    std::ifstream stream(data_filename, std::ios::in | std::ios::binary);
-    if (!stream)
+    data_filename.append( DIR_SEP );
+    data_filename.append( filename );
+    std::ifstream stream( data_filename, std::ios::in | std::ios::binary );
+    if ( !stream )
         return "";
 
     std::string contents;
-    stream.seekg(0, std::ios::end);
-    contents.resize(stream.tellg());
-    stream.seekg(0, std::ios::beg);
-    stream.read(&contents[0], contents.size());
+    stream.seekg( 0, std::ios::end );
+    contents.resize( stream.tellg() );
+    stream.seekg( 0, std::ios::beg );
+    stream.read( &contents[0], contents.size() );
     stream.close();
 
     return contents;

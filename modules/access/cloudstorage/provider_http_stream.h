@@ -25,6 +25,6 @@
 
 #include <istream>
 
-struct vlc_http_stream *vlc_payload_stream_open(std::istream *payload_stream);
+struct vlc_http_stream *vlc_payload_stream_open( std::istream *payload_stream );
 
 #endif
