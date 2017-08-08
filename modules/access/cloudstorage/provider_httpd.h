@@ -42,7 +42,8 @@ public:
     class Response : public IResponse {
     public:
         Response() = default;
-        Response(int code, const IResponse::Headers&, const std::string& body);
+        Response( int code, const IResponse::Headers&,
+                  const std::string& body );
 
         int getCode() { return i_code; }
         IResponse::Headers getHeaders() { return m_headers; }
@@ -61,11 +62,11 @@ public:
 
     class Connection : public IConnection {
     public:
-        Connection(const char* url,
+        Connection( const char* url,
                 const std::unordered_map<std::string, std::string> args,
-                const std::unordered_map<std::string, std::string> headers);
-        const char* getParameter(const std::string& name) const override;
-        const char* header(const std::string& name) const override;
+                const std::unordered_map<std::string, std::string> headers );
+        const char* getParameter( const std::string& name ) const override;
+        const char* header( const std::string& name ) const override;
         std::string url() const override;
         void onCompleted(CompletedCallback) override;
         void suspend() override;
@@ -78,11 +79,11 @@ public:
         const std::unordered_map<std::string, std::string> m_headers;
     };
 
-    IResponse::Pointer createResponse(int code, const IResponse::Headers&,
-                                const std::string& body) const override;
-    IResponse::Pointer createResponse(int code, const IResponse::Headers&,
+    IResponse::Pointer createResponse( int code, const IResponse::Headers&,
+                                const std::string& body ) const override;
+    IResponse::Pointer createResponse( int code, const IResponse::Headers&,
                                 int size, int chunk_size,
-                                IResponse::ICallback::Pointer) const override;
+                                IResponse::ICallback::Pointer ) const override;
     ICallback::Pointer callback() const { return p_callback; }
 private:
     static int httpRequestCallback( httpd_callback_sys_t * args,
@@ -98,9 +99,9 @@ class HttpdFactory : public IHttpServerFactory
 {
 public:
     HttpdFactory( stream_t* access );
-    IHttpServer::Pointer create(IHttpServer::ICallback::Pointer,
-                              const std::string& session_id,
-                              IHttpServer::Type) override;
+    IHttpServer::Pointer create( IHttpServer::ICallback::Pointer,
+                                 const std::string& session_id,
+                                 IHttpServer::Type ) override;
 private:
     stream_t* p_access;
 };

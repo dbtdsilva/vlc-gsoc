@@ -259,8 +259,8 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
 
     std::string raw( newval.psz_string );
 
-    std::string operation = raw.substr(0, raw.find_first_of(":"));
-    std::string request = raw.substr(raw.find_first_of(":") + 1);
+    std::string operation = raw.substr( 0, raw.find_first_of(":") );
+    std::string request = raw.substr( raw.find_first_of(":") + 1 );
     if ( operation == "ADD" )
     {
         // Only one add operation is allowed at the same time

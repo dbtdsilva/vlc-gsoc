@@ -71,7 +71,7 @@ public:
 
         // Store hints and token
         std::string serialized_value = ICloudProvider::serializeSession(
-                p_sys->token, p_sys->hints);
+                p_sys->token, p_sys->hints );
 
         // Store the data related with the session using the credentials API
         credentials.b_store = !p_sys->memory_keystore;

@@ -111,7 +111,7 @@ int HttpRequest::send( std::istream& data, std::ostream& response,
 request:
     struct vlc_http_resource *resource =
         (struct vlc_http_resource *) malloc( sizeof( *resource ) );
-    if (resource == NULL)
+    if ( resource == NULL )
         return -1;
 
     // Concatenating the URL in the parameters
@@ -119,7 +119,7 @@ request:
     std::unordered_map<std::string, std::string>::const_iterator it;
     for ( it = req_parameters.begin(); it != req_parameters.end(); it++ )
     {
-        if (it != req_parameters.begin())
+        if ( it != req_parameters.begin() )
             params_url += "&";
         params_url += it->first + "=" + it->second;
     }
@@ -135,7 +135,7 @@ request:
     free(fixed_url);
     if ( res != VLC_SUCCESS )
     {
-        vlc_http_res_destroy(resource);
+        vlc_http_res_destroy( resource );
         return -1;
     }
 
@@ -143,7 +143,7 @@ request:
     HttpRequestData *callback_data = new HttpRequestData();
     if ( callback_data == NULL )
     {
-        vlc_http_res_destroy(resource);
+        vlc_http_res_destroy( resource );
         return -1;
     }
     callback_data->ptr = this;
@@ -156,7 +156,7 @@ request:
     {
         msg_Err( p_access, "Failed to obtain a response from the request %s %s",
                  req_method.c_str(), current_url.c_str() );
-        vlc_http_res_destroy(resource);
+        vlc_http_res_destroy( resource );
         return -1;
     }
     int response_code = vlc_http_msg_get_status( resource->response );
@@ -165,10 +165,10 @@ request:
     char *redirect_uri = vlc_http_res_get_redirect( resource );
     // Check for redirects if exist
     if ( req_follow_redirect && redirect_uri != NULL &&
-            IHttpRequest::isRedirect(response_code))
+            IHttpRequest::isRedirect( response_code ) )
     {
         redirect_counter += 1;
-        vlc_http_res_destroy(resource);
+        vlc_http_res_destroy( resource );
         if ( redirect_counter > URL_REDIRECT_LIMIT )
         {
             msg_Err( p_access, "URL has been redirected too many times.");
