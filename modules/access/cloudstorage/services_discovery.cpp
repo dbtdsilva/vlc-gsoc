@@ -91,6 +91,7 @@ void SDClose( vlc_object_t *p_this )
         input_item_Release( p_item_root.second->item );
         input_Stop( p_item_root.second->thread );
         input_Close( p_item_root.second->thread );
+        delete p_item_root.second;
     }
 
     if (p_sys->auth_thread != nullptr)
@@ -140,6 +141,7 @@ static int RepresentUsers( services_discovery_t * p_sd )
             InsertNewUserInput( p_sd, item );
         }
         vlc_credential_clean( &cred );
+        vlc_UrlClean( &dummy_url );
     }
     return VLC_SUCCESS;
 }
