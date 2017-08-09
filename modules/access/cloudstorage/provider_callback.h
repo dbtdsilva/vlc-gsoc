@@ -75,7 +75,7 @@ public:
 
         // Store the data related with the session using the credentials API
         credentials.b_store = !p_sys->memory_keystore;
-        credentials.psz_password = strdup( serialized_value.c_str() );
+        credentials.psz_password = serialized_value.c_str();
         if ( !vlc_credential_store( &credentials, p_access ) )
         {
             msg_Warn( p_access, "Failed to store the credentials");
