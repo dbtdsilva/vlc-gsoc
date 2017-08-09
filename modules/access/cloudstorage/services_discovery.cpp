@@ -227,6 +227,7 @@ static char * GenerateUserIdentifier( services_discovery_t * p_sd,
     } while ( name_exists );
 
     vlc_credential_clean( &cred );
+    vlc_UrlClean( &dummy_url );
 
     return gen_user;
 }
@@ -237,6 +238,15 @@ static int CallbackNewAuthentication( vlc_object_t *p_this, char const *psz_var,
     (void) oldval; (void) p_this; (void) psz_var;
     services_discovery_t * p_sd = (services_discovery_t *) p_data;
 
+    // Closing the thread used to authenticated if exists
+    if ( p_sd->p_sys->auth_thread != nullptr )
+    {
+        input_Stop( p_sd->p_sys->auth_thread );
+        input_Close( p_sd->p_sys->auth_thread );
+        p_sd->p_sys->auth_thread = nullptr;
+    }
+
+    // Process the request
     std::string provider_name, username;
     std::string provider_with_user( newval.psz_string );
     size_t pos_user = provider_with_user.find_last_of("@");
@@ -268,8 +278,9 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
         // Only one add operation is allowed at the same time
         if (p_sys->auth_thread != nullptr)
         {
-            input_Stop( p_sys->auth_thread );
-            input_Close( p_sys->auth_thread );
+            msg_Err( p_sd, "There is already a running authentication in "
+                     "progress that must be finished before!");
+            return VLC_EGENERIC;
         }
 
         // Generate the user and spawn the authorization
