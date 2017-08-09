@@ -154,6 +154,7 @@ static void vlc_http_res_deinit(struct vlc_http_resource *res)
     free(res->path);
     free(res->authority);
     free(res->host);
+    free(res->method);
 
     if (res->response != NULL)
         vlc_http_msg_destroy(res->response);
