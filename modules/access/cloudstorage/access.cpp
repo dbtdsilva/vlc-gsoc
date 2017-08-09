@@ -188,7 +188,8 @@ static int InitProvider( stream_t * p_access )
     p_sys->current_item = p_sys->provider->
             getItemAsync( vlc_uri_decode( p_sys->url.psz_path ) )->
             result().right();
-    if (p_sys->current_item == nullptr) {
+    if ( p_sys->current_item == nullptr )
+    {
         msg_Err( p_access, "Item %s does not exist in the provider %s",
                  p_sys->url.psz_path, p_sys->url.psz_host );
         return VLC_EGENERIC;
