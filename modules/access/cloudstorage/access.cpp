@@ -100,6 +100,7 @@ static int ParseMRL( stream_t * p_access )
     // Parse the URL into a VLC object
     char *url = vlc_uri_fixup( p_access->psz_url );
     int error = vlc_UrlParse( &p_sys->url, url );
+    free( url );
     if ( error != VLC_SUCCESS )
         return error;
 
@@ -238,7 +239,11 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
 
 static std::string ReadFile( const std::string& filename )
 {
-    std::string data_filename = config_GetDataDir();
+    char * base_path = config_GetDataDir();
+
+    std::string data_filename;
+    data_filename.append( base_path );
+    free( base_path );
     data_filename.append( DIR_SEP );
     data_filename.append( filename );
     std::ifstream stream( data_filename, std::ios::in | std::ios::binary );
