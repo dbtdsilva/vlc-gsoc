@@ -73,7 +73,7 @@ int Open( vlc_object_t *p_this )
         p_sys->current_item = p_sys->provider->
                 getItemDataAsync( p_sys->current_item->id() )->result().right();
         p_access->psz_url = strdup( p_sys->current_item->url().c_str() );
-        return VLC_ACCESS_REDIRECT;
+        err = VLC_ACCESS_REDIRECT;
     }
 
 error:
