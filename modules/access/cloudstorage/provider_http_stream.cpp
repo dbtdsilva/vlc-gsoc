@@ -70,8 +70,11 @@ static block_t *vlc_payload_read( struct vlc_http_stream *stream )
 
 static void vlc_payload_close( struct vlc_http_stream *stream, bool abort )
 {
-    (void) stream;
+    struct vlc_payload_stream *s =
+        container_of( stream, struct vlc_payload_stream, stream );
+
     (void) abort;
+    free( s );
 }
 
 static struct vlc_http_stream_cbs vlc_payload_callbacks =
