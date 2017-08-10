@@ -81,12 +81,21 @@ PLSelItem::~PLSelItem()
         delete pInnerTree;
 }
 
-void PLSelItem::createInnerTree(const char* slot_add, const char* slot_remove)
+void PLSelItem::createInnerTree( const char* slot_add, const char* slot_remove,
+        const char* slot_activate )
 {
     QTreeWidgetItem* parent = this->treeItem();
-    pInnerTree = new PLSelItemTree(parent, slot_add, slot_remove);
+    pInnerTree = new PLSelItemTree(parent, slot_add, slot_remove,
+            slot_activate);
     parent->setChildIndicatorPolicy(
             QTreeWidgetItem::ChildIndicatorPolicy::ShowIndicator);
+}
+
+void PLSelItem::mouseReleaseEvent( QMouseEvent* event )
+{
+    // Emit an internal signal and re-invoke the original callback
+    emit subTreeActivated( this );
+    QWidget::mouseReleaseEvent( event );
 }
 
 void PLSelItem::addAction( ItemAction act, const QString& tooltip )
@@ -299,13 +308,15 @@ void PLSelector::createItems()
             if( name.startsWith( "podcast" ) )
             {
                 selItem->createInnerTree(SLOT(podcastAdd(PLSelItem*)),
-                                         SLOT(podcastRemove(PLSelItem*)));
+                                         SLOT(podcastRemove(PLSelItem*)),
+                                         nullptr);
                 icon = QIcon( ":/sidebar/podcast" );
             }
             else if ( name.startsWith( "cloudstorage" ))
             {
                 selItem->createInnerTree(SLOT(cloudProviderAdd(PLSelItem*)),
-                                         SLOT(cloudProviderRemove(PLSelItem*)));
+                                         SLOT(cloudProviderRemove(PLSelItem*)),
+                                         SLOT(cloudProviderActivated(PLSelItem*)));
                 icon = QIcon( ":/sidebar/cloud" );
             }
             else if ( name.startsWith( "lua{" ) )
@@ -474,6 +485,12 @@ PLSelItem *PLSelector::addItemOnTree( playlist_item_t *p_item, PLSelItem* sel_it
     item->treeItem()->setData( 0, PL_ITEM_ROLE, QVariant::fromValue( p_item ) );
     item->treeItem()->setData( 0, PL_ITEM_ID_ROLE, QVariant(p_item->i_id) );
     item->treeItem()->setData( 0, IN_ITEM_ROLE, QVariant::fromValue( p_item->p_input ) );
+
+    if (sel_item->innerTree()->slotActivatedFunct() != nullptr)
+    {
+        connect( item, SIGNAL(subTreeActivated( PLSelItem* )),
+                 this, sel_item->innerTree()->slotActivatedFunct() );
+    }
 
     if (sel_item->innerTree()->slotRemoveFunct() != NULL)
     {
@@ -702,10 +719,22 @@ void PLSelector::cloudProviderRemove( PLSelItem* item )
                                QMessageBox::No );
     if( res == QMessageBox::No ) return;
 
-    input_item_t *input = item->treeItem()->data( 0, IN_ITEM_ROLE ).value<input_item_t*>();
+    input_item_t *input = item->treeItem()->data( 0, IN_ITEM_ROLE ).
+            value<input_item_t*>();
     if( !input ) return;
 
     QString request("RM:");
+    request += qfu( input->psz_name );
+    var_SetString( THEPL, "cloudstorage-request", qtu( request ) );
+}
+
+void PLSelector::cloudProviderActivated( PLSelItem* item )
+{
+    input_item_t *input = item->treeItem()->data( 0, IN_ITEM_ROLE ).
+            value<input_item_t*>();
+    if( !input ) return;
+
+    QString request("ACT:");
     request += qfu( input->psz_name );
     var_SetString( THEPL, "cloudstorage-request", qtu( request ) );
 }
@@ -750,9 +779,11 @@ void PLSelector::wheelEvent( QWheelEvent *e )
     e->accept();
 }
 
-PLSelItemTree::PLSelItemTree(QTreeWidgetItem* parent, const char* slot_add_funct,
-            const char* slot_remove_funct) :
+PLSelItemTree::PLSelItemTree(QTreeWidgetItem* parent,
+            const char* slot_add_funct, const char* slot_remove_funct,
+            const char* slot_activate_funct) :
         parent_ptr(parent), parent_id(-1), slot_add_funct(slot_add_funct),
-        slot_remove_funct(slot_remove_funct)
+        slot_remove_funct(slot_remove_funct),
+        slot_activate_funct(slot_activate_funct)
 {
 }

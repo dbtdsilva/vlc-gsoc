@@ -79,17 +79,19 @@ class PLSelItemTree
 {
 public:
     PLSelItemTree(QTreeWidgetItem*, const char* = nullptr,
-            const char* = nullptr);
+            const char* = nullptr, const char * = nullptr);
     void setParentId(int id) { parent_id = id; }
     int parentId() const { return parent_id; }
     QTreeWidgetItem* parent() const { return parent_ptr; }
     const char* slotAddFunct() const { return slot_add_funct; }
     const char* slotRemoveFunct() const { return slot_remove_funct; }
+    const char* slotActivatedFunct() const { return slot_activate_funct; }
 private:
     QTreeWidgetItem*    parent_ptr;
     int                 parent_id;
     const char*         slot_add_funct;
     const char*         slot_remove_funct;
+    const char*         slot_activate_funct;
 };
 
 class PLSelItem : public QWidget
@@ -105,8 +107,11 @@ public:
     void addAction( ItemAction, const QString& toolTip = 0 );
     QTreeWidgetItem *treeItem() { return qitem; }
 
-    void createInnerTree(const char* = nullptr, const char* = nullptr);
+    void createInnerTree( const char* = nullptr, const char* = nullptr,
+                          const char* = nullptr );
     PLSelItemTree* innerTree() const { return pInnerTree; }
+protected:
+    void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 
 public slots:
     void showAction() { if( lblAction ) lblAction->show();  }
@@ -116,6 +121,7 @@ private slots:
     void triggerAction() { emit action( this ); }
 
 signals:
+    void subTreeActivated( PLSelItem* );
     void action( PLSelItem* );
 
 private:
@@ -175,6 +181,7 @@ private slots:
     void podcastRemove( PLSelItem* );
     void cloudProviderAdd( PLSelItem* );
     void cloudProviderRemove( PLSelItem* );
+    void cloudProviderActivated( PLSelItem* );
 
 signals:
     void categoryActivated( playlist_item_t *, bool );
