@@ -83,8 +83,8 @@ error:
 
 void Close( vlc_object_t *p_this )
 {
-    stream_t *p_access = (stream_t*) p_this;
-    access_sys_t *p_sys = (access_sys_t*) p_access->p_sys;
+    stream_t *p_access = (stream_t *) p_this;
+    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
 
     if ( p_sys != nullptr ) {
         vlc_UrlClean( &p_sys->url );

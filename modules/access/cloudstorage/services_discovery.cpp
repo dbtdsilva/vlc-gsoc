@@ -84,7 +84,7 @@ error:
 void SDClose( vlc_object_t *p_this )
 {
     services_discovery_t *p_sd = (services_discovery_t *) p_this;
-    services_discovery_sys_t *p_sys = (services_discovery_sys_t*) p_sd->p_sys;
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
     for ( auto& p_item_root : p_sys->providers_items )
     {
@@ -246,7 +246,7 @@ static int CallbackNewAuthentication( vlc_object_t *p_this, char const *psz_var,
 {
     (void) oldval; (void) p_this; (void) psz_var; (void) newval;
 
-    services_discovery_t * p_sd = (services_discovery_t *) p_data;
+    services_discovery_t *p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
     services_discovery_AddItem( p_sd, p_sys->auth_item->item  );
@@ -262,7 +262,7 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
                      vlc_value_t oldval, vlc_value_t newval, void *p_data )
 {
     (void) oldval; (void) p_this; (void) psz_var;
-    services_discovery_t * p_sd = (services_discovery_t *) p_data;
+    services_discovery_t *p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
     std::string raw( newval.psz_string );

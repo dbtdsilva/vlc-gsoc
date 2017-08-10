@@ -34,7 +34,7 @@ using cloudstorage::EitherError;
 class Callback : public ICloudProvider::IAuthCallback {
 public:
     Callback( stream_t *access ) :
-        p_access( access ), p_sys( (access_sys_t*) access->p_sys )
+        p_access( access ), p_sys( (access_sys_t *) access->p_sys )
     {}
 
     Status userConsentRequired( const ICloudProvider& provider ) override

@@ -117,7 +117,7 @@ request:
     // Concatenating the URL in the parameters
     std::string params_url;
     std::unordered_map<std::string, std::string>::const_iterator it;
-    for ( it = req_parameters.begin(); it != req_parameters.end(); it++ )
+    for ( it = req_parameters.begin(); it != req_parameters.end(); ++it )
     {
         if ( it != req_parameters.begin() )
             params_url += "&";

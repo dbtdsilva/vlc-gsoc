@@ -94,8 +94,8 @@ Httpd::CallbackResponse::CallbackResponse( int code,
 }
 
 Httpd::Connection::Connection( const char* url,
-        const std::unordered_map<std::string, std::string> args,
-        const std::unordered_map<std::string, std::string> headers ) :
+        const std::unordered_map<std::string, std::string>& args,
+        const std::unordered_map<std::string, std::string>& headers ) :
     c_url( url ), m_args( args ), m_headers( headers ) {}
 
 const char* Httpd::Connection::getParameter(
