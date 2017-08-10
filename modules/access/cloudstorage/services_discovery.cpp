@@ -89,8 +89,11 @@ void SDClose( vlc_object_t *p_this )
     for ( auto& p_item_root : p_sys->providers_items )
     {
         input_item_Release( p_item_root.second->item );
-        input_Stop( p_item_root.second->thread );
-        input_Close( p_item_root.second->thread );
+        if ( p_item_root.second->thread != nullptr )
+        {
+            input_Stop( p_item_root.second->thread );
+            input_Close( p_item_root.second->thread );
+        }
         delete p_item_root.second;
     }
 
@@ -181,14 +184,13 @@ static int InsertNewUserInput( services_discovery_t * p_sd, input_item_t* item )
         return VLC_EGENERIC;
 
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
-
-    input_thread_t * thread = input_CreateAndStart( p_sd, item, NULL);
     services_discovery_AddItem( p_sd, item );
 
     provider_item * prov = new provider_item();
     prov->item = item;
-    prov->thread = thread;
+    prov->thread = nullptr;
     p_sys->providers_items.insert( std::make_pair( item->psz_name, prov ) );
+
     return VLC_SUCCESS;
 }
 
@@ -304,11 +306,23 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
             services_discovery_RemoveItem( p_sd, it->second->item );
             input_item_Release( it->second->item );
 
-            input_Stop( it->second->thread );
-            input_Close( it->second->thread );
+            if ( it->second->thread != nullptr )
+            {
+                input_Stop( it->second->thread );
+                input_Close( it->second->thread );
+            }
             p_sys->providers_items.erase( it );
         }
         vlc_credential_clean( &cred );
+    }
+    else if ( operation == "ACT")
+    {
+        auto it = p_sys->providers_items.find( request );
+        if ( it->second->thread == nullptr )
+        {
+            it->second->thread = input_CreateAndStart(
+                    p_sd, it->second->item, NULL);
+        }
     }
 
     return VLC_SUCCESS;
