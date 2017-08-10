@@ -24,7 +24,12 @@
 #ifndef VLC_CLOUDSTORAGE_PROVIDER_CALLBACK_H
 #define VLC_CLOUDSTORAGE_PROVIDER_CALLBACK_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif /* HAVE_CONFIG_H */
+
 #include <string>
+#include <vlc_dialog.h>
 
 #include "access.h"
 
@@ -39,8 +44,12 @@ public:
 
     Status userConsentRequired( const ICloudProvider& provider ) override
     {
+        std::string authorize_url = provider.authorizeLibraryUrl();
+        vlc_dialog_display_error( p_access, _("Authentication"),
+                "Authorization URL:%s\n\nPlease use the URL above to "
+                "authenticate into the service", authorize_url.c_str() );
         msg_Info( p_access, "User ConsentRequired at : %s",
-                provider.authorizeLibraryUrl().c_str() );
+                authorize_url.c_str() );
         return Status::WaitForAuthorizationCode;
     }
 
