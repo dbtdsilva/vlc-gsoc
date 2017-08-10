@@ -35,19 +35,21 @@
 int SDOpen( vlc_object_t * );
 void SDClose( vlc_object_t * );
 
-struct provider_item
+struct provider_item_t
 {
+    provider_item_t(input_item_t *, input_thread_t *);
+    ~provider_item_t();
+
     input_item_t * item;
     input_thread_t * thread;
 };
-typedef struct provider_item provider_item;
 
 struct services_discovery_sys_t
 {
     bool auth_progress;
-    std::map< std::string, provider_item * > providers_items;
+    std::map< std::string, provider_item_t * > providers_items;
     std::vector< std::string > providers_list;
-    provider_item * auth_item;
+    provider_item_t * auth_item;
 };
 
 #endif

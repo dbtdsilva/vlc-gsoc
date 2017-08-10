@@ -87,27 +87,9 @@ void SDClose( vlc_object_t *p_this )
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
     for ( auto& p_item_root : p_sys->providers_items )
-    {
-        input_item_Release( p_item_root.second->item );
-        if ( p_item_root.second->thread != nullptr )
-        {
-            input_Stop( p_item_root.second->thread );
-            input_Close( p_item_root.second->thread );
-        }
         delete p_item_root.second;
-    }
-
     if (p_sys->auth_item != nullptr)
-    {
-        if ( p_sys->auth_item->item != nullptr )
-            input_item_Release( p_sys->auth_item->item );
-        if ( p_sys->auth_item->thread != nullptr )
-        {
-            input_Stop( p_sys->auth_item->thread );
-            input_Close( p_sys->auth_item->thread );
-        }
         delete p_sys->auth_item;
-    }
 
     var_DelCallback( p_sd->obj.libvlc, "cloudstorage-new-auth",
             CallbackNewAuthentication, p_sd );
@@ -193,9 +175,7 @@ static int InsertNewUserInput( services_discovery_t * p_sd, input_item_t* item )
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
     services_discovery_AddItem( p_sd, item );
 
-    provider_item * prov = new provider_item();
-    prov->item = item;
-    prov->thread = nullptr;
+    provider_item_t * prov = new provider_item_t( item, nullptr );
     p_sys->providers_items.insert( std::make_pair( item->psz_name, prov ) );
 
     return VLC_SUCCESS;
@@ -281,11 +261,10 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
 
         // Generate the user and spawn the authorization
         char* gen_user = GenerateUserIdentifier( p_sd, request.c_str() );
-        p_sys->auth_item = new provider_item();
-        p_sys->auth_item->item = GetNewUserInput( p_sd, gen_user,
+        input_item_t *item = GetNewUserInput( p_sd, gen_user,
                 request.c_str() );
-        p_sys->auth_item->thread = input_CreateAndStart( p_sd,
-                p_sys->auth_item->item, NULL);
+        input_thread_t *thread = input_CreateAndStart( p_sd, item, NULL);
+        p_sys->auth_item = new provider_item_t(item, thread);
         p_sys->auth_progress = true;
     }
     else if ( operation == "RM" )
@@ -300,13 +279,6 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
         {
             auto it = p_sys->providers_items.find( request );
             services_discovery_RemoveItem( p_sd, it->second->item );
-            input_item_Release( it->second->item );
-
-            if ( it->second->thread != nullptr )
-            {
-                input_Stop( it->second->thread );
-                input_Close( it->second->thread );
-            }
             delete it->second;
             p_sys->providers_items.erase( it );
         }
@@ -324,4 +296,20 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
     }
 
     return VLC_SUCCESS;
+}
+
+provider_item_t::provider_item_t(input_item_t *item, input_thread_t *thread) :
+    item(item), thread(thread)
+{
+}
+
+provider_item_t::~provider_item_t()
+{
+    if ( item != nullptr )
+        input_item_Release( item );
+    if ( thread != nullptr )
+    {
+        input_Stop( thread );
+        input_Close( thread );
+    }
 }
