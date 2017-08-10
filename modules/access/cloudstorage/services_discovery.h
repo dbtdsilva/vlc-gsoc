@@ -44,9 +44,10 @@ typedef struct provider_item provider_item;
 
 struct services_discovery_sys_t
 {
+    bool auth_progress;
     std::map< std::string, provider_item * > providers_items;
     std::vector< std::string > providers_list;
-    input_thread_t * auth_thread;
+    provider_item * auth_item;
 };
 
 #endif

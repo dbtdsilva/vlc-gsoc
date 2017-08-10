@@ -97,10 +97,16 @@ void SDClose( vlc_object_t *p_this )
         delete p_item_root.second;
     }
 
-    if (p_sys->auth_thread != nullptr)
+    if (p_sys->auth_item != nullptr)
     {
-        input_Stop( p_sys->auth_thread );
-        input_Close( p_sys->auth_thread );
+        if ( p_sys->auth_item->item != nullptr )
+            input_item_Release( p_sys->auth_item->item );
+        if ( p_sys->auth_item->thread != nullptr )
+        {
+            input_Stop( p_sys->auth_item->thread );
+            input_Close( p_sys->auth_item->thread );
+        }
+        delete p_sys->auth_item;
     }
 
     var_DelCallback( p_sd->obj.libvlc, "cloudstorage-new-auth",
@@ -128,6 +134,7 @@ static int RepresentUsers( services_discovery_t * p_sd )
 {
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
+    p_sys->auth_progress = false;
     for ( auto& provider : p_sys->providers_list )
     {
         std::string mrl_base = "cloudstorage://" + provider;
@@ -237,31 +244,18 @@ static char * GenerateUserIdentifier( services_discovery_t * p_sd,
 static int CallbackNewAuthentication( vlc_object_t *p_this, char const *psz_var,
                      vlc_value_t oldval, vlc_value_t newval, void *p_data )
 {
-    (void) oldval; (void) p_this; (void) psz_var;
+    (void) oldval; (void) p_this; (void) psz_var; (void) newval;
+
     services_discovery_t * p_sd = (services_discovery_t *) p_data;
+    services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
-    // Closing the thread used to authenticated if exists
-    if ( p_sd->p_sys->auth_thread != nullptr )
-    {
-        input_Stop( p_sd->p_sys->auth_thread );
-        input_Close( p_sd->p_sys->auth_thread );
-        p_sd->p_sys->auth_thread = nullptr;
-    }
+    services_discovery_AddItem( p_sd, p_sys->auth_item->item  );
+    p_sys->providers_items.insert( std::make_pair(
+        p_sys->auth_item->item->psz_name, p_sys->auth_item ) );
 
-    // Process the request
-    std::string provider_name, username;
-    std::string provider_with_user( newval.psz_string );
-    size_t pos_user = provider_with_user.find_last_of("@");
-
-    if ( pos_user == std::string::npos )
-        return VLC_EGENERIC;
-
-    username = provider_with_user.substr( 0, pos_user );
-    provider_name = provider_with_user.substr( pos_user + 1);
-
-    input_item_t * item = GetNewUserInput( p_sd, username.c_str(),
-            provider_name.c_str() );
-    return InsertNewUserInput( p_sd, item );
+    p_sys->auth_item = nullptr;
+    p_sys->auth_progress = false;
+    return VLC_SUCCESS;
 }
 
 static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
@@ -278,7 +272,7 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
     if ( operation == "ADD" )
     {
         // Only one add operation is allowed at the same time
-        if (p_sys->auth_thread != nullptr)
+        if ( p_sys->auth_progress )
         {
             msg_Err( p_sd, "There is already a running authentication in "
                      "progress that must be finished before!");
@@ -287,10 +281,12 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
 
         // Generate the user and spawn the authorization
         char* gen_user = GenerateUserIdentifier( p_sd, request.c_str() );
-        input_item_t * new_item = GetNewUserInput( p_sd, gen_user,
+        p_sys->auth_item = new provider_item();
+        p_sys->auth_item->item = GetNewUserInput( p_sd, gen_user,
                 request.c_str() );
-        p_sys->auth_thread = input_CreateAndStart( p_sd, new_item, NULL);
-        input_item_Release( new_item );
+        p_sys->auth_item->thread = input_CreateAndStart( p_sd,
+                p_sys->auth_item->item, NULL);
+        p_sys->auth_progress = true;
     }
     else if ( operation == "RM" )
     {
@@ -311,9 +307,11 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
                 input_Stop( it->second->thread );
                 input_Close( it->second->thread );
             }
+            delete it->second;
             p_sys->providers_items.erase( it );
         }
         vlc_credential_clean( &cred );
+        vlc_UrlClean( &dummy_url );
     }
     else if ( operation == "ACT")
     {
