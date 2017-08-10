@@ -86,7 +86,7 @@ static struct vlc_http_stream_cbs vlc_payload_callbacks =
 
 struct vlc_http_stream *vlc_payload_stream_open( std::istream *payload_stream )
 {
-    struct vlc_payload_stream *s = (vlc_payload_stream*) malloc( sizeof (*s) );
+    struct vlc_payload_stream *s = (vlc_payload_stream *) malloc( sizeof (*s) );
     if ( unlikely( s == NULL ) )
         return NULL;
 
