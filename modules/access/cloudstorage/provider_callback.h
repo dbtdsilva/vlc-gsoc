@@ -45,9 +45,14 @@ public:
     Status userConsentRequired( const ICloudProvider& provider ) override
     {
         std::string authorize_url = provider.authorizeLibraryUrl();
-        vlc_dialog_display_error( p_access, _("Authentication"),
-                "Authorization URL:%s\n\nPlease use the URL above to "
-                "authenticate into the service", authorize_url.c_str() );
+        int error = vlc_spawn_browser( p_access, authorize_url.c_str() );
+        if ( error != VLC_SUCCESS )
+        {
+            vlc_dialog_display_error( p_access, _("Authentication required"),
+                "Authentication is required in order to use the provider. "
+                "Please open your browser with the following URL.\n\n"
+                "%s", authorize_url.c_str() );
+        }
         msg_Info( p_access, "User ConsentRequired at : %s",
                 authorize_url.c_str() );
         return Status::WaitForAuthorizationCode;
