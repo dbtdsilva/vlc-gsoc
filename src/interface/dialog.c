@@ -697,6 +697,20 @@ vlc_dialog_update_progress_text(vlc_object_t *p_obj, vlc_dialog_id *p_id,
     return i_ret;
 }
 
+#undef vlc_spawn_browser
+int
+vlc_spawn_browser(vlc_object_t *p_obj, const char *psz_url)
+{
+    assert(psz_url != NULL);
+
+    vlc_dialog_provider *p_provider = get_dialog_provider(p_obj, false);
+    if (p_provider->cbs.pf_spawn_browser == NULL)
+        return VLC_EGENERIC;
+
+    p_provider->cbs.pf_spawn_browser(p_provider->p_cbs_data, psz_url);
+    return VLC_SUCCESS;
+}
+
 #undef vlc_dialog_release
 void
 vlc_dialog_release(vlc_object_t *p_obj, vlc_dialog_id *p_id)

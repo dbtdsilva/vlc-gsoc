@@ -29,6 +29,7 @@
 #include <assert.h>
 
 #include <QCheckBox>
+#include <QDesktopServices>
 #include <QDialogButtonBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -45,7 +46,8 @@ DialogHandler::DialogHandler (intf_thread_t *p_intf, QObject *_parent)
         displayQuestionCb,
         displayProgressCb,
         cancelCb,
-        updateProgressCb
+        updateProgressCb,
+        spawnBrowserCb
     };
     vlc_dialog_provider_set_callbacks(p_intf, &cbs, this);
 
@@ -73,6 +75,9 @@ DialogHandler::DialogHandler (intf_thread_t *p_intf, QObject *_parent)
 
     CONNECT(this, progressUpdated(vlc_dialog_id *, float, const QString &),
             this, updateProgress(vlc_dialog_id *, float, const QString &));
+
+    CONNECT(this, browserSpawned(const QString &),
+            this, spawnBrowser(const QString &));
 }
 
 DialogHandler::~DialogHandler()
@@ -156,6 +161,12 @@ void DialogHandler::updateProgressCb(void *p_data, vlc_dialog_id *p_id,
     emit self->progressUpdated(p_id, f_value, qfu(psz_text));
 }
 
+void DialogHandler::spawnBrowserCb(void *p_data, const char *psz_url)
+{
+    DialogHandler *self =  static_cast<DialogHandler *>(p_data);
+    emit self->browserSpawned(qfu(psz_url));
+}
+
 void DialogHandler::cancel(vlc_dialog_id *p_id)
 {
     DialogWrapper *p_wrapper =
@@ -175,6 +186,11 @@ void DialogHandler::updateProgress(vlc_dialog_id *p_id, float f_value,
 
     if (p_progress_wrapper != NULL)
         p_progress_wrapper->updateProgress(f_value, text);
+}
+
+void DialogHandler::spawnBrowser(const QString &url)
+{
+    QDesktopServices::openUrl(QUrl(url));
 }
 
 void DialogHandler::displayError(const QString &title, const QString &text)
