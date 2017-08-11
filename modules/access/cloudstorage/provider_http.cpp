@@ -110,12 +110,17 @@ void HttpRequest::send( CompleteCallback on_completed,
 {
     std::string current_url = req_url;
     int redirect_counter = 0;
+    // default error is an internal error, it will be rewriten when it gets a
+    // request successfully
+    int response_code = 500;
 
 request:
     struct vlc_http_resource *resource =
         (struct vlc_http_resource *) malloc( sizeof( *resource ) );
-    if ( resource == NULL )
+    if ( resource == NULL ) {
+        on_completed( response_code, response, error_stream );
         return;
+    }
 
     // Concatenating the URL in the parameters
     std::string params_url;
@@ -133,12 +138,13 @@ request:
     // Fixup in order to fix the raw URL (not-encoded parts) from the
     // libcloudstorage. Either way, its safer to prevent.
     char *fixed_url = vlc_uri_fixup( url.c_str() );
-    int res = vlc_http_res_init( resource, &handler_callbacks, manager,
-                                 fixed_url, NULL, NULL, req_method.c_str() );
+    int result = vlc_http_res_init( resource, &handler_callbacks, manager,
+                                    fixed_url, NULL, NULL, req_method.c_str() );
     free(fixed_url);
-    if ( res != VLC_SUCCESS )
+    if ( result != VLC_SUCCESS )
     {
         vlc_http_res_destroy( resource );
+        on_completed( response_code, response, error_stream );
         return;
     }
 
@@ -147,6 +153,7 @@ request:
     if ( callback_data == NULL )
     {
         vlc_http_res_destroy( resource );
+        on_completed( response_code, response, error_stream );
         return;
     }
     callback_data->ptr = this;
@@ -160,9 +167,10 @@ request:
         msg_Err( p_access, "Failed to obtain a response from the request %s %s",
                  req_method.c_str(), current_url.c_str() );
         vlc_http_res_destroy( resource );
+        on_completed( response_code, response, error_stream );
         return;
     }
-    int response_code = vlc_http_msg_get_status( resource->response );
+    response_code = vlc_http_msg_get_status( resource->response );
 
     // Get the redirect URI before destroying the resource
     char *redirect_uri = vlc_http_res_get_redirect( resource );
@@ -175,6 +183,7 @@ request:
         if ( redirect_counter > URL_REDIRECT_LIMIT )
         {
             msg_Err( p_access, "URL has been redirected too many times.");
+            on_completed( response_code, response, error_stream );
             return;
         }
         current_url = std::string( redirect_uri );
@@ -201,7 +210,7 @@ request:
         msg_Dbg( p_access, "%s %s succeed with a code %d", req_method.c_str(),
                 current_url.c_str(), response_code );
     else
-        msg_Err( p_access, "Failed to request %s %s with an error code of %d",
+        msg_Warn( p_access, "Failed to request %s %s with an error code of %d",
                 req_method.c_str(), current_url.c_str(), response_code );
 
     // Invoke the respective callbacks
@@ -209,7 +218,6 @@ request:
     cb->receivedContentLength( static_cast<int>( content_length ) );
 
     vlc_http_res_destroy( resource );
-
     on_completed( response_code, response, error_stream );
 }
 
@@ -253,7 +261,7 @@ int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
                     "application/x-www-form-urlencoded" );
         }
     }
-    return 0;
+    return VLC_SUCCESS;
 }
 
 int HttpRequest::httpResponseHandler( const struct vlc_http_resource *res,
@@ -262,7 +270,7 @@ int HttpRequest::httpResponseHandler( const struct vlc_http_resource *res,
     (void) res;
     (void) resp;
     (void) opaque;
-    return 0;
+    return VLC_SUCCESS;
 }
 
 // Http interface implementation
