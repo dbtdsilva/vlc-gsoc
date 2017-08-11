@@ -102,8 +102,11 @@ bool HttpRequest::follow_redirect() const
     return req_follow_redirect;
 }
 
-int HttpRequest::send( std::istream& data, std::ostream& response,
-        std::ostream* error_stream, ICallback::Pointer cb ) const
+void HttpRequest::send( CompleteCallback on_completed,
+        std::shared_ptr<std::istream> data,
+        std::shared_ptr<std::ostream> response,
+        std::shared_ptr<std::ostream> error_stream,
+        ICallback::Pointer cb ) const
 {
     std::string current_url = req_url;
     int redirect_counter = 0;
@@ -112,7 +115,7 @@ request:
     struct vlc_http_resource *resource =
         (struct vlc_http_resource *) malloc( sizeof( *resource ) );
     if ( resource == NULL )
-        return -1;
+        return;
 
     // Concatenating the URL in the parameters
     std::string params_url;
@@ -136,7 +139,7 @@ request:
     if ( res != VLC_SUCCESS )
     {
         vlc_http_res_destroy( resource );
-        return -1;
+        return;
     }
 
     // Invoke the HTTP request (GET, POST, ..)
@@ -144,10 +147,10 @@ request:
     if ( callback_data == NULL )
     {
         vlc_http_res_destroy( resource );
-        return -1;
+        return;
     }
     callback_data->ptr = this;
-    callback_data->data = &data;
+    callback_data->data = data.get();
     resource->response = vlc_http_res_open( resource, callback_data );
     delete callback_data;
 
@@ -157,7 +160,7 @@ request:
         msg_Err( p_access, "Failed to obtain a response from the request %s %s",
                  req_method.c_str(), current_url.c_str() );
         vlc_http_res_destroy( resource );
-        return -1;
+        return;
     }
     int response_code = vlc_http_msg_get_status( resource->response );
 
@@ -172,7 +175,7 @@ request:
         if ( redirect_counter > URL_REDIRECT_LIMIT )
         {
             msg_Err( p_access, "URL has been redirected too many times.");
-            return -1;
+            return;
         }
         current_url = std::string( redirect_uri );
         goto request;
@@ -184,7 +187,7 @@ request:
     while (block != NULL)
     {
         if ( IHttpRequest::isSuccess( response_code ) )
-            response.write( (char *) block->p_buffer, block->i_buffer );
+            response->write( (char *) block->p_buffer, block->i_buffer );
         else
             error_stream->write( (char *) block->p_buffer, block->i_buffer );
         content_length += block->i_buffer;
@@ -205,8 +208,9 @@ request:
     cb->receivedHttpCode( static_cast<int>( response_code ) );
     cb->receivedContentLength( static_cast<int>( content_length ) );
 
-    vlc_http_res_destroy(resource);
-    return response_code;
+    vlc_http_res_destroy( resource );
+
+    on_completed( response_code, response, error_stream );
 }
 
 int HttpRequest::httpRequestHandler( const struct vlc_http_resource *res,
@@ -271,9 +275,4 @@ cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
 {
     return std::make_unique<HttpRequest>( p_access, url, method,
             follow_redirect );
-}
-
-std::string Http::error( int error ) const
-{
-    return "Error code " + std::to_string( error );
 }

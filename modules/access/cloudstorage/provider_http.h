@@ -39,7 +39,6 @@ public:
     Http( stream_t *access );
     cloudstorage::IHttpRequest::Pointer create( const std::string&,
             const std::string&, bool ) const override;
-    std::string error( int ) const override;
 
 private:
     stream_t *p_access;
@@ -66,8 +65,10 @@ public:
     const std::string& method() const override;
     bool follow_redirect() const override;
 
-    int send( std::istream& data, std::ostream& response,
-            std::ostream* error_stream = nullptr,
+    void send( CompleteCallback on_completed,
+            std::shared_ptr<std::istream> data,
+            std::shared_ptr<std::ostream> response,
+            std::shared_ptr<std::ostream> error_stream = nullptr,
             ICallback::Pointer = nullptr ) const override;
 
 private:
