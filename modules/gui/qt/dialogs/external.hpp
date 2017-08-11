@@ -59,6 +59,7 @@ signals:
                            float f_position, const QString &cancel);
     void cancelled(vlc_dialog_id *p_id);
     void progressUpdated(vlc_dialog_id *p_id, float f_value, const QString &text);
+    void browserSpawned(const QString& url);
 
 private slots:
     void displayError(const QString &title, const QString &text);
@@ -74,6 +75,7 @@ private slots:
                          float f_position, const QString &cancel);
     void cancel(vlc_dialog_id *p_id);
     void updateProgress(vlc_dialog_id *p_id, float f_value, const QString &text);
+    void spawnBrowser(const QString &url);
 
 private:
     intf_thread_t *p_intf;
@@ -88,6 +90,7 @@ private:
                                   const char *, bool, float, const char *);
     static void cancelCb(void *, vlc_dialog_id *);
     static void updateProgressCb(void *, vlc_dialog_id *, float, const char *);
+    static void spawnBrowserCb(void *, const char *);
 };
 
 class DialogWrapper : public QObject

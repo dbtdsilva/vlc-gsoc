@@ -239,6 +239,18 @@ vlc_dialog_update_progress_text_va(vlc_object_t *p_obj, vlc_dialog_id *p_id,
                                    va_list ap);
 
 /**
+ * Spawns the default browser
+ *
+ * @param p_obj the VLC object emitting the browser
+ * @param psz_url spawns the default browser in the following url
+ * @return VLC_SUCCESS on success, or a VLC error code on error
+ */
+VLC_API int
+vlc_spawn_browser(vlc_object_t *p_obj, const char *psz_url);
+#define vlc_spawn_browser(a, b) \
+    vlc_spawn_browser(VLC_OBJECT(a), b)
+
+/**
  * Release the dialog id returned by vlc_dialog_display_progress()
  *
  * It causes the vlc_dialog_cbs.pf_cancel() callback to be invoked.
@@ -377,6 +389,14 @@ typedef struct vlc_dialog_cbs
      */
     void (*pf_update_progress)(void *p_data, vlc_dialog_id *p_id,
                                float f_position, const char *psz_text);
+
+    /**
+     * Called when a browser requires to be spawned
+     *
+     * @param p_data opaque pointer for the callback
+     * @param psz_url spawns the default browser in the following url
+     */
+    void (*pf_spawn_browser)(void *p_data, const char *psz_url);
 } vlc_dialog_cbs;
 
 /**

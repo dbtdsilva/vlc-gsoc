@@ -152,6 +152,14 @@ typedef struct libvlc_dialog_cbs
      */
     void (*pf_update_progress)(void *p_data, libvlc_dialog_id *p_id,
                                float f_position, const char *psz_text);
+
+    /**
+     * Called when a browser requires to be spawned
+     *
+     * @param p_data opaque pointer for the callback
+     * @param psz_url spawns the default browser in the following url
+     */
+    void (*pf_spawn_browser)(void *p_data, const char *psz_url);
 } libvlc_dialog_cbs;
 
 /**
