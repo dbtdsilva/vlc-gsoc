@@ -214,8 +214,11 @@ request:
                 req_method.c_str(), current_url.c_str(), response_code );
 
     // Invoke the respective callbacks
-    cb->receivedHttpCode( static_cast<int>( response_code ) );
-    cb->receivedContentLength( static_cast<int>( content_length ) );
+    if ( cb != nullptr )
+    {
+        cb->receivedHttpCode( static_cast<int>( response_code ) );
+        cb->receivedContentLength( static_cast<int>( content_length ) );
+    }
 
     vlc_http_res_destroy( resource );
     on_completed( response_code, response, error_stream );
