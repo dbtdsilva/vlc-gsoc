@@ -32,11 +32,13 @@
 #include "provider_callback.h"
 #include "provider_httpd.h"
 #include "provider_http.h"
+#include "vlc_interrupt.h"
 
 using cloudstorage::ICloudStorage;
 using cloudstorage::ICloudProvider;
 using cloudstorage::IDownloadFileCallback;
 using cloudstorage::IItem;
+using cloudstorage::IRequest;
 
 static int AddItem( struct access_fsdir *, stream_t *, IItem::Pointer );
 static int GetCredentials( stream_t * );
@@ -219,17 +221,33 @@ static int AddItem( struct access_fsdir *p_fsdir, stream_t *p_access,
             item->filename().c_str(), i_type, ITEM_NET );
 }
 
+template <class Type, class T, class ...Args>
+static auto WrapFunction(Type function, T&& obj, Args... args)
+{
+    vlc_sem_t sem;
+    vlc_sem_init( &sem, 0 );
+    auto finish_operation = [ &sem ]( auto )
+    {
+        vlc_sem_post( &sem );
+    };
+    auto request = (std::forward<T>(obj).*function)(args..., finish_operation);
+    vlc_sem_wait_i11e( &sem );
+
+    return request->result().right();
+}
+
 static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     struct access_fsdir fsdir;
 
-    ICloudProvider::ListDirectoryRequest::Pointer list_directory_request_ =
-            p_sys->provider->listDirectoryAsync( p_sys->current_item );
+    auto result = WrapFunction(static_cast<ICloudProvider::ListDirectoryRequest::Pointer(ICloudProvider::*)
+            (IItem::Pointer, cloudstorage::ListDirectoryCallback)>(&ICloudProvider::listDirectoryAsync),
+            *(p_sys->provider), p_sys->current_item);
 
     access_fsdir_init( &fsdir, p_access, p_node );
     int error_code = VLC_SUCCESS;
-    for ( auto &i : *list_directory_request_->result().right() )
+    for ( auto &i : *result )
     {
         if ( AddItem( &fsdir, p_access, i ) != VLC_SUCCESS )
         {
