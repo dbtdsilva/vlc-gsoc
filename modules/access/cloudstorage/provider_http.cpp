@@ -284,6 +284,6 @@ Http::Http( stream_t *access ) : p_access( access )
 cloudstorage::IHttpRequest::Pointer Http::create( const std::string& url,
             const std::string& method, bool follow_redirect ) const
 {
-    return std::make_unique<HttpRequest>( p_access, url, method,
-            follow_redirect );
+    return std::unique_ptr<HttpRequest>( new HttpRequest( p_access, url, method,
+            follow_redirect ) );
 }
