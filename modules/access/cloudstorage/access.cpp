@@ -179,10 +179,10 @@ static int InitProvider( stream_t * p_access )
     }
     p_sys->provider->initialize({
         p_sys->token,
-        std::make_unique<Callback>( p_access ),
+        std::unique_ptr<Callback>( new Callback( p_access ) ),
         nullptr,
-        std::make_unique<Http>( p_access ),
-        std::make_unique<HttpdFactory>( HttpdFactory( p_access ) ),
+        std::unique_ptr<Http>( new Http(p_access ) ),
+        std::unique_ptr<HttpdFactory>( new HttpdFactory( p_access ) ),
         hints
     });
 
