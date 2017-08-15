@@ -231,8 +231,11 @@ static auto WrapFunction(Type function, T&& obj, Args... args)
         vlc_sem_post( &sem );
     };
     auto request = (std::forward<T>(obj).*function)(args..., finish_operation);
-    vlc_sem_wait_i11e( &sem );
-
+    // Semaphore was interrupted
+    if ( vlc_sem_wait_i11e( &sem ) == EINTR )
+    {
+        request->cancel();
+    }
     return request->result().right();
 }
 
@@ -244,6 +247,9 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     auto result = WrapFunction(static_cast<ICloudProvider::ListDirectoryRequest::Pointer(ICloudProvider::*)
             (IItem::Pointer, cloudstorage::ListDirectoryCallback)>(&ICloudProvider::listDirectoryAsync),
             *(p_sys->provider), p_sys->current_item);
+
+    if ( result == nullptr )
+        return VLC_EGENERIC;
 
     access_fsdir_init( &fsdir, p_access, p_node );
     int error_code = VLC_SUCCESS;
