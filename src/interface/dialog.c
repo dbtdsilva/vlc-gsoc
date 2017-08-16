@@ -697,6 +697,43 @@ vlc_dialog_update_progress_text(vlc_object_t *p_obj, vlc_dialog_id *p_id,
     return i_ret;
 }
 
+#undef vlc_spawn_browser
+int
+vlc_spawn_browser(vlc_object_t *p_obj, const char *psz_url,
+                  const char *dialog_title, const char *psz_fmt, ...)
+{
+    assert(psz_fmt != NULL);
+    va_list ap;
+    va_start(ap, psz_fmt);
+    int i_ret = vlc_spawn_browser_va(p_obj, psz_url, dialog_title, psz_fmt, ap);
+    va_end(ap);
+
+    return i_ret;
+}
+
+int
+vlc_spawn_browser_va(vlc_object_t *p_obj, const char *psz_url,
+                  const char *dialog_title, const char *psz_fmt, va_list ap)
+{
+    assert(psz_url != NULL);
+
+    if (dialog_title != NULL)
+    {
+        int ret = vlc_dialog_wait_question_va(p_obj,
+                VLC_DIALOG_QUESTION_WARNING, "Cancel", "Open", NULL,
+                dialog_title, psz_fmt, ap);
+        if (ret <= 0)
+            return ret;
+    }
+
+    vlc_dialog_provider *p_provider = get_dialog_provider(p_obj, false);
+    if (p_provider->cbs.pf_spawn_browser == NULL)
+        return VLC_EGENERIC;
+
+    p_provider->cbs.pf_spawn_browser(p_provider->p_cbs_data, psz_url);
+    return 1;
+}
+
 #undef vlc_dialog_release
 void
 vlc_dialog_release(vlc_object_t *p_obj, vlc_dialog_id *p_id)

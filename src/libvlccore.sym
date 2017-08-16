@@ -559,6 +559,8 @@ vlc_sem_init
 vlc_sem_destroy
 vlc_sem_post
 vlc_sem_wait
+vlc_spawn_browser
+vlc_spawn_browser_va
 vlc_control_cancel
 vlc_GetCPUCount
 vlc_CPU

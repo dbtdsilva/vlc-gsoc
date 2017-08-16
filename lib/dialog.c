@@ -115,6 +115,13 @@ update_progress_cb(void *p_data, vlc_dialog_id *p_id, float f_position,
                                               f_position, psz_text);
 }
 
+static void
+spawn_browser_cb(void *p_data, const char *psz_url)
+{
+    libvlc_instance_t *p_instance = p_data;
+    p_instance->dialog.cbs.pf_spawn_browser(p_instance->dialog.data, psz_url);
+}
+
 void
 libvlc_dialog_set_callbacks(libvlc_instance_t *p_instance,
                             const libvlc_dialog_cbs *p_cbs, void *p_data)
@@ -136,6 +143,8 @@ libvlc_dialog_set_callbacks(libvlc_instance_t *p_instance,
             .pf_cancel = p_cbs->pf_cancel != NULL ? cancel_cb : NULL,
             .pf_update_progress = p_cbs->pf_update_progress != NULL ?
                                   update_progress_cb : NULL,
+            .pf_spawn_browser = p_cbs->pf_spawn_browser != NULL ?
+                                spawn_browser_cb : NULL,
         };
 
         p_instance->dialog.cbs = *p_cbs;
