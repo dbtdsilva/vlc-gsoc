@@ -313,6 +313,16 @@ endif
 
 ### Network streams ###
 
+libcloudstorage_plugin_la_SOURCES = \
+	access/cloudstorage.cpp \
+	access/cloudstorage/access.h access/cloudstorage/access.cpp \
+	access/cloudstorage/provider_callback.h
+libcloudstorage_plugin_la_CXXFLAGS = $(CXXFLAGS_cloudstorage) $(AM_CXXFLAGS)
+libcloudstorage_plugin_la_LIBADD = $(LIBS_cloudstorage)
+libcloudstorage_plugin_la_LDFLAGS = $(AM_LDFLAGS) -rpath '$(accessdir)'
+access_LTLIBRARIES += $(LTLIBcloudstorage)
+EXTRA_LTLIBRARIES += libcloudstorage_plugin.la
+
 libftp_plugin_la_SOURCES = access/ftp.c
 libftp_plugin_la_LIBADD = $(SOCKET_LIBS)
 access_LTLIBRARIES += libftp_plugin.la

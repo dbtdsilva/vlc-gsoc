@@ -1,4 +1,4 @@
-List of vlc plugins (475)
+List of vlc plugins (489)
 $Id$
  * a52: A/52 audio decoder plugin, using liba52
  * aa: Ascii art video output
@@ -80,6 +80,7 @@ $Id$
  * chroma_yuv_neon: ARM NEON video chroma conversion
  * ci_filters: CoreImage hardware-accelerated adjust/invert/posterize/sepia/sharpen filters
  * clone: Clone video filter
+ * cloudstorage: Cloud storage services module using libcloudstorage
  * colorthres:  Theshold color based on similarity to reference color Video filter
  * compressor: Dynamic range compressor
  * console_logger: Logger outputting in the terminal
