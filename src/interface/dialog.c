@@ -716,10 +716,15 @@ vlc_spawn_browser_va(vlc_object_t *p_obj, const char *psz_url,
                   const char *dialog_title, const char *psz_fmt, va_list ap)
 {
     assert(psz_url != NULL);
-    int ret = vlc_dialog_wait_question_va(p_obj, VLC_DIALOG_QUESTION_WARNING,
-        "Cancel", "Open", NULL, dialog_title, psz_fmt, ap);
-    if (ret <= 0)
-        return ret;
+
+    if (dialog_title != NULL)
+    {
+        int ret = vlc_dialog_wait_question_va(p_obj,
+                VLC_DIALOG_QUESTION_WARNING, "Cancel", "Open", NULL,
+                dialog_title, psz_fmt, ap);
+        if (ret <= 0)
+            return ret;
+    }
 
     vlc_dialog_provider *p_provider = get_dialog_provider(p_obj, false);
     if (p_provider->cbs.pf_spawn_browser == NULL)
