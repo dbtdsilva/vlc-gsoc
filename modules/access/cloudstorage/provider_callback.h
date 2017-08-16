@@ -47,8 +47,7 @@ public:
         std::string authorize_url = provider.authorizeLibraryUrl();
         int i_ret = vlc_spawn_browser( p_access, authorize_url.c_str(),
             "Authentication required", "This function requires login through a "
-            "website and will open a webbrowser.",
-            authorize_url.c_str() );
+            "website and will open a webbrowser." );
         if ( i_ret != 1 )
             return Status::None;
         msg_Info( p_access, "User ConsentRequired at : %s",
