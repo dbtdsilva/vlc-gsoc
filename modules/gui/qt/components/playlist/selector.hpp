@@ -47,8 +47,7 @@ enum SelectorItemType {
 };
 
 enum SpecialData {
-    IS_PODCAST = 1,
-    IS_PL,
+    IS_PL = 1,
     IS_ML
 };
 
@@ -76,17 +75,43 @@ protected:
     void paintEvent( QPaintEvent * ) Q_DECL_OVERRIDE;
 };
 
+class PLSelItemTree
+{
+public:
+    PLSelItemTree(QTreeWidgetItem*, const char* = nullptr,
+            const char* = nullptr, const char * = nullptr);
+    void setParentId(int id) { parent_id = id; }
+    int parentId() const { return parent_id; }
+    QTreeWidgetItem* parent() const { return parent_ptr; }
+    const char* slotAddFunct() const { return slot_add_funct; }
+    const char* slotRemoveFunct() const { return slot_remove_funct; }
+    const char* slotActivatedFunct() const { return slot_activate_funct; }
+private:
+    QTreeWidgetItem*    parent_ptr;
+    int                 parent_id;
+    const char*         slot_add_funct;
+    const char*         slot_remove_funct;
+    const char*         slot_activate_funct;
+};
+
 class PLSelItem : public QWidget
 {
     Q_OBJECT
 public:
     PLSelItem( QTreeWidgetItem*, const QString& );
+    virtual ~PLSelItem();
 
     void setText( const QString& text ) { lbl->setText( text ); }
     QString text() const { return lbl->text(); }
 
     void addAction( ItemAction, const QString& toolTip = 0 );
     QTreeWidgetItem *treeItem() { return qitem; }
+
+    void createInnerTree( const char* = nullptr, const char* = nullptr,
+                          const char* = nullptr );
+    PLSelItemTree* innerTree() const { return pInnerTree; }
+protected:
+    void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 
 public slots:
     void showAction() { if( lblAction ) lblAction->show();  }
@@ -96,16 +121,18 @@ private slots:
     void triggerAction() { emit action( this ); }
 
 signals:
+    void subTreeActivated( PLSelItem* );
     void action( PLSelItem* );
 
 private:
     inline void enterEvent( QEvent* ){ showAction(); }
     inline void leaveEvent( QEvent* ){ hideAction(); }
 
-    QTreeWidgetItem*     qitem;
-    QFramelessButton* lblAction;
-    QLabel*              lbl;
-    QHBoxLayout*         layout;
+    QTreeWidgetItem *   qitem;
+    QFramelessButton *  lblAction;
+    QLabel*             lbl;
+    QHBoxLayout*        layout;
+    PLSelItemTree*      pInnerTree;
 };
 
 #include <vlc_input_item.h>
@@ -133,7 +160,7 @@ private:
     void createItems();
     PLSelItem * addItem ( SelectorItemType type, const char* str,
             bool drop = false, bool bold = false, QTreeWidgetItem* parentItem = 0 );
-    PLSelItem * addPodcastItem( playlist_item_t *p_item );
+    PLSelItem * addItemOnTree( playlist_item_t *p_item, PLSelItem* sel_item );
 
     PLSelItem* playlistItem;
 
@@ -141,10 +168,9 @@ private:
 
     inline PLSelItem * itemWidget( QTreeWidgetItem * );
 
-    intf_thread_t    *p_intf;
-    QTreeWidgetItem  *podcastsParent;
-    int               podcastsParentId;
-    QTreeWidgetItem  *curItem;
+    intf_thread_t *             p_intf;
+    QTreeWidgetItem *           curItem;
+    std::vector<PLSelItem *>    listItems;
 
 private slots:
     void setSource( QTreeWidgetItem *item );
@@ -153,6 +179,9 @@ private slots:
     void inputItemUpdate( input_item_t * );
     void podcastAdd( PLSelItem* );
     void podcastRemove( PLSelItem* );
+    void cloudProviderAdd( PLSelItem* );
+    void cloudProviderRemove( PLSelItem* );
+    void cloudProviderActivated( PLSelItem* );
 
 signals:
     void categoryActivated( playlist_item_t *, bool );
