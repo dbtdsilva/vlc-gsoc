@@ -285,7 +285,7 @@ struct vlc_http_msg *vlc_http_msg_get_final(struct vlc_http_msg *m)
     return m;
 }
 
-block_t *vlc_http_msg_read(struct vlc_http_msg *m)
+block_t *vlc_http_msg_read(const struct vlc_http_msg *m)
 {
     if (m->payload == NULL)
         return NULL;
@@ -316,7 +316,6 @@ char *vlc_http_msg_format(const struct vlc_http_msg *m, size_t *restrict lenp,
     for (unsigned i = 0; i < m->count; i++)
         vlc_memstream_printf(&stream, "%s: %s\r\n",
                              m->headers[i][0], m->headers[i][1]);
-
     vlc_memstream_puts(&stream, "\r\n");
 
     if (vlc_memstream_close(&stream))

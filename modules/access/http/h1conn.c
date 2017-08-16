@@ -161,8 +161,21 @@ static struct vlc_http_stream *vlc_h1_stream_open(struct vlc_http_conn *c,
     if (val < (ssize_t)len)
         return vlc_h1_stream_fatal(conn);
 
+    // Stream the data in blocks
+    size_t body_streamed_size = 0;
+    struct block_t* block = vlc_http_msg_read( req );
+    while (block != NULL)
+    {
+        vlc_tls_Write(conn->conn.tls, block->p_buffer, block->i_buffer);
+
+        body_streamed_size += block->i_buffer;
+        block_Release(block);
+
+        block = vlc_http_msg_read( req );
+    }
+
     conn->active = true;
-    conn->content_length = 0;
+    conn->content_length = body_streamed_size;
     conn->connection_close = false;
     return &conn->stream;
 }
