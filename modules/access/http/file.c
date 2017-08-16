@@ -118,8 +118,8 @@ struct vlc_http_resource *vlc_http_file_create(struct vlc_http_mgr *mgr,
     if (unlikely(file == NULL))
         return NULL;
 
-    if (vlc_http_res_init(&file->resource, &vlc_http_file_callbacks, mgr,
-                          uri, ua, ref))
+    if (vlc_http_res_init(&file->resource, &vlc_http_file_callbacks,
+                          mgr, uri, ua, ref, "GET"))
     {
         free(file);
         return NULL;

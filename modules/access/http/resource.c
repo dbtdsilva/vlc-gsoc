@@ -41,7 +41,7 @@ vlc_http_res_req(const struct vlc_http_resource *res, void *opaque)
 {
     struct vlc_http_msg *req;
 
-    req = vlc_http_req_create("GET", res->secure ? "https" : "http",
+    req = vlc_http_req_create(res->method, res->secure ? "https" : "http",
                               res->authority, res->path);
     if (unlikely(req == NULL))
         return NULL;
@@ -154,6 +154,7 @@ static void vlc_http_res_deinit(struct vlc_http_resource *res)
     free(res->path);
     free(res->authority);
     free(res->host);
+    free(res->method);
 
     if (res->response != NULL)
         vlc_http_msg_destroy(res->response);
@@ -180,7 +181,8 @@ static char *vlc_http_authority(const char *host, unsigned port)
 int vlc_http_res_init(struct vlc_http_resource *restrict res,
                       const struct vlc_http_resource_cbs *cbs,
                       struct vlc_http_mgr *mgr,
-                      const char *uri, const char *ua, const char *ref)
+                      const char *uri, const char *ua, const char *ref,
+                      const char *method)
 {
     vlc_url_t url;
     bool secure;
@@ -217,6 +219,8 @@ int vlc_http_res_init(struct vlc_http_resource *restrict res,
                                                : NULL;
     res->agent = (ua != NULL) ? strdup(ua) : NULL;
     res->referrer = (ref != NULL) ? strdup(ref) : NULL;
+
+    res->method = method == NULL ? strdup("GET") : strdup(method);
 
     const char *path = url.psz_path;
     if (path == NULL)
