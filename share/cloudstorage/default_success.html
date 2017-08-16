@@ -16,12 +16,13 @@
     <nav id="nav" class="navbar navbar-default navbar-static-top">
       <div class="container">
         <div class="navbar-header"><a class="navbar-brand" href="//www.videolan.org/"><img src='//images.videolan.org/images/logoBlue.png' alt='VideoLAN association' /></a>
-          <a class="navbar-brand" style="padding: 15px 15px">Libcloudstorage Local Server</a><button type="button" class="navbar-toggle collapsed"
+          <a class="navbar-brand" style="padding: 15px 15px">VLC Local Server</a><button type="button" class="navbar-toggle collapsed"
             data-toggle="collapse" data-target="#main-navbar" aria-expanded="false"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button></div>
       </div>
     </nav>
     <div class="container center-block">
       <h1 class="text-center">Successfully authenticated</h1>
+      <h4 class="text-center">You may now return to your VLC window. <br/>You will be able to find the new logged in provider under the Cloud Storage item on the sidebar.</h5>
       <script>
         $.ajax({ "data": { "accepted": "true" } });
         history.replaceState({}, null, location.pathname + '/success');
