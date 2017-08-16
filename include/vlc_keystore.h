@@ -259,6 +259,20 @@ vlc_credential_store(vlc_credential *p_credential, vlc_object_t *p_parent);
     vlc_credential_store(a, VLC_OBJECT(b))
 
 /**
+ * Deletes the last credential returned by vlc_credential_get() if it was ever
+ * stored before.
+ *
+ * This function will delete the credential from the memory or permament
+ * keystore depending on its current location or even if it was ever stored.
+ *
+ * @return true if the credential was deleted, false otherwise
+ */
+VLC_API bool
+vlc_credential_delete(vlc_credential *p_credential, vlc_object_t *p_parent);
+#define vlc_credential_delete(a, b) \
+    vlc_credential_delete(a, VLC_OBJECT(b))
+
+/**
  * @}
  * @defgroup keystore_implementation Implemented by keystore modules
  * @{
