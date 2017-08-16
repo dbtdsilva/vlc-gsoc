@@ -1,5 +1,5 @@
 /*****************************************************************************
- * VLCVolumeSlider.m
+ * VLCBottomBarView.h
  *****************************************************************************
  * Copyright (C) 2017 VLC authors and VideoLAN
  * $Id$
@@ -21,41 +21,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
+#import <Cocoa/Cocoa.h>
 
-#import "VLCVolumeSlider.h"
-#import "VLCVolumeSliderCell.h"
+@interface VLCBottomBarView : NSView
 
-@implementation VLCVolumeSlider
+@property NSGradient *lightGradient;
+@property NSGradient *darkGradient;
 
-- (instancetype)initWithCoder:(NSCoder *)coder
-{
-    self = [super initWithCoder:coder];
+@property NSColor *lightStroke;
+@property NSColor *darkStroke;
 
-    if (self) {
-        NSAssert([self.cell isKindOfClass:[VLCVolumeSliderCell class]],
-                 @"VLCVolumeSlider cell is not VLCVolumeSliderCell");
-    }
-    return self;
-}
-
-+ (Class)cellClass
-{
-    return [VLCVolumeSliderCell class];
-}
-
-// Workaround for 10.7
-// http://stackoverflow.com/questions/3985816/custom-nsslidercell
-- (void)setNeedsDisplayInRect:(NSRect)invalidRect {
-    [super setNeedsDisplayInRect:[self bounds]];
-}
-
-- (void)setUsesBrightArtwork:(BOOL)brightArtwork
-{
-    if (brightArtwork) {
-        [(VLCVolumeSliderCell*)self.cell setSliderStyleLight];
-    } else {
-        [(VLCVolumeSliderCell*)self.cell setSliderStyleDark];
-    }
-}
+@property (setter=setDark:) BOOL isDark;
 
 @end
