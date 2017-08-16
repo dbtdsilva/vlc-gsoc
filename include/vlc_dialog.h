@@ -239,16 +239,32 @@ vlc_dialog_update_progress_text_va(vlc_object_t *p_obj, vlc_dialog_id *p_id,
                                    va_list ap);
 
 /**
- * Spawns the default browser
+ * This functions spawns the default webbrowser. Before spawning a
+ * webbrowser, it warns the user that a webbrowser is going to be opened. That
+ * warning dialog can be skipped if psz_title is equals to NULL
  *
  * @param p_obj the VLC object emitting the browser
  * @param psz_url spawns the default browser in the following url
- * @return VLC_SUCCESS on success, or a VLC error code on error
+ * @param psz_title (optional) title of the warning dialog
+ * @param psz_fmt format string for the warning message
+ * @return < 0 on error, 0 if the user cancelled to open browser, 1 if browser
+ * was opened
  */
 VLC_API int
-vlc_spawn_browser(vlc_object_t *p_obj, const char *psz_url);
-#define vlc_spawn_browser(a, b) \
-    vlc_spawn_browser(VLC_OBJECT(a), b)
+vlc_spawn_browser(vlc_object_t *p_obj, const char *psz_url,
+                  const char *dialog_title, const char *psz_fmt, ...)
+                  VLC_FORMAT(4, 5);
+#define vlc_spawn_browser(a, b, c, d, ...) \
+    vlc_spawn_browser(VLC_OBJECT(a), b, c, d, ##__VA_ARGS__)
+
+/**
+ * This functions spawns the default webbrowser with a warning dialog.
+ *
+ * Equivalent to vlc_spawn_browser() expect that it's called with a va_list.
+ */
+VLC_API int
+vlc_spawn_browser_va(vlc_object_t *p_obj, const char *psz_url,
+                  const char *dialog_title, const char *psz_fmt, va_list ap);
 
 /**
  * Release the dialog id returned by vlc_dialog_display_progress()
