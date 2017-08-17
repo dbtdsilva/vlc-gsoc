@@ -226,8 +226,27 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     struct access_fsdir fsdir;
 
+    vlc_sem_t sem;
+    vlc_sem_init( &sem, 0 );
     ICloudProvider::ListDirectoryRequest::Pointer list_directory_request =
-            p_sys->provider->listDirectoryAsync( p_sys->current_item );
+            p_sys->provider->listDirectoryAsync( p_sys->current_item,
+        [&sem](EitherError<std::vector<IItem::Pointer>>) {
+            vlc_sem_post( &sem );
+        }
+    );
+    if ( vlc_sem_wait_i11e( &sem ) == EINTR )
+    {
+        list_directory_request->cancel();
+        return VLC_EGENERIC;
+    }
+    auto req_result = list_directory_request->result();
+    if ( req_result.left() )
+    {
+        msg_Err( p_access, "Failed to list directory (%d): %s",
+                 req_result.left()->code_,
+                 req_result.left()->description_.c_str() );
+        return VLC_EGENERIC;
+    }
 
     access_fsdir_init( &fsdir, p_access, p_node );
     int error_code = VLC_SUCCESS;
