@@ -74,14 +74,12 @@ int Open( vlc_object_t *p_this )
     {
         vlc_sem_t sem;
         vlc_sem_init( &sem, 0 );
-        auto request = p_sys->provider->
-                getItemDataAsync( p_sys->current_item->id(),
-            [ &sem ](EitherError<IItem>)
-            {
-                vlc_sem_post( &sem );
-            }
-        );
-        if ( vlc_sem_wait_i11e( &sem ) == EINTR )
+        auto request = p_sys->provider->getItemDataAsync(
+            p_sys->current_item->id(),
+            [ &sem ]( EitherError<IItem> ) { vlc_sem_post( &sem ); });
+        int code = vlc_sem_wait_i11e( &sem );
+        vlc_sem_destroy( &sem );
+        if ( code == EINTR )
         {
             request->cancel();
             return VLC_EGENERIC;
@@ -210,14 +208,13 @@ static int InitProvider( stream_t * p_access )
     // Retrieve item from the initial path
     vlc_sem_t sem;
     vlc_sem_init( &sem, 0 );
-    auto request = p_sys->provider->
-            getItemAsync( vlc_uri_decode( p_sys->url.psz_path ),
-        [ &sem ]( EitherError<IItem> )
-        {
-            vlc_sem_post( &sem );
-        }
+    auto request = p_sys->provider->getItemAsync(
+        vlc_uri_decode( p_sys->url.psz_path ),
+        [ &sem ]( EitherError<IItem> ) { vlc_sem_post( &sem ); }
     );
-    if ( vlc_sem_wait_i11e( &sem ) == EINTR )
+    int code = vlc_sem_wait_i11e( &sem );
+    vlc_sem_destroy( &sem );
+    if ( code == EINTR )
     {
         request->cancel();
         return VLC_EGENERIC;
@@ -269,13 +266,14 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
 
     vlc_sem_t sem;
     vlc_sem_init( &sem, 0 );
-    ICloudProvider::ListDirectoryRequest::Pointer list_directory_request =
-            p_sys->provider->listDirectoryAsync( p_sys->current_item,
-        [&sem](EitherError<std::vector<IItem::Pointer>>) {
-            vlc_sem_post( &sem );
-        }
+    auto list_directory_request = p_sys->provider->listDirectoryAsync(
+        p_sys->current_item,
+        [ &sem ]( EitherError<std::vector<IItem::Pointer>> )
+            { vlc_sem_post( &sem ); }
     );
-    if ( vlc_sem_wait_i11e( &sem ) == EINTR )
+    int code = vlc_sem_wait_i11e( &sem );
+    vlc_sem_destroy( &sem );
+    if ( code == EINTR )
     {
         list_directory_request->cancel();
         return VLC_EGENERIC;
