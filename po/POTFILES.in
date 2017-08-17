@@ -181,6 +181,8 @@ modules/access/cloudstorage.cpp
 modules/access/cloudstorage/access.cpp
 modules/access/cloudstorage/access.h
 modules/access/cloudstorage/provider_callback.h
+modules/access/cloudstorage/services_discovery.cpp
+modules/access/cloudstorage/services_discovery.h
 modules/access/concat.c
 modules/access/dc1394.c
 modules/access/dcp/dcp.cpp
