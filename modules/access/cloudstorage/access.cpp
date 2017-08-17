@@ -151,6 +151,22 @@ static int InitProvider( stream_t * p_access )
     hints["redirect_uri"] = "http://localhost:" + redirect_port + "/auth";
     hints["file_url"] = "http://localhost:" + redirect_port + "/files";
 
+    // Load custom-made pages
+    std::string parent = "cloudstorage";
+    parent.append( DIR_SEP );
+    if ( strcmp( p_sys->url.psz_host, "amazons3" ) == 0 ||
+         strcmp( p_sys->url.psz_host, "mega" ) == 0 ||
+         strcmp( p_sys->url.psz_host, "owncloud" ) == 0 )
+    {
+        hints["login_page"] = ReadFile(
+                parent + p_sys->url.psz_host + "_login.html");
+        hints["success_page"] = ReadFile(
+                parent + p_sys->url.psz_host + "_success.html");
+    }
+    else
+        hints["success_page"] = ReadFile( parent + "default_success.html" );
+    hints["error_page"] = ReadFile( parent + "default_error.html" );
+
     // Initialize the provider
     p_sys->provider = cloudstorage::ICloudStorage::
             create()->provider( p_sys->url.psz_host );
