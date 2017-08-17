@@ -72,9 +72,29 @@ int Open( vlc_object_t *p_this )
     }
     else
     {
-        p_sys->current_item = p_sys->provider->
-                getItemDataAsync( p_sys->current_item->id() )->result().right();
-        p_access->psz_url = strdup( p_sys->current_item->url().c_str() );
+        vlc_sem_t sem;
+        vlc_sem_init( &sem, 0 );
+        auto request = p_sys->provider->
+                getItemDataAsync( p_sys->current_item->id(),
+            [ &sem ](EitherError<IItem>)
+            {
+                vlc_sem_post( &sem );
+            }
+        );
+        if ( vlc_sem_wait_i11e( &sem ) == EINTR )
+        {
+            request->cancel();
+            return VLC_EGENERIC;
+        }
+        auto req_result = request->result();
+        if ( req_result.left() )
+        {
+            msg_Err( p_access, "Failed to list directory (%d): %s",
+                     req_result.left()->code_,
+                     req_result.left()->description_.c_str() );
+            return VLC_EGENERIC;
+        }
+        p_access->psz_url = strdup( req_result.right()->url().c_str() );
         err = VLC_ACCESS_REDIRECT;
     }
 
@@ -187,9 +207,30 @@ static int InitProvider( stream_t * p_access )
     });
 
     msg_Dbg( p_access, "Path: %s", p_sys->url.psz_path );
-    p_sys->current_item = p_sys->provider->
-            getItemAsync( vlc_uri_decode( p_sys->url.psz_path ) )->
-            result().right();
+    // Retrieve item from the initial path
+    vlc_sem_t sem;
+    vlc_sem_init( &sem, 0 );
+    auto request = p_sys->provider->
+            getItemAsync( vlc_uri_decode( p_sys->url.psz_path ),
+        [ &sem ]( EitherError<IItem> )
+        {
+            vlc_sem_post( &sem );
+        }
+    );
+    if ( vlc_sem_wait_i11e( &sem ) == EINTR )
+    {
+        request->cancel();
+        return VLC_EGENERIC;
+    }
+    auto req_result = request->result();
+    if ( req_result.left() )
+    {
+        msg_Err( p_access, "Failed to list directory (%d): %s",
+                 req_result.left()->code_,
+                 req_result.left()->description_.c_str() );
+        return VLC_EGENERIC;
+    }
+    p_sys->current_item = req_result.right();
     if ( p_sys->current_item == nullptr )
     {
         msg_Err( p_access, "Item %s does not exist in the provider %s",
