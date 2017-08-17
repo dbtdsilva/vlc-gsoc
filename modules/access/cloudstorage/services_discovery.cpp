@@ -62,13 +62,15 @@ int SDOpen( vlc_object_t *p_this )
     if ( RepresentUsers( p_sd ) != VLC_SUCCESS )
         goto error;
 
-    // Associate callbacks to detect when a user is authenticated with success!
+    // This callback represents when an user was sucessfully authenticated, so
+    // it needs to be added to the services_discovery items
     if ( var_Create( p_sd->obj.libvlc, "cloudstorage-new-auth",
             VLC_VAR_STRING) != VLC_SUCCESS )
         goto error;
     var_AddCallback( p_sd->obj.libvlc, "cloudstorage-new-auth",
             CallbackNewAuthentication, p_sd );
-
+    // This callback is invoked when the UI requests some actions, like adding
+    // a new provider to the list
     if ( var_Create( p_sd->obj.parent, "cloudstorage-request",
             VLC_VAR_STRING ) != VLC_SUCCESS )
         goto error;
@@ -117,6 +119,7 @@ static int RepresentUsers( services_discovery_t * p_sd )
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
     p_sys->auth_progress = false;
+    // Load the existing users from the keystore
     for ( auto& provider : p_sys->providers_list )
     {
         std::string mrl_base = "cloudstorage://" + provider;
@@ -184,8 +187,8 @@ static int InsertNewUserInput( services_discovery_t * p_sd, input_item_t* item )
 static char * GenerateUserIdentifier( services_discovery_t * p_sd,
         const char * provider)
 {
-    // Find the last generated identifier for the Association MRL
-    // MRL in the item will contain a predefined user
+    // This function is supposed to get replaced when libcloudstorage supports
+    // to obtain user data, like its username!
     std::string mrl_base = "cloudstorage://";
     mrl_base += provider;
     vlc_url_t dummy_url;
@@ -194,6 +197,8 @@ static char * GenerateUserIdentifier( services_discovery_t * p_sd,
     vlc_credential_init( &cred, &dummy_url );
     vlc_credential_get( &cred, p_sd, NULL, NULL, NULL, NULL );
 
+    // Find the last generated identifier for the Association MRL
+    // MRL in the item will contain a predefined user.
     unsigned int id = 1;
     bool name_exists;
     char * gen_user;
@@ -225,6 +230,7 @@ static int CallbackNewAuthentication( vlc_object_t *p_this, char const *psz_var,
                      vlc_value_t oldval, vlc_value_t newval, void *p_data )
 {
     (void) oldval; (void) p_this; (void) psz_var; (void) newval;
+    // Callback invoked when a new provider was sucessfully authenticated
 
     services_discovery_t *p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
@@ -242,6 +248,8 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
                      vlc_value_t oldval, vlc_value_t newval, void *p_data )
 {
     (void) oldval; (void) p_this; (void) psz_var;
+    // This callback is used to retrieve actions on the UI.
+    // Such as pressing a add/remove button.
     services_discovery_t *p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 

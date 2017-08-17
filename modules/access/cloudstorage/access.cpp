@@ -72,19 +72,26 @@ int Open( vlc_object_t *p_this )
     }
     else
     {
+        // Obtain the URL from the current item and redirect it to the HTTP
+        // module. Semaphore is used to prevent libcloudstorage to use its own
+        // mechanisms to lock, this way it is possible to control the flux.
         vlc_sem_t sem;
         vlc_sem_init( &sem, 0 );
+        // Request the item data
         auto request = p_sys->provider->getItemDataAsync(
             p_sys->current_item->id(),
             [ &sem ]( EitherError<IItem> ) { vlc_sem_post( &sem ); });
+        // Wait until the request is fulfilled
         int code = vlc_sem_wait_i11e( &sem );
         vlc_sem_destroy( &sem );
+        // Cancel if interrupted
         if ( code == EINTR )
         {
             request->cancel();
             return VLC_EGENERIC;
         }
         auto req_result = request->result();
+        // Check for errors with the request
         if ( req_result.left() )
         {
             msg_Err( p_access, "Failed to list directory (%d): %s",
@@ -92,6 +99,7 @@ int Open( vlc_object_t *p_this )
                      req_result.left()->description_.c_str() );
             return VLC_EGENERIC;
         }
+        // Redirect to another module with the new URL
         p_access->psz_url = strdup( req_result.right()->url().c_str() );
         err = VLC_ACCESS_REDIRECT;
     }
@@ -205,7 +213,9 @@ static int InitProvider( stream_t * p_access )
     });
 
     msg_Dbg( p_access, "Path: %s", p_sys->url.psz_path );
-    // Retrieve item from the initial path
+    // Obtain the object from the path requested.
+    // Semaphore is used to prevent libcloudstorage to use its own mechanisms
+    // to lock, this way it is possible to control the flux.
     vlc_sem_t sem;
     vlc_sem_init( &sem, 0 );
     auto request = p_sys->provider->getItemAsync(
@@ -264,6 +274,9 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
     struct access_fsdir fsdir;
 
+    // Request libcloudstorage to list directory if it is a directory
+    // Semaphore is used to prevent libcloudstorage to use its own mechanisms
+    // to lock, this way it is possible to control the flux.
     vlc_sem_t sem;
     vlc_sem_init( &sem, 0 );
     auto list_directory_request = p_sys->provider->listDirectoryAsync(
@@ -287,6 +300,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
         return VLC_EGENERIC;
     }
 
+    // Insert the items from the result of the request
     access_fsdir_init( &fsdir, p_access, p_node );
     int error_code = VLC_SUCCESS;
     for ( auto &i : *list_directory_request->result().right() )
