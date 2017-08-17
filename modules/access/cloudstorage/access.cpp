@@ -30,6 +30,7 @@
 #include <IRequest.h>
 
 #include "provider_callback.h"
+#include "provider_httpd.h"
 
 using cloudstorage::ICloudStorage;
 using cloudstorage::ICloudProvider;
@@ -179,7 +180,7 @@ static int InitProvider( stream_t * p_access )
         std::unique_ptr<Callback>( new Callback( p_access ) ),
         nullptr,
         nullptr,
-        nullptr,
+        std::unique_ptr<HttpdFactory>( new HttpdFactory( p_access ) ),
         hints
     });
 
