@@ -66,6 +66,8 @@ int Open( vlc_object_t *p_this )
 
     if ( p_sys->current_item->type() == IItem::FileType::Directory )
     {
+        // If it is a directory, it will be required to ask the libcloudstorage
+        // to list all its items
         p_access->pf_control = access_vaDirectoryControlHelper;
         p_access->pf_readdir = ReadDir;
         return VLC_SUCCESS;
