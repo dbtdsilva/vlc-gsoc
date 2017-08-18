@@ -42,6 +42,8 @@ struct access_sys_t
     // Parsed parameters
     vlc_url_t url;
     bool memory_keystore;
+    // Allocated variables
+    char *alloc_path, *alloc_username;
 
     // Loaded on Open
     cloudstorage::ICloudProvider::Pointer provider;

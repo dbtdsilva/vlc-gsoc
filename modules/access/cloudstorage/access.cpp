@@ -130,6 +130,10 @@ void Close( vlc_object_t *p_this )
 
     if ( p_sys != nullptr ) {
         vlc_UrlClean( &p_sys->url );
+        if ( p_sys->alloc_path != nullptr )
+            free( p_sys->alloc_path );
+        if ( p_sys->alloc_username != nullptr )
+            free( p_sys->alloc_username );
         delete p_sys;
     }
 }
@@ -148,13 +152,17 @@ static int ParseMRL( stream_t * p_access )
 
     // If no path was specific, then it is root
     if ( p_sys->url.psz_path == NULL )
-        p_sys->url.psz_path = strdup("/");
+    {
+        p_sys->alloc_path = strdup("/");
+        p_sys->url.psz_path = p_sys->alloc_path;
+    }
     // Since there is no info to store the authenticated user, creates a dummy
     // user and stores it temporarly under a in-memory credentials.
     if ( p_sys->url.psz_username == NULL )
     {
         p_sys->memory_keystore = true;
-        p_sys->url.psz_username = strdup("dummy_user");
+        p_sys->alloc_username = strdup("_dummy_user");
+        p_sys->url.psz_username = p_sys->alloc_username;
     }
 
     return VLC_SUCCESS;
