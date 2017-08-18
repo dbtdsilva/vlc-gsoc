@@ -22,7 +22,6 @@
 
 #include "provider_httpd.h"
 
-#include <vlc_url.h>
 #include <sstream>
 #include <map>
 

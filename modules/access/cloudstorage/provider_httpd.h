@@ -25,7 +25,6 @@
 
 #include "access.h"
 
-#include <string>
 #include <unordered_map>
 #include <vlc_httpd.h>
 

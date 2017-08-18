@@ -29,7 +29,6 @@
 #include <vlc_url.h>
 
 #include <ICloudStorage.h>
-#include <sstream>
 #include <algorithm>
 
 #include "services_discovery.h"

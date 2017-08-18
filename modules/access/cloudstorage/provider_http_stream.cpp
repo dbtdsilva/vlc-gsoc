@@ -28,7 +28,6 @@
 
 #include <vlc_common.h>
 #include <vlc_block.h>
-
 #include <istream>
 
 extern "C" {

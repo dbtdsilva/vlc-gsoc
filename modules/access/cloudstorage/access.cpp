@@ -23,16 +23,18 @@
 
 #include "access.h"
 
-#include <algorithm>
 #include <sstream>
 #include <fstream>
 #include <ICloudStorage.h>
-#include <IRequest.h>
+
+#include <vlc_access.h>
+#include <vlc_input.h>
+#include <vlc_keystore.h>
+#include <vlc_interrupt.h>
 
 #include "provider_callback.h"
 #include "provider_httpd.h"
 #include "provider_http.h"
-#include "vlc_interrupt.h"
 
 using cloudstorage::ICloudStorage;
 using cloudstorage::ICloudProvider;
