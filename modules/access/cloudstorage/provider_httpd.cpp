@@ -177,14 +177,12 @@ Httpd::Httpd( IHttpServer::ICallback::Pointer cb, IHttpServer::Type type,
 
 Httpd::~Httpd()
 {
+    if ( url_root != nullptr )
+        httpd_UrlDelete( url_root );
+    if ( url_login != nullptr )
+        httpd_UrlDelete( url_login );
     if ( host != nullptr )
-    {
-        if ( url_root != nullptr )
-            httpd_UrlDelete( url_root );
-        if ( url_login != nullptr )
-            httpd_UrlDelete( url_login );
         httpd_HostDelete ( host );
-    }
 }
 
 Httpd::IResponse::Pointer Httpd::createResponse( int code,
