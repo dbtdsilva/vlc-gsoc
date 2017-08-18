@@ -22,13 +22,6 @@
 
 #include "provider_http.h"
 
-#include <memory>
-#include <vlc_common.h>
-#include <vlc_url.h>
-#include <vlc_block.h>
-#include <json/json.h>
-#include <iterator>
-
 extern "C" {
 #include "access/http/resource.h"
 #include "access/http/connmgr.h"

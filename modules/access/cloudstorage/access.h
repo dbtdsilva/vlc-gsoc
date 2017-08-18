@@ -30,8 +30,6 @@
 
 #include <vlc_common.h>
 #include <vlc_access.h>
-#include <vlc_input.h>
-#include <vlc_keystore.h>
 #include <vlc_url.h>
 
 int Open( vlc_object_t * );

@@ -24,12 +24,11 @@
 #ifndef VLC_CLOUDSTORAGE_SERVICES_DISCOVERY_H
 #define VLC_CLOUDSTORAGE_SERVICES_DISCOVERY_H
 
-#include <vector>
-#include <map>
 #include <string>
+#include <map>
+#include <vector>
 
 #include <vlc_common.h>
-#include <vlc_keystore.h>
 #include <vlc_services_discovery.h>
 
 int SDOpen( vlc_object_t * );

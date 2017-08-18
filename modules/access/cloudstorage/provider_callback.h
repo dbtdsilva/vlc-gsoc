@@ -24,25 +24,18 @@
 #ifndef VLC_CLOUDSTORAGE_PROVIDER_CALLBACK_H
 #define VLC_CLOUDSTORAGE_PROVIDER_CALLBACK_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif /* HAVE_CONFIG_H */
-
-#include <string>
-#include <vlc_dialog.h>
-
 #include "access.h"
 
-using cloudstorage::ICloudProvider;
-using cloudstorage::EitherError;
+#include <vlc_dialog.h>
 
-class Callback : public ICloudProvider::IAuthCallback {
+class Callback : public cloudstorage::ICloudProvider::IAuthCallback {
 public:
     Callback( stream_t *access ) :
         p_access( access ), p_sys( (access_sys_t *) access->p_sys )
     {}
 
-    Status userConsentRequired( const ICloudProvider& provider ) override
+    Status userConsentRequired( const cloudstorage::ICloudProvider& provider )
+                                override
     {
         std::string authorize_url = provider.authorizeLibraryUrl();
         int i_ret = vlc_spawn_browser( p_access, authorize_url.c_str(),
@@ -55,8 +48,8 @@ public:
         return Status::WaitForAuthorizationCode;
     }
 
-    void done( const ICloudProvider& provider,
-               EitherError<void> error ) override
+    void done( const cloudstorage::ICloudProvider& provider,
+               cloudstorage::EitherError<void> error ) override
     {
         // An error occurred
         if ( error.left() )
@@ -70,7 +63,7 @@ public:
         }
     }
 
-    void accepted( const ICloudProvider& provider )
+    void accepted( const cloudstorage::ICloudProvider& provider )
     {
         vlc_credential credentials;
         vlc_credential_init( &credentials, &p_sys->url );
@@ -81,8 +74,8 @@ public:
         p_sys->hints = provider.hints();
 
         // Store hints and token
-        std::string serialized_value = ICloudProvider::serializeSession(
-                p_sys->token, p_sys->hints );
+        std::string serialized_value = cloudstorage::ICloudProvider::
+                serializeSession( p_sys->token, p_sys->hints );
 
         // Store the data related with the session using the credentials API
         credentials.b_store = !p_sys->memory_keystore;
