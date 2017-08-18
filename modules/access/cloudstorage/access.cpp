@@ -64,17 +64,20 @@ static auto WrapLibcloudstorageFunct( stream_t * p_access, Type function,
     vlc_sem_destroy( &sem );
     // Verify if the operation was interrupted or not
     if ( code == EINTR )
+    {
         request->cancel();
+        return decltype(request)( nullptr );
+    }
 
     // Retrieve the result and return it
-    auto req_result = request->result();
-    if ( req_result.left() )
+    auto error = request->result().left();
+    if ( error )
     {
         msg_Err( p_access, "Failed to process the request (%d): %s",
-                 req_result.left()->code_,
-                 req_result.left()->description_.c_str() );
+                 error->code_, error->description_.c_str() );
+        return decltype(request)( nullptr );
     }
-    return req_result.right();
+    return request;
 }
 
 int Open( vlc_object_t *p_this )
@@ -105,13 +108,13 @@ int Open( vlc_object_t *p_this )
     else
     {
         // Obtain the URL from the current item and redirect it to the HTTP
-        auto result = WrapLibcloudstorageFunct( p_access,
+        auto request = WrapLibcloudstorageFunct( p_access,
                 &ICloudProvider::getItemDataAsync, *p_sys->provider,
                 p_sys->current_item->id() );
-        if ( result == nullptr )
+        if ( request == nullptr )
             return VLC_EGENERIC;
         // Redirect to another module with the new URL
-        p_access->psz_url = strdup( result->url().c_str() );
+        p_access->psz_url = strdup( request->result().right()->url().c_str() );
         err = VLC_ACCESS_REDIRECT;
     }
 
@@ -225,15 +228,16 @@ static int InitProvider( stream_t * p_access )
 
     msg_Dbg( p_access, "Path: %s", p_sys->url.psz_path );
     // Obtain the object from the path requested.
-    p_sys->current_item = WrapLibcloudstorageFunct( p_access,
+    auto result = WrapLibcloudstorageFunct( p_access,
             &ICloudProvider::getItemAsync, *p_sys->provider,
             vlc_uri_decode( p_sys->url.psz_path ) );
-    if ( p_sys->current_item == nullptr )
+    if ( result == nullptr )
     {
         msg_Err( p_access, "Failed to find %s in the provider %s",
                  p_sys->url.psz_path, p_sys->url.psz_host );
         return VLC_EGENERIC;
     }
+    p_sys->current_item = result->result().right();
     return VLC_SUCCESS;
 }
 
@@ -278,7 +282,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     // Insert the items from the result of the request
     access_fsdir_init( &fsdir, p_access, p_node );
     int error_code = VLC_SUCCESS;
-    for ( auto &i : *result )
+    for ( auto &i : *result->result().right() )
     {
         if ( AddItem( &fsdir, p_access, i ) != VLC_SUCCESS )
         {
