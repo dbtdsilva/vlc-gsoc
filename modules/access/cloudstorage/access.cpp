@@ -81,7 +81,7 @@ static auto WrapLibcloudstorageFunct( stream_t * p_access, Type function,
 
 int Open( vlc_object_t *p_this )
 {
-    int err = VLC_EGENERIC;
+    int err;
     stream_t *p_access = (stream_t*) p_this;
     access_sys_t *p_sys;
 
@@ -111,7 +111,10 @@ int Open( vlc_object_t *p_this )
                 &ICloudProvider::getItemDataAsync, *p_sys->provider,
                 p_sys->current_item->id() );
         if ( request == nullptr )
-            return VLC_EGENERIC;
+        {
+            err = VLC_EGENERIC;
+            goto error;
+        }
         // Redirect to another module with the new URL
         p_access->psz_url = strdup( request->url().c_str() );
         err = VLC_ACCESS_REDIRECT;
