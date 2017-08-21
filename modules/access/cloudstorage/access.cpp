@@ -42,46 +42,14 @@ using cloudstorage::IDownloadFileCallback;
 using cloudstorage::IItem;
 using cloudstorage::IRequest;
 
-static int AddItem( struct access_fsdir *, stream_t *, IItem::Pointer );
 static int GetCredentials( stream_t * );
 static int InitProvider( stream_t * );
-static int ReadDir( stream_t *, input_item_node_t * );
 static std::string ReadFile( const std::string& path );
 static int ParseMRL( stream_t * );
 
-template <class Type, class T, class ...Args>
-static auto WrapLibcloudstorageFunct( stream_t * p_access, Type function,
-                                      T&& obj, Args... args )
-{
-    // Semaphore is used to prevent libcloudstorage to use its own
-    // mechanisms to lock, this way it is possible to control the flux.
-    vlc_sem_t sem;
-    vlc_sem_init( &sem, 0 );
-    // Callback to increment semaphore (unlock) when the operation finish
-    auto finish_operation = [ &sem ]( auto ) { vlc_sem_post( &sem ); };
-    // Invoke the operation
-    auto request = (obj.*function)(args..., finish_operation);
-    // Wait for the semaphore to finish using vlc mechanisms to lock
-    int code = vlc_sem_wait_i11e( &sem );
-    vlc_sem_destroy( &sem );
-    // Verify if the operation was interrupted or not (cancelling will cause
-    // an error to be on the left()
-    if ( code == EINTR )
-        request->cancel();
-
-    // Retrieve the result and return it
-    auto error = request->result().left();
-    if ( error )
-    {
-        msg_Err( p_access, "Failed to process the request (%d): %s",
-                 error->code_, error->description_.c_str() );
-    }
-    return request->result().right();
-}
-
 int Open( vlc_object_t *p_this )
 {
-    int err = VLC_EGENERIC;
+    int err;
     stream_t *p_access = (stream_t*) p_this;
     access_sys_t *p_sys;
 
@@ -96,26 +64,7 @@ int Open( vlc_object_t *p_this )
     if ( (err = InitProvider( p_access )) != VLC_SUCCESS )
         goto error;
 
-    if ( p_sys->current_item->type() == IItem::FileType::Directory )
-    {
-        // If it is a directory, it will be required to ask the libcloudstorage
-        // to list all its items
-        p_access->pf_control = access_vaDirectoryControlHelper;
-        p_access->pf_readdir = ReadDir;
-        return VLC_SUCCESS;
-    }
-    else
-    {
-        // Obtain the URL from the current item and redirect it to the HTTP
-        auto request = WrapLibcloudstorageFunct( p_access,
-                &ICloudProvider::getItemDataAsync, *p_sys->provider,
-                p_sys->current_item->id() );
-        if ( request == nullptr )
-            return VLC_EGENERIC;
-        // Redirect to another module with the new URL
-        p_access->psz_url = strdup( request->url().c_str() );
-        err = VLC_ACCESS_REDIRECT;
-    }
+    err = VLC_EGENERIC;
 
 error:
     Close( p_this );
@@ -133,6 +82,7 @@ void Close( vlc_object_t *p_this )
             free( p_sys->alloc_path );
         if ( p_sys->alloc_username != nullptr )
             free( p_sys->alloc_username );
+        fprintf(stderr, "Provider Count: %lu\n", p_sys->provider.use_count());
         delete p_sys;
     }
 }
@@ -235,70 +185,18 @@ static int InitProvider( stream_t * p_access )
 
     msg_Dbg( p_access, "Path: %s", p_sys->url.psz_path );
     // Obtain the object from the path requested.
-    auto result = WrapLibcloudstorageFunct( p_access,
-            &ICloudProvider::getItemAsync, *p_sys->provider,
-            vlc_uri_decode( p_sys->url.psz_path ) );
+    auto result = p_sys->provider->
+        getItemAsync( vlc_uri_decode( p_sys->url.psz_path ) )->result().right();
     if ( result == nullptr )
     {
         msg_Err( p_access, "Failed to find %s in the provider %s",
                  p_sys->url.psz_path, p_sys->url.psz_host );
         return VLC_EGENERIC;
     }
-    p_sys->current_item = result;
+    // There is a shared_ptr alive pointing to the result, but it will die after
+    // getting out of scope here...
+    //p_sys->current_item = result;
     return VLC_SUCCESS;
-}
-
-static int AddItem( struct access_fsdir *p_fsdir, stream_t *p_access,
-                    IItem::Pointer item )
-{
-    std::stringstream url;
-    int i_type;
-
-    url << p_access->psz_url;
-    if ( strlen( p_access->psz_url ) == 0 ||
-         p_access->psz_url[strlen( p_access->psz_url ) - 1] != '/' )
-        url << "/";
-
-    char* url_encoded = vlc_uri_encode( item->filename().c_str() );
-    url << url_encoded;
-    free( url_encoded );
-
-    i_type = item->type() == IItem::FileType::Directory ?
-        ITEM_TYPE_DIRECTORY : ITEM_TYPE_FILE;
-
-    return access_fsdir_additem( p_fsdir, url.str().c_str(),
-            item->filename().c_str(), i_type, ITEM_NET );
-}
-
-static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
-{
-    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
-    struct access_fsdir fsdir;
-
-    // Select the correct function because there 2 functions with same name,
-    // they were overloaded. So they must be selected by their parameters types
-    auto fn = static_cast<ICloudProvider::ListDirectoryRequest::Pointer
-        (ICloudProvider::*)(IItem::Pointer,cloudstorage::ListDirectoryCallback)>
-            (&ICloudProvider::listDirectoryAsync);
-    // Request libcloudstorage to list directory
-    auto result = WrapLibcloudstorageFunct( p_access, fn, *(p_sys->provider),
-                                            p_sys->current_item );
-    if ( result == nullptr )
-        return VLC_EGENERIC;
-
-    // Insert the items from the result of the request
-    access_fsdir_init( &fsdir, p_access, p_node );
-    int error_code = VLC_SUCCESS;
-    for ( auto &i : *result )
-    {
-        if ( AddItem( &fsdir, p_access, i ) != VLC_SUCCESS )
-        {
-            error_code = VLC_EGENERIC;
-            break;
-        }
-    }
-    access_fsdir_finish( &fsdir, error_code == VLC_SUCCESS );
-    return error_code;
 }
 
 static std::string ReadFile( const std::string& filename )
