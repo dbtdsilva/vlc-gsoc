@@ -70,13 +70,14 @@ static auto WrapLibcloudstorageFunct( stream_t * p_access, Type function,
         request->cancel();
 
     // Retrieve the result and return it
-    auto error = request->result().left();
+    auto result = request->result();
+    auto error = result.left();
     if ( error )
     {
         msg_Err( p_access, "Failed to process the request (%d): %s",
                  error->code_, error->description_.c_str() );
     }
-    return request->result().right();
+    return result.right();
 }
 
 int Open( vlc_object_t *p_this )
