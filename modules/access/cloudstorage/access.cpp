@@ -64,12 +64,10 @@ static auto WrapLibcloudstorageFunct( stream_t * p_access, Type function,
     // Wait for the semaphore to finish using vlc mechanisms to lock
     int code = vlc_sem_wait_i11e( &sem );
     vlc_sem_destroy( &sem );
-    // Verify if the operation was interrupted or not
+    // Verify if the operation was interrupted or not (cancelling will cause
+    // an error to be on the left()
     if ( code == EINTR )
-    {
         request->cancel();
-        return decltype(request)( nullptr );
-    }
 
     // Retrieve the result and return it
     auto error = request->result().left();
@@ -77,9 +75,8 @@ static auto WrapLibcloudstorageFunct( stream_t * p_access, Type function,
     {
         msg_Err( p_access, "Failed to process the request (%d): %s",
                  error->code_, error->description_.c_str() );
-        return decltype(request)( nullptr );
     }
-    return request;
+    return request->result().right();
 }
 
 int Open( vlc_object_t *p_this )
@@ -116,7 +113,7 @@ int Open( vlc_object_t *p_this )
         if ( request == nullptr )
             return VLC_EGENERIC;
         // Redirect to another module with the new URL
-        p_access->psz_url = strdup( request->result().right()->url().c_str() );
+        p_access->psz_url = strdup( request->url().c_str() );
         err = VLC_ACCESS_REDIRECT;
     }
 
@@ -247,7 +244,7 @@ static int InitProvider( stream_t * p_access )
                  p_sys->url.psz_path, p_sys->url.psz_host );
         return VLC_EGENERIC;
     }
-    p_sys->current_item = result->result().right();
+    p_sys->current_item = result;
     return VLC_SUCCESS;
 }
 
@@ -292,7 +289,7 @@ static int ReadDir( stream_t *p_access, input_item_node_t *p_node )
     // Insert the items from the result of the request
     access_fsdir_init( &fsdir, p_access, p_node );
     int error_code = VLC_SUCCESS;
-    for ( auto &i : *result->result().right() )
+    for ( auto &i : *result )
     {
         if ( AddItem( &fsdir, p_access, i ) != VLC_SUCCESS )
         {
