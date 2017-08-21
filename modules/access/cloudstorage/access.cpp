@@ -218,13 +218,8 @@ static int InitProvider( stream_t * p_access )
     hints["error_page"] = ReadFile( parent + "default_error.html" );
 
     // Initialize the provider
-    p_sys->provider = cloudstorage::ICloudStorage::
-            create()->provider( p_sys->url.psz_host );
-    if ( !p_sys->provider ) {
-        msg_Err( p_access, "Failed to load the given provider" );
-        return VLC_EGENERIC;
-    }
-    p_sys->provider->initialize({
+    p_sys->provider = cloudstorage::ICloudStorage::create()->provider(
+            p_sys->url.psz_host, {
         p_sys->token,
         std::unique_ptr<Callback>( new Callback( p_access ) ),
         nullptr,
@@ -232,6 +227,10 @@ static int InitProvider( stream_t * p_access )
         std::unique_ptr<HttpdFactory>( new HttpdFactory( p_access ) ),
         hints
     });
+    if ( !p_sys->provider ) {
+        msg_Err( p_access, "Failed to load the given provider" );
+        return VLC_EGENERIC;
+    }
 
     msg_Dbg( p_access, "Path: %s", p_sys->url.psz_path );
     // Obtain the object from the path requested.

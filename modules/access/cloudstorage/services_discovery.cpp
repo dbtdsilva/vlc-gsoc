@@ -102,8 +102,8 @@ void SDClose( vlc_object_t *p_this )
 static int GetProvidersList( services_discovery_t * p_sd )
 {
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
-    for ( const auto& provider_ptr : ICloudStorage::create()->providers() )
-        p_sys->providers_list.push_back( provider_ptr->name() );
+    for ( const auto& provider : ICloudStorage::create()->providers() )
+        p_sys->providers_list.push_back( provider );
 
     if ( p_sys->providers_list.empty() )
     {
