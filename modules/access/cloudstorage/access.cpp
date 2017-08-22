@@ -31,6 +31,7 @@
 #include <vlc_input.h>
 #include <vlc_keystore.h>
 #include <vlc_interrupt.h>
+#include <regex>
 
 #include "provider_callback.h"
 #include "provider_httpd.h"
@@ -208,18 +209,27 @@ static int InitProvider( stream_t * p_access )
     // Load custom-made pages
     std::string parent = "cloudstorage";
     parent.append( DIR_SEP );
+    std::string page_base = ReadFile( parent + "template.html" );
+
+    // Lambda expression to apply a template and replace all the keywords %body%
+    // by the file read, file path is relative to parent
+    auto token_replace = [ &page_base, &parent ]( const std::string& file_path )
+    {
+        std::string replace = ReadFile( parent + file_path );
+        return std::regex_replace( page_base, std::regex("%body%"), replace );
+    };
+
     if ( strcmp( p_sys->url.psz_host, "amazons3" ) == 0 ||
          strcmp( p_sys->url.psz_host, "mega" ) == 0 ||
          strcmp( p_sys->url.psz_host, "owncloud" ) == 0 )
     {
-        hints["login_page"] = ReadFile(
-                parent + p_sys->url.psz_host + "_login.html");
-        hints["success_page"] = ReadFile(
-                parent + p_sys->url.psz_host + "_success.html");
+        hints["login_page"] = token_replace(
+                "form_" + std::string( p_sys->url.psz_host ) + ".html" );
+        hints["success_page"] = token_replace( "part_success_form.html" );
     }
     else
-        hints["success_page"] = ReadFile( parent + "default_success.html" );
-    hints["error_page"] = ReadFile( parent + "default_error.html" );
+        hints["success_page"] = token_replace( "part_success_page.html" );
+    hints["error_page"] = token_replace( "page_error.html" );
 
     // Initialize the provider
     p_sys->provider = cloudstorage::ICloudStorage::create()->provider(
