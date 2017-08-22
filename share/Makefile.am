@@ -305,11 +305,10 @@ DIST_solid = \
 	solid/vlc-openvcd.desktop
 
 DIST_cloudstorage = \
-	cloudstorage/amazons3_login.html \
-	cloudstorage/amazons3_success.html \
-	cloudstorage/default_error.html \
-	cloudstorage/default_success.html \
-	cloudstorage/mega_login.html \
-	cloudstorage/mega_success.html \
-	cloudstorage/owncloud_login.html \
-	cloudstorage/owncloud_success.html
+	cloudstorage/form_amazons3.html \
+	cloudstorage/form_mega.html \
+	cloudstorage/form_owncloud.html \
+	cloudstorage/part_error.html \
+	cloudstorage/part_success_form.html \
+	cloudstorage/part_success_page.html \
+	cloudstorage/template.html
