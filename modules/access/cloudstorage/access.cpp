@@ -49,6 +49,7 @@ static int InitProvider( stream_t * );
 static int ReadDir( stream_t *, input_item_node_t * );
 static std::string ReadFile( const std::string& path );
 static int ParseMRL( stream_t * );
+static void SaveCredentials( stream_t * );
 
 template <class Type, class T, class ...Args>
 static auto WrapLibcloudstorageFunct( stream_t * p_access, Type function,
@@ -70,14 +71,16 @@ static auto WrapLibcloudstorageFunct( stream_t * p_access, Type function,
     if ( code == EINTR )
         request->cancel();
 
-    // Retrieve the result and return it
+    // Retrieve the result (if it was succeed, store possible alterations in the
+    // credentials
     auto result = request->result();
     auto error = result.left();
     if ( error )
-    {
         msg_Err( p_access, "Failed to process the request (%d): %s",
                  error->code_, error->description_.c_str() );
-    }
+    else
+        SaveCredentials( p_access );
+
     return result.right();
 }
 
@@ -193,6 +196,28 @@ static int GetCredentials( stream_t * p_access )
     }
     vlc_credential_clean( &credentials );
     return VLC_SUCCESS;
+}
+
+static void SaveCredentials( stream_t * p_access )
+{
+    access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
+
+    p_sys->token = p_sys->provider->token();
+    p_sys->hints = p_sys->provider->hints();
+
+    // Store hints and token
+    std::string serialized_value = cloudstorage::ICloudProvider::
+            serializeSession( p_sys->token, p_sys->hints );
+
+    vlc_credential credentials;
+    vlc_credential_init( &credentials, &p_sys->url );
+    vlc_credential_get( &credentials, p_access, NULL, NULL, NULL, NULL );
+    // Store the data related with the session using the credentials API
+    credentials.b_store = !p_sys->memory_keystore;
+    credentials.psz_password = serialized_value.c_str();
+    if ( !vlc_credential_store( &credentials, p_access ) )
+        msg_Warn( p_access, "Failed to store the credentials");
+    vlc_credential_clean( &credentials );
 }
 
 static int InitProvider( stream_t * p_access )
