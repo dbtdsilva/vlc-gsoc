@@ -69,22 +69,6 @@ public:
         vlc_credential_init( &credentials, &p_sys->url );
         bool found = vlc_credential_get( &credentials, p_access,
                 NULL, NULL, NULL, NULL );
-
-        p_sys->token = provider.token();
-        p_sys->hints = provider.hints();
-
-        // Store hints and token
-        std::string serialized_value = cloudstorage::ICloudProvider::
-                serializeSession( p_sys->token, p_sys->hints );
-
-        // Store the data related with the session using the credentials API
-        credentials.b_store = !p_sys->memory_keystore;
-        credentials.psz_password = serialized_value.c_str();
-        if ( !vlc_credential_store( &credentials, p_access ) )
-        {
-            msg_Warn( p_access, "Failed to store the credentials");
-        }
-
         // Inform about new authentications
         if ( !found )
         {
