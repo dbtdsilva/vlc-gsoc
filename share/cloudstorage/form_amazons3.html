@@ -1,7 +1,8 @@
 <script>
 function submitData() {
   var code = encodeURIComponent($('#inputAccessKey').val() + '@' + $('#inputRegion').val() + '##' + $('#inputSecretKey').val());
-  window.location.href = "/auth?code=" + code + "&state=" + url('?').state;
+  var state = new URL(location.href).searchParams.get("state");
+  window.location.href = "/auth?code=" + code + "&state=" + state;
   return false;
 };
 </script>
