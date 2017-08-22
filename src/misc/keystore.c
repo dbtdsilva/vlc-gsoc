@@ -341,7 +341,6 @@ credential_find_keystore(vlc_credential *p_credential, vlc_keystore *p_keystore)
             p_credential->psz_username = p_entry->ppsz_values[KEY_USER];
             p_credential->psz_realm = p_entry->ppsz_values[KEY_REALM];
             p_credential->psz_authtype = p_entry->ppsz_values[KEY_AUTHTYPE];
-            p_credential->b_from_keystore = true;
         }
     }
 }
@@ -389,7 +388,6 @@ vlc_credential_get(vlc_credential *p_credential, vlc_object_t *p_parent,
         return false;
     }
 
-    p_credential->b_from_keystore = false;
     /* Don't set username to NULL, we may want to use the last one set */
     p_credential->psz_password = NULL;
 
@@ -401,7 +399,6 @@ vlc_credential_get(vlc_credential *p_credential, vlc_object_t *p_parent,
          * previously set by the caller, the URL or by VLC Options.
          * Finally, fetch credential from the dialog (if any). This last will be
          * repeated until user cancel the dialog. */
-
         switch (p_credential->i_get_order)
         {
         case GET_FROM_URL:
@@ -504,9 +501,6 @@ vlc_credential_store(vlc_credential *p_credential, vlc_object_t *p_parent)
 {
     if (!is_credential_valid(p_credential))
         return false;
-    /* Don't need to store again */
-    if (p_credential->b_from_keystore)
-        return p_credential->b_from_keystore;
 
     vlc_keystore *p_keystore;
     if (p_credential->b_store)
