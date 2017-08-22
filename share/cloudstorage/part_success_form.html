@@ -1,0 +1,5 @@
+<h2 class="text-center">Your login will be sent to provider's servers to receive approval.</h2>
+<script>
+  $.ajax({ "data": { "accepted": "true" } });
+  history.replaceState({}, null, location.pathname + '/success');
+</script>

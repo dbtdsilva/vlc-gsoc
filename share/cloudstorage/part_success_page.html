@@ -1,0 +1,6 @@
+<h1 class="text-center">Successfully authenticated</h1>
+<h4 class="text-center">You may now return to your VLC window. <br/>You will be able to find the new logged under the Cloud Storage item on the sidebar.</h5>
+<script>
+  $.ajax({ "data": { "accepted": "true" } });
+  history.replaceState({}, null, location.pathname + '/success');
+</script>
