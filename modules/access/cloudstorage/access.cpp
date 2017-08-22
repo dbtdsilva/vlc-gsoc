@@ -202,7 +202,8 @@ static int InitProvider( stream_t * p_access )
     std::string redirect_port = std::to_string(
             config_GetInt( p_access, "http-port" ) );
 
-    // Get predifined port and prefix
+    // Get predifined port and prefix (if redirect_uri is modified, it must
+    // be modified in share/cloudstorage scripts started with "form_"
     hints["redirect_uri"] = "http://localhost:" + redirect_port + "/auth";
     hints["file_url"] = "http://localhost:" + redirect_port + "/files";
 
