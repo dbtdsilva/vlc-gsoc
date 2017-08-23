@@ -47,42 +47,34 @@ public:
         int getCode() { return i_code; }
         IResponse::Headers getHeaders() { return m_headers; }
         const std::string& getBody() { return p_body; }
+        void resume();
+        void completed(CompletedCallback);
+
     private:
         int i_code;
         IResponse::Headers m_headers;
         const std::string p_body;
+        CompletedCallback ptr_callback;
     };
 
-    class CallbackResponse : public Response {
+    class Request : public IRequest {
     public:
-        CallbackResponse(int code, const IResponse::Headers&, int size,
-                int chunk_size, IResponse::ICallback::Pointer);
-    };
-
-    class Connection : public IConnection {
-    public:
-        Connection( const char* url,
-                const std::unordered_map<std::string, std::string>& args,
-                const std::unordered_map<std::string, std::string>& headers );
-        const char* getParameter( const std::string& name ) const override;
+        Request( const char* url,
+                 const std::unordered_map<std::string, std::string>& args,
+                 const std::unordered_map<std::string, std::string>& headers );
+        const char* get( const std::string& name ) const override;
         const char* header( const std::string& name ) const override;
         std::string url() const override;
-        void onCompleted(CompletedCallback) override;
-        void suspend() override;
-        void resume() override;
+        IResponse::Pointer response( int code, const IResponse::Headers&,
+                                     int size,
+                                     IResponse::ICallback::Pointer ) const override;
 
     private:
         std::string c_url;
-        CompletedCallback ptr_callback;
         const std::unordered_map<std::string, std::string> m_args;
         const std::unordered_map<std::string, std::string> m_headers;
     };
 
-    IResponse::Pointer createResponse( int code, const IResponse::Headers&,
-                                const std::string& body ) const override;
-    IResponse::Pointer createResponse( int code, const IResponse::Headers&,
-                                int size, int chunk_size,
-                                IResponse::ICallback::Pointer ) const override;
     ICallback::Pointer callback() const { return p_callback; }
 private:
     static int httpRequestCallback( httpd_callback_sys_t * args,

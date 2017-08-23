@@ -53,11 +53,10 @@ int Httpd::httpRequestCallback( httpd_callback_sys_t * cls,
         headers.insert( std::make_pair(
             query->p_headers[i].name, query->p_headers[i].value ) );
     }
-    Httpd::Connection connection( query->psz_url, args, headers );
+    Httpd::Request request( query->psz_url, args, headers );
 
-    // Inform about a received connection in order to get the proper response
-    auto response_ptr = server->callback()->
-        receivedConnection( *server, &connection );
+    // Inform about a received request in order to get the proper response
+    auto response_ptr = server->callback()->handle( request );
     auto response = static_cast<Httpd::Response*>( response_ptr.get() );
 
     // Fill the data to be requests to the lib
@@ -84,48 +83,35 @@ Httpd::Response::Response( int code, const IResponse::Headers& headers,
                            const std::string& body ) :
     i_code( code ), m_headers( headers ), p_body( body ) {}
 
-Httpd::CallbackResponse::CallbackResponse( int code,
-        const IResponse::Headers& headers, int size, int chunk_size,
-        IResponse::ICallback::Pointer ptr )
-{
-    // Not required for authorization purposes
-    (void) code; (void) headers; (void) size; (void) chunk_size; (void) ptr;
-}
-
-Httpd::Connection::Connection( const char* url,
+Httpd::Request::Request( const char* url,
         const std::unordered_map<std::string, std::string>& args,
         const std::unordered_map<std::string, std::string>& headers ) :
     c_url( url ), m_args( args ), m_headers( headers ) {}
 
-const char* Httpd::Connection::getParameter(
+const char* Httpd::Request::get(
     const std::string& name) const
 {
     auto element = m_args.find(name);
     return element == m_args.end() ? nullptr : element->second.c_str();
 }
 
-const char* Httpd::Connection::header(const std::string& name) const
+const char* Httpd::Request::header(const std::string& name) const
 {
     auto element = m_headers.find(name);
     return element == m_headers.end() ? nullptr : element->second.c_str();
 }
 
-std::string Httpd::Connection::url() const
+std::string Httpd::Request::url() const
 {
     return c_url;
 }
 
-void Httpd::Connection::onCompleted(CompletedCallback f)
+void Httpd::Response::completed(CompletedCallback f)
 {
     ptr_callback = f;
 }
 
-void Httpd::Connection::suspend()
-{
-    // Not required for authorization purposes
-}
-
-void Httpd::Connection::resume()
+void Httpd::Response::resume()
 {
     // Not required for authorization purposes
 }
@@ -184,18 +170,19 @@ Httpd::~Httpd()
         httpd_HostDelete ( host );
 }
 
-Httpd::IResponse::Pointer Httpd::createResponse( int code,
-        const IResponse::Headers& headers, const std::string& body ) const
-{
-    return std::make_unique<Response>(code, headers, body);
-}
-
-Httpd::IResponse::Pointer Httpd::createResponse( int code,
-        const IResponse::Headers& headers, int size, int chunk_size,
+Httpd::IResponse::Pointer Httpd::Request::response( int code,
+        const IResponse::Headers& headers, int size,
         IResponse::ICallback::Pointer ptr ) const
 {
-    return std::make_unique<CallbackResponse>( code, headers, size, chunk_size,
-            std::move( ptr ) );
+    const int BUFFER_SIZE = 1024;
+    std::string body;
+    std::array<char, BUFFER_SIZE> buffer;
+    while (size > 0) {
+        int cnt = ptr->putData(buffer.begin(), BUFFER_SIZE);
+        body += std::string(buffer.begin(), buffer.begin() + cnt);
+        size -= cnt;
+    }
+    return std::make_unique<Response>( code, headers, body );
 }
 
 HttpdFactory::HttpdFactory( stream_t* access ) : p_access( access ) {}
