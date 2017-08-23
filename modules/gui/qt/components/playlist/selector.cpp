@@ -692,8 +692,10 @@ void PLSelector::podcastRemove( PLSelItem* item )
 void PLSelector::cloudProviderAdd( PLSelItem * item )
 {
     QStringList items;
-    items << "google" << "onedrive" << "dropbox" << "amazon" << "box";
-    items << "youtube" << "yandex" << "amazons3" << "owncloud" << "mega";
+    items << "google" << "onedrive" << "dropbox" << "box";
+    items << "amazons3" << "yandex" << "owncloud";
+    // Disabled providers
+    //items << "youtube" << "mega" << "amazon";
 
     bool ok;
     QString provider = QInputDialog::getItem( this,
