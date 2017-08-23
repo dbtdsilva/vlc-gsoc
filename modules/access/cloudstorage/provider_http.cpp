@@ -165,46 +165,60 @@ request:
     }
     response_code = vlc_http_msg_get_status( resource->response );
 
+    unsigned int content_length = 0;
     // Get the redirect URI before destroying the resource
     char *redirect_uri = vlc_http_res_get_redirect( resource );
-    // Check for redirects if exist
-    if ( req_follow_redirect && redirect_uri != NULL &&
-            IHttpRequest::isRedirect( response_code ) )
+    // Check for redirects if exist, otherwise, process the content of the
+    // request
+    if ( redirect_uri != NULL && IHttpRequest::isRedirect( response_code ) )
     {
-        redirect_counter += 1;
-        vlc_http_res_destroy( resource );
-        if ( redirect_counter > URL_REDIRECT_LIMIT )
+        // If the request does want to follow the URL or not
+        if ( req_follow_redirect )
         {
-            msg_Err( p_access, "URL has been redirected too many times.");
-            on_completed( response_code, response, error_stream );
-            return;
+            redirect_counter += 1;
+            vlc_http_res_destroy( resource );
+            if ( redirect_counter > URL_REDIRECT_LIMIT )
+            {
+                msg_Err( p_access, "URL has been redirected too many times.");
+                on_completed( response_code, response, error_stream );
+                return;
+            }
+            current_url = std::string( redirect_uri );
+            goto request;
         }
-        current_url = std::string( redirect_uri );
-        goto request;
-    }
-
-    // Read the payload response into the buffer (ostream)
-    unsigned int content_length = 0;
-    struct block_t *block = vlc_http_res_read( resource );
-    while (block != NULL)
-    {
-        if ( IHttpRequest::isSuccess( response_code ) )
-            response->write( (char *) block->p_buffer, block->i_buffer );
         else
-            error_stream->write( (char *) block->p_buffer, block->i_buffer );
-        content_length += block->i_buffer;
-
-        block_Release(block);
-        block = vlc_http_res_read( resource );
+        {
+            error_stream->write( redirect_uri, strlen( redirect_uri ) );
+            msg_Dbg( p_access, "%s %s did not redirect (as requested) with a "
+                    "code %d to the URL %s", req_method.c_str(),
+                    current_url.c_str(), response_code, redirect_uri );
+        }
     }
-
-    // Debug messages about the output
-    if ( IHttpRequest::isSuccess( response_code ) )
-        msg_Dbg( p_access, "%s %s succeed with a code %d", req_method.c_str(),
-                current_url.c_str(), response_code );
     else
-        msg_Warn( p_access, "Failed to request %s %s with an error code of %d",
-                req_method.c_str(), current_url.c_str(), response_code );
+    {
+        // Read the payload response into the buffer (ostream)
+        struct block_t *block = vlc_http_res_read( resource );
+        while (block != NULL)
+        {
+            if ( IHttpRequest::isSuccess( response_code ) )
+                response->write( (char*) block->p_buffer, block->i_buffer );
+            else
+                error_stream->write( (char*) block->p_buffer, block->i_buffer );
+            content_length += block->i_buffer;
+
+            block_Release(block);
+            block = vlc_http_res_read( resource );
+        }
+
+        // Debug messages about the output
+        if ( IHttpRequest::isSuccess( response_code ) )
+            msg_Dbg( p_access, "%s %s succeed with a code %d",
+                    req_method.c_str(), current_url.c_str(), response_code );
+        else
+            msg_Warn( p_access, "Failed to request %s %s with an error code "
+                    "of %d", req_method.c_str(), current_url.c_str(),
+                    response_code );
+    }
 
     // Invoke the respective callbacks
     if ( cb != nullptr )
