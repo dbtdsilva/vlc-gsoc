@@ -93,6 +93,7 @@ int Open( vlc_object_t *p_this )
     p_access->p_sys = p_sys = new access_sys_t();
     if ( p_sys == nullptr )
         return VLC_ENOMEM;
+    p_sys->authenticated = false;
 
     if ( (err = ParseMRL( p_access )) != VLC_SUCCESS )
         goto error;
@@ -201,6 +202,8 @@ static int GetCredentials( stream_t * p_access )
 static void SaveCredentials( stream_t * p_access )
 {
     access_sys_t *p_sys = (access_sys_t *) p_access->p_sys;
+    if ( !p_sys->authenticated )
+        return;
 
     p_sys->token = p_sys->provider->token();
     p_sys->hints = p_sys->provider->hints();
@@ -211,13 +214,24 @@ static void SaveCredentials( stream_t * p_access )
 
     vlc_credential credentials;
     vlc_credential_init( &credentials, &p_sys->url );
-    vlc_credential_get( &credentials, p_access, NULL, NULL, NULL, NULL );
+    bool found = vlc_credential_get( &credentials, p_access, NULL, NULL, NULL,
+            NULL );
     // Store the data related with the session using the credentials API
     credentials.b_store = !p_sys->memory_keystore;
     credentials.psz_password = serialized_value.c_str();
     if ( !vlc_credential_store( &credentials, p_access ) )
         msg_Warn( p_access, "Failed to store the credentials");
     vlc_credential_clean( &credentials );
+
+    if ( !found )
+    {
+        msg_Dbg( p_access, "%s (new) was authenticated at %s",
+                 p_sys->url.psz_username, p_sys->url.psz_host );
+        std::stringstream ss_user;
+        ss_user << p_sys->url.psz_username << "@" << p_sys->url.psz_host;
+        var_SetString( p_access->obj.libvlc, "cloudstorage-new-auth",
+                ss_user.str().c_str() );
+    }
 }
 
 static int InitProvider( stream_t * p_access )

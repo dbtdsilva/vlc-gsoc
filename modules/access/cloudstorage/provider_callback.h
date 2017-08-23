@@ -48,7 +48,7 @@ public:
         return Status::WaitForAuthorizationCode;
     }
 
-    void done( const cloudstorage::ICloudProvider& provider,
+    void done( const cloudstorage::ICloudProvider&,
                cloudstorage::EitherError<void> error ) override
     {
         // An error occurred
@@ -56,31 +56,12 @@ public:
         {
             msg_Err( p_access, "Authorization Error %d: %s",
                     error.left()->code_, error.left()->description_.c_str() );
+            p_sys->authenticated = false;
         }
         else // No error occurred
         {
-            accepted( provider );
+            p_sys->authenticated = true;
         }
-    }
-
-    void accepted( const cloudstorage::ICloudProvider& provider )
-    {
-        vlc_credential credentials;
-        vlc_credential_init( &credentials, &p_sys->url );
-        bool found = vlc_credential_get( &credentials, p_access,
-                NULL, NULL, NULL, NULL );
-        // Inform about new authentications
-        if ( !found )
-        {
-            msg_Dbg( p_access, "%s (new) was authenticated at %s",
-                     p_sys->url.psz_username, p_sys->url.psz_host );
-            std::stringstream ss_user;
-            ss_user << p_sys->url.psz_username << "@" << p_sys->url.psz_host;
-            var_SetString( p_access->obj.libvlc, "cloudstorage-new-auth",
-                    ss_user.str().c_str() );
-        }
-        vlc_credential_clean( &credentials );
-        msg_Dbg( p_access, "Accepted credentials!");
     }
 
 private:

@@ -44,6 +44,7 @@ struct access_sys_t
     char *alloc_path, *alloc_username;
 
     // Loaded on Open
+    bool authenticated;
     cloudstorage::ICloudProvider::Pointer provider;
     std::string token;
     cloudstorage::ICloudProvider::Hints hints;
