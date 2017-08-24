@@ -183,48 +183,6 @@ static int InsertNewUserInput( services_discovery_t * p_sd, input_item_t* item )
     return VLC_SUCCESS;
 }
 
-static char * GenerateUserIdentifier( services_discovery_t * p_sd,
-        const char * provider)
-{
-    // This function is supposed to get replaced when libcloudstorage supports
-    // to obtain user data, like its username!
-    std::string mrl_base = "cloudstorage://";
-    mrl_base += provider;
-    vlc_url_t dummy_url;
-    vlc_UrlParse( &dummy_url, mrl_base.c_str() );
-    vlc_credential cred;
-    vlc_credential_init( &cred, &dummy_url );
-    vlc_credential_get( &cred, p_sd, NULL, NULL, NULL, NULL );
-
-    // Find the last generated identifier for the Association MRL
-    // MRL in the item will contain a predefined user.
-    unsigned int id = 1;
-    bool name_exists;
-    char * gen_user;
-    do
-    {
-        if ( asprintf( &gen_user, "user%d", id ) < 0 )
-            return nullptr;
-        name_exists = false;
-        for ( unsigned int i = 0; i < cred.i_entries_count; i++ )
-        {
-            if ( strcmp( cred.p_entries[i].ppsz_values[KEY_USER],
-                         gen_user ) == 0)
-            {
-                id += 1;
-                name_exists = true;
-                free( gen_user );
-                break;
-            }
-        }
-    } while ( name_exists );
-
-    vlc_credential_clean( &cred );
-    vlc_UrlClean( &dummy_url );
-
-    return gen_user;
-}
-
 static int CallbackAuthentication( vlc_object_t *p_this, char const *psz_var,
                      vlc_value_t oldval, vlc_value_t newval, void *p_data )
 {
@@ -324,4 +282,47 @@ provider_item_t::~provider_item_t()
         input_Stop( thread );
         input_Close( thread );
     }
+}
+
+
+static char * GenerateUserIdentifier( services_discovery_t * p_sd,
+        const char * provider)
+{
+    // This function is supposed to get replaced when libcloudstorage supports
+    // to obtain user data, like its username!
+    std::string mrl_base = "cloudstorage://";
+    mrl_base += provider;
+    vlc_url_t dummy_url;
+    vlc_UrlParse( &dummy_url, mrl_base.c_str() );
+    vlc_credential cred;
+    vlc_credential_init( &cred, &dummy_url );
+    vlc_credential_get( &cred, p_sd, NULL, NULL, NULL, NULL );
+
+    // Find the last generated identifier for the Association MRL
+    // MRL in the item will contain a predefined user.
+    unsigned int id = 1;
+    bool name_exists;
+    char * gen_user;
+    do
+    {
+        if ( asprintf( &gen_user, "user%d", id ) < 0 )
+            return nullptr;
+        name_exists = false;
+        for ( unsigned int i = 0; i < cred.i_entries_count; i++ )
+        {
+            if ( strcmp( cred.p_entries[i].ppsz_values[KEY_USER],
+                         gen_user ) == 0)
+            {
+                id += 1;
+                name_exists = true;
+                free( gen_user );
+                break;
+            }
+        }
+    } while ( name_exists );
+
+    vlc_credential_clean( &cred );
+    vlc_UrlClean( &dummy_url );
+
+    return gen_user;
 }
