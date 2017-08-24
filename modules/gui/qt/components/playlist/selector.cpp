@@ -707,6 +707,8 @@ void PLSelector::cloudProviderAdd( PLSelItem * item )
     providers_box->addItem( "Yandex Disk", "yandex" );
     providers_box->addItem( "OwnCloud", "owncloud" );
     // Disabled providers - "youtube", "mega", "amazon"
+    QLabel *label_alias = new QLabel( "Alias for the provider", dialog );
+    QLineEdit *text_edit = new QLineEdit(dialog);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(
             QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -716,6 +718,8 @@ void PLSelector::cloudProviderAdd( PLSelItem * item )
 
     vbox->addWidget(label);
     vbox->addWidget(providers_box);
+    vbox->addWidget(label_alias);
+    vbox->addWidget(text_edit);
     vbox->addWidget(buttonBox);
     dialog->setLayout(vbox);
 
