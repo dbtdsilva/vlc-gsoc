@@ -707,8 +707,13 @@ void PLSelector::cloudProviderAdd( PLSelItem * item )
     providers_box->addItem( "Yandex Disk", "yandex" );
     providers_box->addItem( "OwnCloud", "owncloud" );
     // Disabled providers - "youtube", "mega", "amazon"
-    QLabel *label_alias = new QLabel( "Alias for the provider", dialog );
-    QLineEdit *text_edit = new QLineEdit(dialog);
+    QLabel *label_alias = new QLabel( "Alias for the provider (optional)",
+            dialog );
+    QLineEdit *alias = new QLineEdit(dialog);
+    alias->setPlaceholderText( "E.g. music" );
+    QLabel *label_alias_description = new QLabel( "The alias is the name that "
+            "will appear on the sidebar as \"alias@provider\".\nFor example: "
+            "music@dropbox", dialog );
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(
             QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -719,20 +724,27 @@ void PLSelector::cloudProviderAdd( PLSelItem * item )
     vbox->addWidget(label);
     vbox->addWidget(providers_box);
     vbox->addWidget(label_alias);
-    vbox->addWidget(text_edit);
+    vbox->addWidget(alias);
+    vbox->addWidget(label_alias_description);
     vbox->addWidget(buttonBox);
     dialog->setLayout(vbox);
+    providers_box->setFocus();
 
     int result = dialog->exec();
     QString provider = providers_box->itemData(providers_box->currentIndex())
             .toString();
+    QString user = alias->text();
     if ( result != QDialog::Accepted || provider.isEmpty() )
         return;
 
     //to load the SD in case it's not loaded
     setSource( item->innerTree()->parent() );
+    QString request("ADD:");
+    if ( user.isEmpty() )
+        request += provider;
+    else
+        request += user + "@" + provider;
 
-    QString request( "ADD:" + provider );
     var_SetString( THEPL, "cloudstorage-request", qtu( request ) );
 }
 
