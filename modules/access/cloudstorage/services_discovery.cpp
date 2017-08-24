@@ -147,9 +147,11 @@ static input_item_t * GetNewUserInput( services_discovery_t * p_sd,
 
     if ( std::find( p_sys->providers_list.begin(),
                     p_sys->providers_list.end(),
-                    provider ) ==
-            p_sys->providers_list.end() )
+                    provider ) == p_sys->providers_list.end() )
+    {
+        msg_Err( p_sd, "Provider (%s) specified does not exist!", provider );
         return nullptr;
+    }
 
     char *user_with_provider;
     if ( asprintf( &user_with_provider, "%s@%s", user, provider ) < 0 )
