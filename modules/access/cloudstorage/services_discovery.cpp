@@ -229,10 +229,24 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
         // Delete the item if there is a pending one
         if ( p_sys->auth_item != nullptr )
             delete p_sys->auth_item;
-        // Generate the user and spawn the authorization
-        char* gen_user = GenerateUserIdentifier( p_sd, request.c_str() );
-        input_item_t *item = GetNewUserInput( p_sd, gen_user,
-                request.c_str() );
+
+        // Generate the user or retrieve the one inserted
+        const char* user;
+        const char* provider;
+        size_t sep = request.find_last_of("@");
+        if ( sep == std::string::npos )
+        {   // format: ADD:<provider>
+            user = GenerateUserIdentifier( p_sd, request.c_str() );
+            provider = request.c_str();
+        }
+        else
+        {   // format: ADD:<user>@<provider>
+            user = request.substr( 0, sep ).c_str();
+            provider = request.substr( sep + 1 ).c_str();
+        }
+
+        // Spawn authorization
+        input_item_t *item = GetNewUserInput( p_sd, user, provider );
         input_thread_t *thread = input_CreateAndStart( p_sd, item, NULL);
         p_sys->auth_item = new provider_item_t(item, thread);
         p_sys->auth_progress = true;
