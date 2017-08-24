@@ -39,7 +39,7 @@ static input_item_t * GetNewUserInput( services_discovery_t *, const char *,
                      const char * );
 static int InsertNewUserInput( services_discovery_t *, input_item_t * );
 static char * GenerateUserIdentifier( services_discovery_t *, const char * );
-static int CallbackNewAuthentication( vlc_object_t *, char const *,
+static int CallbackAuthentication( vlc_object_t *, char const *,
                      vlc_value_t, vlc_value_t, void * );
 static int CallbackRequestedFromUI( vlc_object_t *, char const *,
                      vlc_value_t, vlc_value_t, void * );
@@ -63,11 +63,11 @@ int SDOpen( vlc_object_t *p_this )
 
     // This callback represents when an user was sucessfully authenticated, so
     // it needs to be added to the services_discovery items
-    if ( var_Create( p_sd->obj.libvlc, "cloudstorage-new-auth",
+    if ( var_Create( p_sd->obj.libvlc, "cloudstorage-auth",
             VLC_VAR_STRING) != VLC_SUCCESS )
         goto error;
-    var_AddCallback( p_sd->obj.libvlc, "cloudstorage-new-auth",
-            CallbackNewAuthentication, p_sd );
+    var_AddCallback( p_sd->obj.libvlc, "cloudstorage-auth",
+            CallbackAuthentication, p_sd );
     // This callback is invoked when the UI requests some actions, like adding
     // a new provider to the list
     if ( var_Create( p_sd->obj.parent, "cloudstorage-request",
@@ -89,11 +89,13 @@ void SDClose( vlc_object_t *p_this )
 
     for ( auto& p_item_root : p_sys->providers_items )
         delete p_item_root.second;
-    if (p_sys->auth_item != nullptr)
+    for ( auto& p_item_root : p_sys->providers_stopped )
+        delete p_item_root;
+    if ( p_sys->auth_item != nullptr )
         delete p_sys->auth_item;
 
-    var_DelCallback( p_sd->obj.libvlc, "cloudstorage-new-auth",
-            CallbackNewAuthentication, p_sd );
+    var_DelCallback( p_sd->obj.libvlc, "cloudstorage-auth",
+            CallbackAuthentication, p_sd );
     var_DelCallback( p_sd->obj.parent, "cloudstorage-request",
             CallbackRequestedFromUI, p_sd);
     delete p_sys;
@@ -225,18 +227,25 @@ static char * GenerateUserIdentifier( services_discovery_t * p_sd,
     return gen_user;
 }
 
-static int CallbackNewAuthentication( vlc_object_t *p_this, char const *psz_var,
+static int CallbackAuthentication( vlc_object_t *p_this, char const *psz_var,
                      vlc_value_t oldval, vlc_value_t newval, void *p_data )
 {
-    (void) oldval; (void) p_this; (void) psz_var; (void) newval;
-    // Callback invoked when a new provider was sucessfully authenticated
-
+    (void) oldval; (void) p_this; (void) psz_var;
+    // Callback invoked when authentication is successful or not
     services_discovery_t *p_sd = (services_discovery_t *) p_data;
     services_discovery_sys_t *p_sys = (services_discovery_sys_t *) p_sd->p_sys;
 
-    services_discovery_AddItem( p_sd, p_sys->auth_item->item  );
-    p_sys->providers_items.insert( std::make_pair(
-        p_sys->auth_item->item->psz_name, p_sys->auth_item ) );
+    if ( strcmp( newval.psz_string, "ABORT" ) != 0 )
+    {
+        services_discovery_AddItem( p_sd, p_sys->auth_item->item  );
+        p_sys->providers_items.insert( std::make_pair(
+            p_sys->auth_item->item->psz_name, p_sys->auth_item ) );
+    }
+    else
+    {
+        input_Stop( p_sys->auth_item->thread );
+        p_sys->providers_stopped.push_back( p_sys->auth_item );
+    }
 
     p_sys->auth_item = nullptr;
     p_sys->auth_progress = false;

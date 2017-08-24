@@ -42,7 +42,10 @@ public:
             "Authentication required", "This function requires login through a "
             "website and will open a webbrowser." );
         if ( i_ret != 1 )
+        {
+            var_SetString( p_access->obj.libvlc, "cloudstorage-auth", "ABORT" );
             return Status::None;
+        }
         msg_Info( p_access, "User ConsentRequired at : %s",
                 authorize_url.c_str() );
         return Status::WaitForAuthorizationCode;
@@ -54,6 +57,7 @@ public:
         // An error occurred
         if ( error.left() )
         {
+            var_SetString( p_access->obj.libvlc, "cloudstorage-auth", "ABORT" );
             msg_Err( p_access, "Authorization Error %d: %s",
                     error.left()->code_, error.left()->description_.c_str() );
             p_sys->authenticated = false;

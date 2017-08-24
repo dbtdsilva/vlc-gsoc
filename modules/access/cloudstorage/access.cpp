@@ -228,8 +228,9 @@ static void SaveCredentials( stream_t * p_access )
         msg_Dbg( p_access, "%s (new) was authenticated at %s",
                  p_sys->url.psz_username, p_sys->url.psz_host );
         std::stringstream ss_user;
-        ss_user << p_sys->url.psz_username << "@" << p_sys->url.psz_host;
-        var_SetString( p_access->obj.libvlc, "cloudstorage-new-auth",
+        ss_user << "USER:" << p_sys->url.psz_username << "@" <<
+                p_sys->url.psz_host;
+        var_SetString( p_access->obj.libvlc, "cloudstorage-auth",
                 ss_user.str().c_str() );
     }
 }

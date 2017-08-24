@@ -47,6 +47,7 @@ struct services_discovery_sys_t
 {
     bool auth_progress;
     std::map< std::string, provider_item_t * > providers_items;
+    std::vector< provider_item_t * > providers_stopped;
     std::vector< std::string > providers_list;
     provider_item_t * auth_item;
 };
