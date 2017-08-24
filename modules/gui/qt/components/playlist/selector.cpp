@@ -42,6 +42,8 @@
 #include <QPalette>
 #include <QScrollBar>
 #include <QResource>
+#include <QComboBox>
+#include <QDialogButtonBox>
 #include <assert.h>
 
 #include <vlc_playlist.h>
@@ -691,23 +693,39 @@ void PLSelector::podcastRemove( PLSelItem* item )
 
 void PLSelector::cloudProviderAdd( PLSelItem * item )
 {
+    QDialog *dialog = new QDialog( this );
+    dialog->setWindowTitle( "Cloud Storage Provider" );
+    QVBoxLayout *vbox = new QVBoxLayout();
+    QLabel *label = new QLabel( "Select the provider to authenticate", d );
+
+    QComboBox *providers_box = new QComboBox();
     QStringList items;
     items << "google" << "onedrive" << "dropbox" << "box";
     items << "amazons3" << "yandex" << "owncloud";
+    providers_box->addItems( items );
     // Disabled providers
     //items << "youtube" << "mega" << "amazon";
 
-    bool ok;
-    QString provider = QInputDialog::getItem( this,
-                           qtr( "Cloud Storage Provider" ),
-                           qtr( "Select the provider to authenticate" ),
-                           items, 0, false, &ok);
-    if( !ok || provider.isEmpty() ) return;
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(
+            QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+
+    QObject::connect(buttonBox, SIGNAL(accepted()), d, SLOT(accept()));
+    QObject::connect(buttonBox, SIGNAL(rejected()), d, SLOT(reject()));
+
+    vbox->addWidget(label);
+    vbox->addWidget(providers_box);
+    vbox->addWidget(buttonBox);
+    dialog->setLayout(vbox);
+
+    int result = dialog->exec();
+    QString provider = providers_box->currentText();
+    if ( result != QDialog::Accepted || provider.isEmpty() )
+        return;
 
     //to load the SD in case it's not loaded
     setSource( item->innerTree()->parent() );
 
-    QString request("ADD:" + provider);
+    QString request( "ADD:" + provider );
     var_SetString( THEPL, "cloudstorage-request", qtu( request ) );
 }
 
