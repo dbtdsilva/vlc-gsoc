@@ -696,21 +696,23 @@ void PLSelector::cloudProviderAdd( PLSelItem * item )
     QDialog *dialog = new QDialog( this );
     dialog->setWindowTitle( "Cloud Storage Provider" );
     QVBoxLayout *vbox = new QVBoxLayout();
-    QLabel *label = new QLabel( "Select the provider to authenticate", d );
+    QLabel *label = new QLabel( "Select the provider to authenticate", dialog );
 
     QComboBox *providers_box = new QComboBox();
-    QStringList items;
-    items << "google" << "onedrive" << "dropbox" << "box";
-    items << "amazons3" << "yandex" << "owncloud";
-    providers_box->addItems( items );
-    // Disabled providers
-    //items << "youtube" << "mega" << "amazon";
+    providers_box->addItem( "Google Drive", "google" );
+    providers_box->addItem( "Microsoft OneDrive", "onedrive" );
+    providers_box->addItem( "Dropbox", "dropbox" );
+    providers_box->addItem( "Box", "box" );
+    providers_box->addItem( "Amazon S3", "amazons3" );
+    providers_box->addItem( "Yandex Disk", "yandex" );
+    providers_box->addItem( "OwnCloud", "owncloud" );
+    // Disabled providers - "youtube", "mega", "amazon"
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(
             QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
-    QObject::connect(buttonBox, SIGNAL(accepted()), d, SLOT(accept()));
-    QObject::connect(buttonBox, SIGNAL(rejected()), d, SLOT(reject()));
+    QObject::connect(buttonBox, SIGNAL(accepted()), dialog, SLOT(accept()));
+    QObject::connect(buttonBox, SIGNAL(rejected()), dialog, SLOT(reject()));
 
     vbox->addWidget(label);
     vbox->addWidget(providers_box);
@@ -718,7 +720,8 @@ void PLSelector::cloudProviderAdd( PLSelItem * item )
     dialog->setLayout(vbox);
 
     int result = dialog->exec();
-    QString provider = providers_box->currentText();
+    QString provider = providers_box->itemData(providers_box->currentIndex())
+            .toString();
     if ( result != QDialog::Accepted || provider.isEmpty() )
         return;
 
