@@ -89,8 +89,6 @@ void SDClose( vlc_object_t *p_this )
 
     for ( auto& p_item_root : p_sys->providers_items )
         delete p_item_root.second;
-    for ( auto& p_item_root : p_sys->providers_stopped )
-        delete p_item_root;
     if ( p_sys->auth_item != nullptr )
         delete p_sys->auth_item;
 
@@ -240,14 +238,9 @@ static int CallbackAuthentication( vlc_object_t *p_this, char const *psz_var,
         services_discovery_AddItem( p_sd, p_sys->auth_item->item  );
         p_sys->providers_items.insert( std::make_pair(
             p_sys->auth_item->item->psz_name, p_sys->auth_item ) );
-    }
-    else
-    {
-        input_Stop( p_sys->auth_item->thread );
-        p_sys->providers_stopped.push_back( p_sys->auth_item );
+        p_sys->auth_item = nullptr;
     }
 
-    p_sys->auth_item = nullptr;
     p_sys->auth_progress = false;
     return VLC_SUCCESS;
 }
@@ -275,6 +268,9 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
             return VLC_EGENERIC;
         }
 
+        // Delete the item if there is a pending one
+        if ( p_sys->auth_item != nullptr )
+            delete p_sys->auth_item;
         // Generate the user and spawn the authorization
         char* gen_user = GenerateUserIdentifier( p_sd, request.c_str() );
         input_item_t *item = GetNewUserInput( p_sd, gen_user,

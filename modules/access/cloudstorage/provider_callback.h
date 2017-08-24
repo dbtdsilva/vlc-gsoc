@@ -41,6 +41,7 @@ public:
         int i_ret = vlc_spawn_browser( p_access, authorize_url.c_str(),
             "Authentication required", "This function requires login through a "
             "website and will open a webbrowser." );
+        // If the user does not want to spawn the browser, close the auth
         if ( i_ret != 1 )
         {
             var_SetString( p_access->obj.libvlc, "cloudstorage-auth", "ABORT" );
