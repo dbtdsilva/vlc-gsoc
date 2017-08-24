@@ -154,6 +154,16 @@ static input_item_t * GetNewUserInput( services_discovery_t * p_sd,
     char *user_with_provider;
     if ( asprintf( &user_with_provider, "%s@%s", user, provider ) < 0 )
         return nullptr;
+
+    if ( p_sys->providers_items.find( user_with_provider ) !=
+            p_sys->providers_items.end() )
+    {
+        msg_Err( p_sd, "The user %s already exists, please specify a different "
+                 "name", user_with_provider );
+        free( user_with_provider );
+        return nullptr;
+    }
+
     char *uri;
     if ( asprintf(&uri, "cloudstorage://%s/", user_with_provider ) < 0 )
     {
@@ -247,6 +257,8 @@ static int CallbackRequestedFromUI( vlc_object_t *p_this, char const *psz_var,
 
         // Spawn authorization
         input_item_t *item = GetNewUserInput( p_sd, user, provider );
+        if ( item == nullptr )
+            return VLC_EGENERIC;
         input_thread_t *thread = input_CreateAndStart( p_sd, item, NULL);
         p_sys->auth_item = new provider_item_t(item, thread);
         p_sys->auth_progress = true;
