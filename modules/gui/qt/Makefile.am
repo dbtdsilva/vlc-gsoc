@@ -346,7 +346,6 @@ libqt_plugin_la_RES = \
 	gui/qt/pixmaps/playlist/shuffle_on.png \
 	gui/qt/pixmaps/playlist/dropzone.png \
 	gui/qt/pixmaps/playlist/sidebar-icons/capture.png \
-	gui/qt/pixmaps/playlist/sidebar-icons/cloud.png \
 	gui/qt/pixmaps/playlist/sidebar-icons/pictures.png \
 	gui/qt/pixmaps/playlist/sidebar-icons/disc.png \
 	gui/qt/pixmaps/playlist/sidebar-icons/playlist.png \
