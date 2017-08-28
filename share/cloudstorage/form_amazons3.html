@@ -2,7 +2,10 @@
 function submitData() {
   var code = encodeURIComponent($('#inputAccessKey').val() + '@' + $('#inputRegion').val() + '##' + $('#inputSecretKey').val());
   var state = new URL(location.href).searchParams.get("state");
-  window.location.href = "/auth?code=" + code + "&state=" + state;
+  var location_splitted = location.pathname.split("/");
+  location_splitted.pop(); // get previous path
+  var previous_path = location_splitted.join("/");
+  window.location.href = previous_path + "?code=" + code + "&state=" + state;
   return false;
 };
 </script>
